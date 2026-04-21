@@ -1,0 +1,224 @@
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  LayoutDashboard, Users, Mic, FileText, Shield, Settings, LogOut,
+  Stethoscope, ClipboardList, TrendingUp, Calculator,
+  ShieldCheck, ClipboardCheck, AlertCircle, Building2, Menu,
+  Hospital, BookOpen, Plus, Lock, BarChart3, User, Sun, Moon, Archive
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/contexts/ThemeContext";
+import { ChevronRight } from "lucide-react";
+
+const dashboardItem = { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" };
+
+const internacaoNavItems = [
+  { label: "Nova Gravação", icon: Mic, path: "/consultations/new" },
+  { label: "Minhas Gravações", icon: Archive, path: "/gravacoes" },
+  { label: "Atendimentos", icon: ClipboardList, path: "/consultations" },
+  { label: "Pacientes", icon: Users, path: "/patients" },
+];
+
+const ambulatoryNavItems = [
+  { label: "Dashboard", icon: Hospital, path: "/ambulatory" },
+  { label: "Nova Consulta", icon: Plus, path: "/ambulatory/new" },
+];
+
+const indicadoresNavItems = [
+  { label: "Dashboard", icon: TrendingUp, path: "/indicators" },
+  { label: "Dashboard IPSG", icon: ShieldCheck, path: "/ipsg" },
+  { label: "Auditorias", icon: ClipboardCheck, path: "/ipsg/audits" },
+  { label: "Planos de Ação", icon: AlertCircle, path: "/ipsg/action-plans" },
+];
+
+const adminNavItems = [
+  { label: "Métricas de Uso", icon: BarChart3, path: "/admin/analytics" },
+  { label: "Templates", icon: FileText, path: "/admin/templates" },
+  { label: "Protocolos", icon: Stethoscope, path: "/admin/protocols" },
+  { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
+  { label: "Base Conhecimento", icon: BookOpen, path: "/admin/knowledge" },
+  { label: "Indicadores", icon: Calculator, path: "/admin/indicators" },
+  { label: "Enfermarias", icon: Building2, path: "/admin/wards" },
+  { label: "Config. IPSG", icon: ShieldCheck, path: "/admin/ipsg" },
+  { label: "Logs de Coleta", icon: ClipboardList, path: "/admin/collection-logs" },
+  { label: "Gestão LGPD", icon: Lock, path: "/admin/lgpd" },
+  { label: "Usuários", icon: Shield, path: "/admin/users" },
+  { label: "Departamentos", icon: Settings, path: "/admin/departments" },
+  { label: "Scripts de Consulta", icon: ClipboardList, path: "/admin/scripts" },
+  { label: "Manual Admin", icon: BookOpen, path: "/admin/manual" },
+];
+
+const settingsNavItems = [
+  { label: "Meu Perfil", icon: User, path: "/profile" },
+  { label: "Privacidade & LGPD", icon: Lock, path: "/settings/lgpd" },
+];
+
+function NavButton({ item, isActive, onClick }: { item: typeof dashboardItem; isActive: boolean; onClick: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      className={cn(
+        "w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-10 transition-all",
+        isActive && "bg-sidebar-primary text-sidebar-primary-foreground font-semibold hover:bg-sidebar-primary/90"
+      )}
+      onClick={onClick}
+    >
+      <item.icon className={cn("w-6 h-6 flex-shrink-0", isActive && "text-sidebar-primary-foreground")} />
+      <span>{item.label}</span>
+    </Button>
+  );
+}
+
+function SectionGroup({ label, children, defaultOpen = true }: { label: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(() => {
+    const stored = localStorage.getItem(`sidebar-${label}`);
+    return stored !== null ? stored === "true" : defaultOpen;
+  });
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    localStorage.setItem(`sidebar-${label}`, String(next));
+  };
+
+  return (
+    <Collapsible open={open} onOpenChange={toggle}>
+      <Separator className="bg-sidebar-border my-3" />
+      <CollapsibleTrigger className="flex items-center gap-1 w-full px-3 mb-2 group">
+        <ChevronRight className={cn("w-3 h-3 text-sidebar-foreground/40 transition-transform", open && "rotate-90")} />
+        <span className="text-xs uppercase text-sidebar-foreground/60 tracking-wider font-medium">{label}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-1">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { user, profile, isAdmin, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const initials = profile?.full_name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+
+  const handleNav = (path: string) => {
+    navigate(path);
+    onNavigate?.();
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-3 px-4 py-5">
+        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
+          <Mic className="w-4 h-4 text-white" />
+        </div>
+        <span className="font-bold text-lg tracking-tight font-['Space_Grotesk'] bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          VoiceHealth
+        </span>
+      </div>
+
+      <Separator className="bg-sidebar-border" />
+
+      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        <NavButton item={dashboardItem} isActive={isActive(dashboardItem.path)} onClick={() => handleNav(dashboardItem.path)} />
+
+        <SectionGroup label="Internacao">
+          {internacaoNavItems.map((item) => (
+            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
+          ))}
+        </SectionGroup>
+
+        <SectionGroup label="Ambulatorio">
+          {ambulatoryNavItems.map((item) => (
+            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
+          ))}
+        </SectionGroup>
+
+        <SectionGroup label="Indicadores" defaultOpen={false}>
+          {indicadoresNavItems.map((item) => (
+            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
+          ))}
+        </SectionGroup>
+
+        <SectionGroup label="Configuracoes" defaultOpen={false}>
+          {settingsNavItems.map((item) => (
+            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
+          ))}
+        </SectionGroup>
+
+        {isAdmin && (
+          <SectionGroup label="Administracao" defaultOpen={false}>
+            {adminNavItems.map((item) => (
+              <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
+            ))}
+          </SectionGroup>
+        )}
+      </nav>
+
+      <Separator className="bg-sidebar-border" />
+
+      <div className="flex items-center gap-3 px-3 py-4">
+        <button onClick={() => handleNav("/profile")} className="flex items-center gap-3 flex-1 min-w-0 rounded-md hover:bg-sidebar-accent p-1 transition-colors" aria-label="Ir para perfil">
+          <Avatar className="w-8 h-8 flex-shrink-0">
+            <AvatarImage src={profile?.avatar_url || ""} />
+            <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-medium truncate">{profile?.full_name || "Usuário"}</p>
+            <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
+          </div>
+        </button>
+        <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-sidebar-foreground/50 hover:text-sidebar-foreground flex-shrink-0" aria-label={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}>
+          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </Button>
+        <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground/50 hover:text-destructive flex-shrink-0" aria-label="Sair do sistema">
+          <LogOut className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function MobileSidebarTrigger() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menu de navegacao">
+          <Menu className="w-5 h-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72 p-0 !bg-sidebar-background text-sidebar-foreground border-sidebar-border">
+        <SidebarContent onNavigate={() => setOpen(false)} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function AppSidebar() {
+  const isMobile = useIsMobile();
+  if (isMobile) return null;
+
+  return (
+    <aside role="navigation" aria-label="Navegacao principal" className="hidden md:flex flex-col h-screen w-64 bg-sidebar-background text-sidebar-foreground border-r border-sidebar-border flex-shrink-0">
+      <SidebarContent />
+    </aside>
+  );
+}

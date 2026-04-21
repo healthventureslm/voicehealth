@@ -1,0 +1,1 @@
+ALTER TABLE public.consultations ADD COLUMN selected_template_id uuid REFERENCES public.report_templates(id);

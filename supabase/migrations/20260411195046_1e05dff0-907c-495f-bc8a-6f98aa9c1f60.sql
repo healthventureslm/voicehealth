@@ -1,0 +1,2 @@
+ALTER TABLE public.consultations DROP CONSTRAINT IF EXISTS consultations_status_check;
+ALTER TABLE public.consultations ADD CONSTRAINT consultations_status_check CHECK (status = ANY (ARRAY['recording','transcribing','transcribed','editing','generating','completed','error']));
