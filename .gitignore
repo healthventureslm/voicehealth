@@ -16,6 +16,15 @@ dist-ssr
 .env
 .env.*
 
+# Migration backup (LGPD - contains patient data)
+migration_backup/
+
+# Supabase CLI cache
+supabase/.temp/
+
+# Deno lockfile (only used by migration scripts)
+deno.lock
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

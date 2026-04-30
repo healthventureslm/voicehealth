@@ -2,9 +2,8 @@
  * Multi-provider AI Gateway with circuit breaker and fallback.
  *
  * Priority order:
- *   1. Lovable gateway (ai.gateway.lovable.dev) — free, default
- *   2. Google AI (generativelanguage.googleapis.com) — direct Gemini
- *   3. OpenAI (api.openai.com) — fallback
+ *   1. OpenAI (api.openai.com) — default
+ *   2. Google AI (generativelanguage.googleapis.com) — direct Gemini fallback
  *
  * Circuit breaker: after 3 consecutive failures on a provider,
  * skip it for 60 seconds before retrying.
@@ -19,7 +18,7 @@ interface AiRequestOptions {
   model?: string;
   messages: ChatMessage[];
   stream?: boolean;
-  /** If true, includes audio content — only Lovable and Gemini support this */
+  /** If true, includes audio content — only Gemini supports this */
   hasAudio?: boolean;
 }
 
@@ -73,11 +72,6 @@ function recordSuccess(provider: string): void {
 // ── Model mapping per provider ──
 
 const MODEL_MAP: Record<string, Record<string, string>> = {
-  lovable: {
-    "google/gemini-2.5-pro": "google/gemini-2.5-pro",
-    "google/gemini-2.5-flash": "google/gemini-2.5-flash",
-    "google/gemini-2.5-flash-lite": "google/gemini-2.5-flash-lite",
-  },
   google: {
     "google/gemini-2.5-pro": "gemini-2.5-pro-preview-05-06",
     "google/gemini-2.5-flash": "gemini-2.5-flash-preview-04-17",
@@ -95,24 +89,6 @@ function getModelForProvider(provider: string, requestedModel: string): string {
 }
 
 // ── Provider implementations ──
-
-async function callLovable(opts: AiRequestOptions): Promise<Response> {
-  const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key) throw new Error("LOVABLE_API_KEY not set");
-
-  return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: getModelForProvider("lovable", opts.model || "google/gemini-2.5-pro"),
-      messages: opts.messages,
-      ...(opts.stream ? { stream: true } : {}),
-    }),
-  });
-}
 
 async function callGoogleDirect(opts: AiRequestOptions): Promise<Response> {
   const key = Deno.env.get("GOOGLE_AI_API_KEY");
@@ -208,13 +184,11 @@ type Provider = { name: string; call: (opts: AiRequestOptions) => Promise<Respon
 
 export async function aiComplete(opts: AiRequestOptions): Promise<Response> {
   // Build provider chain — audio requests can't go to OpenAI
-  const providers: Provider[] = [
-    { name: "lovable", call: callLovable },
-    { name: "google", call: callGoogleDirect },
-  ];
+  const providers: Provider[] = [];
   if (!opts.hasAudio) {
     providers.push({ name: "openai", call: callOpenAI });
   }
+  providers.push({ name: "google", call: callGoogleDirect });
 
   let lastError: Error | null = null;
   let lastStatus = 500;
