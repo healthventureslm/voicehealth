@@ -1,3 +1,19 @@
-// Hooks de query foram apagados na Fase 1 do rebuild.
-// Voltam adaptados na Fase 2 — quando o fluxo clínico for reconstruído.
-export {};
+export {
+  usePatients,
+  usePatient,
+  useCreatePatient,
+  useUpdatePatient,
+  useTransferPatient,
+  usePatientWardHistory,
+} from "./usePatients";
+export { useWards, useMyWards } from "./useWards";
+export {
+  useConsultations,
+  useConsultation,
+  useCreateConsultation,
+  useUpdateConsultation,
+  useAddenda,
+  useCreateAddendum,
+  useClinicalReports,
+} from "./useConsultations";
+export { useTemplates } from "./useTemplates";

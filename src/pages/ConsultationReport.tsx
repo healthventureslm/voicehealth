@@ -1,2 +1,166 @@
-import { ComingSoon } from "@/components/ComingSoon";
-export default function ConsultationReport() { return <ComingSoon title="Relatório da Consulta" />; }
+import { useNavigate, useParams } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import {
+  useConsultation, useClinicalReports, useAddenda,
+} from "@/hooks/queries";
+import { AddendumDialog } from "@/components/consultation/AddendumDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, FileText, Lock, Mic, History } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+
+const STATUS_LABELS: Record<string, string> = {
+  recording: "Gravando",
+  transcribing: "Transcrevendo",
+  transcribed: "Transcrita",
+  editing: "Editando",
+  completed: "Concluída",
+};
+
+export default function ConsultationReport() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { data: consultation, isLoading } = useConsultation(id);
+  const { data: reports } = useClinicalReports(id);
+  const { data: addenda } = useAddenda(id);
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="p-6 max-w-4xl mx-auto">Carregando…</div>
+      </AppLayout>
+    );
+  }
+
+  if (!consultation) {
+    return (
+      <AppLayout>
+        <div className="p-6 max-w-4xl mx-auto">
+          <p>Atendimento não encontrado ou sem permissão.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const c: any = consultation;
+  const latestReport = (reports ?? [])[0];
+
+  return (
+    <AppLayout>
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+        </Button>
+
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">
+              Atendimento — {c.patient?.full_name ?? "—"}
+            </h1>
+            <div className="text-sm text-muted-foreground space-x-3 mt-1">
+              <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+              {c.ward?.name && <span>· {c.ward.name}</span>}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="outline">{STATUS_LABELS[c.status] ?? c.status}</Badge>
+              {c.locked_at && (
+                <Badge variant="secondary" className="gap-1">
+                  <Lock className="w-3 h-3" /> Bloqueada para edição
+                </Badge>
+              )}
+            </div>
+          </div>
+          {!c.locked_at && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/consultations/${c.id}/edit`)}
+              className="gap-2"
+            >
+              Editar
+            </Button>
+          )}
+        </div>
+
+        {c.locked_at && (
+          <Card className="border-yellow-500/30 bg-yellow-500/5">
+            <CardContent className="py-4 text-sm">
+              Este atendimento foi bloqueado em{" "}
+              <strong>{new Date(c.locked_at).toLocaleString("pt-BR")}</strong>{" "}
+              porque o paciente foi transferido para outro setor. Você ainda pode adicionar
+              observações (adendos), que ficam permanentemente registradas com seu nome
+              e timestamp.
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Relatório clínico */}
+        {latestReport ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                Relatório clínico (v{latestReport.version})
+              </CardTitle>
+              {(reports ?? []).length > 1 && (
+                <span className="text-xs text-muted-foreground">
+                  {reports!.length} versões
+                </span>
+              )}
+            </CardHeader>
+            <CardContent>
+              <article className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{latestReport.content}</ReactMarkdown>
+              </article>
+            </CardContent>
+          </Card>
+        ) : c.edited_transcription || c.raw_transcription ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mic className="w-5 h-5 text-primary" />
+                Transcrição
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm">
+                {c.edited_transcription || c.raw_transcription}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Adendos */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              Observações posteriores
+            </CardTitle>
+            <AddendumDialog consultationId={c.id} />
+          </CardHeader>
+          <CardContent>
+            {(addenda ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Nenhum adendo registrado.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {(addenda ?? []).map((a: any) => (
+                  <div key={a.id} className="border-l-2 border-primary/30 pl-3 py-2">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {a.author?.full_name ?? "—"} ·{" "}
+                      <span className="capitalize">{a.author_role_at_time}</span>{" "}
+                      · {new Date(a.created_at).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap">{a.content}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}
