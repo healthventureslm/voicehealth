@@ -34,3 +34,9 @@ export {
   useUpdateTemplate,
   useDeleteTemplate,
 } from "./useAdminTemplates";
+export {
+  useHospitals,
+  useCreateHospital,
+  useUpdateHospital,
+  useGlobalStats,
+} from "./useHospitals";

@@ -50,6 +50,11 @@ const IpsgActionPlans = lazy(() => import("./pages/ipsg/IpsgActionPlans"));
 const Profile = lazy(() => import("./pages/Profile"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
+// Super admin (Health Ventures)
+const SuperAdminHome = lazy(() => import("./pages/superadmin/SuperAdminHome"));
+const SuperAdminHospitals = lazy(() => import("./pages/superadmin/SuperAdminHospitals"));
+const SuperAdminTemplates = lazy(() => import("./pages/superadmin/SuperAdminTemplates"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 5 * 60 * 1000, retry: 1 },
@@ -110,14 +115,16 @@ function AppRoutes() {
     );
   }
 
-  // 3) Super admin: área separada (será criada na Fase 4)
+  // 3) Super admin: painel /superadmin/* exclusivo
   if (isSuperAdmin) {
     return (
       <Routes>
-        {/* Por enquanto super_admin cai no dashboard normal — tela /superadmin vem depois */}
-        <Route path="/dashboard" element={<Lazy><Dashboard /></Lazy>} />
+        <Route path="/superadmin" element={<Lazy><SuperAdminHome /></Lazy>} />
+        <Route path="/superadmin/hospitals" element={<Lazy><SuperAdminHospitals /></Lazy>} />
+        <Route path="/superadmin/templates" element={<Lazy><SuperAdminTemplates /></Lazy>} />
         <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
+        <Route path="*" element={<Navigate to="/superadmin" replace />} />
       </Routes>
     );
   }
