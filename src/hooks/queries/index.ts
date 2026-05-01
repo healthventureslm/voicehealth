@@ -17,3 +17,20 @@ export {
   useClinicalReports,
 } from "./useConsultations";
 export { useTemplates } from "./useTemplates";
+export {
+  useHospitalUsers,
+  useSetUserWards,
+  useSetUserRole,
+  useRemoveUserFromHospital,
+  useInvitations,
+  useSendInvitation,
+  useRevokeInvitation,
+} from "./useAdminUsers";
+export type { HospitalUserRow } from "./useAdminUsers";
+export { useCreateWard, useUpdateWard, useDeleteWard } from "./useAdminWards";
+export {
+  useAdminTemplates,
+  useCreateTemplate,
+  useUpdateTemplate,
+  useDeleteTemplate,
+} from "./useAdminTemplates";

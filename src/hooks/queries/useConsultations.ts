@@ -94,18 +94,35 @@ export function useUpdateConsultation() {
 }
 
 // ─── Addenda ─────────────────────────────────────────────────────────
+// Como author_id referencia auth.users (não profiles), fazemos 2 queries
+// e juntamos em JS — PostgREST não consegue inferir o join indireto.
 export function useAddenda(consultationId: string | undefined) {
   return useQuery({
     queryKey: ["addenda", consultationId],
     enabled: !!consultationId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: addenda, error } = await supabase
         .from("consultation_addenda")
-        .select("*, author:profiles!consultation_addenda_author_id_fkey(full_name)")
+        .select("*")
         .eq("consultation_id", consultationId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      if (!addenda || addenda.length === 0) return [];
+
+      const authorIds = Array.from(new Set(addenda.map((a) => a.author_id)));
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", authorIds);
+
+      const nameByUser = new Map(
+        (profiles ?? []).map((p) => [p.user_id, p.full_name]),
+      );
+
+      return addenda.map((a) => ({
+        ...a,
+        author: { full_name: nameByUser.get(a.author_id) ?? "—" },
+      }));
     },
   });
 }

@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import {
   usePatient, usePatientWardHistory, useConsultations,
 } from "@/hooks/queries";
+import { TransferPatientDialog } from "@/components/TransferPatientDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,9 +68,17 @@ export default function PatientHistory() {
               </Badge>
             )}
           </div>
-          <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
-            <Mic className="w-4 h-4" /> Nova evolução
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <TransferPatientDialog
+              patientId={patient.id}
+              patientName={patient.full_name}
+              currentWardId={patient.current_ward_id}
+              hospitalId={patient.hospital_id}
+            />
+            <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
+              <Mic className="w-4 h-4" /> Nova evolução
+            </Button>
+          </div>
         </div>
 
         <Card>

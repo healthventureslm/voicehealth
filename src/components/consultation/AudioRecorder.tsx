@@ -38,6 +38,7 @@ export function AudioRecorder({ onComplete, disabled }: AudioRecorderProps) {
   }, []);
 
   const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
   };
   const stopTimer = () => {

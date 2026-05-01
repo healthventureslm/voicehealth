@@ -1,2 +1,234 @@
-import { ComingSoon } from "@/components/ComingSoon";
-export default function AdminUsers() { return <ComingSoon title="Usuários" description="Convite por e-mail e atribuição de wards na próxima fase." />; }
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useHospitalUsers, useWards, useInvitations, useRevokeInvitation,
+  useRemoveUserFromHospital,
+} from "@/hooks/queries";
+import { InviteUserDialog } from "@/components/admin/InviteUserDialog";
+import { EditUserDialog } from "@/components/admin/EditUserDialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Pencil, UserMinus, ShieldAlert, Mail, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
+import type { HospitalUserRow } from "@/hooks/queries";
+
+const ROLE_LABEL: Record<string, string> = {
+  super_admin:    "Super Admin",
+  hospital_admin: "Admin do Hospital",
+  doctor:         "Médico(a)",
+  nurse:          "Enfermeiro(a)",
+  auditor:        "Auditor(a)",
+};
+
+export default function AdminUsers() {
+  const { hospitalIds } = useAuth();
+  const hospitalId = hospitalIds[0];
+
+  const { data: users, isLoading } = useHospitalUsers(hospitalId);
+  const { data: wards } = useWards();
+  const { data: invitations } = useInvitations(hospitalId);
+  const revoke = useRevokeInvitation();
+  const removeUser = useRemoveUserFromHospital();
+
+  const [editing, setEditing] = useState<HospitalUserRow | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  const wardName = (id: string) => (wards ?? []).find((w) => w.id === id)?.name ?? id.slice(0, 6);
+
+  async function copyInviteLink(token: string) {
+    const url = `${window.location.origin}/signup?token=${token}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedToken(token);
+    toast.success("Link copiado");
+    setTimeout(() => setCopiedToken(null), 2000);
+  }
+
+  async function handleRemove(user: HospitalUserRow) {
+    if (!hospitalId) return;
+    try {
+      await removeUser.mutateAsync({ userId: user.user_id, hospitalId });
+      toast.success(`${user.full_name ?? "Usuário"} removido do hospital`);
+    } catch (e: any) {
+      toast.error(`Erro: ${e?.message ?? e}`);
+    }
+  }
+
+  if (!hospitalId) {
+    return (
+      <AppLayout>
+        <div className="p-6 max-w-3xl mx-auto">
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground space-y-2">
+              <ShieldAlert className="w-8 h-8 text-muted-foreground mx-auto" />
+              <p>Você não está vinculado a nenhum hospital.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const pendingInvitations = (invitations ?? []).filter((i) => i.status === "pending");
+
+  return (
+    <AppLayout>
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Usuários do hospital</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Convide profissionais e gerencie os papéis e setores onde atuam.
+            </p>
+          </div>
+          <InviteUserDialog hospitalId={hospitalId} />
+        </div>
+
+        {/* Convites pendentes */}
+        {pendingInvitations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                Convites pendentes ({pendingInvitations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {pendingInvitations.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between gap-2 p-3 border rounded-md"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{inv.email}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                      <Badge variant="outline">{ROLE_LABEL[inv.role] ?? inv.role}</Badge>
+                      {inv.ward_ids.length > 0 && (
+                        <span>{inv.ward_ids.map((id) => wardName(id)).join(", ")}</span>
+                      )}
+                      <span>· expira {new Date(inv.expires_at).toLocaleDateString("pt-BR")}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyInviteLink(inv.token)}
+                      className="gap-1"
+                    >
+                      {copiedToken === inv.token ? (
+                        <Check className="w-3 h-3" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                      Link
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive">
+                          Revogar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Revogar convite?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            O link enviado pra <strong>{inv.email}</strong> deixará de funcionar.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => revoke.mutateAsync(inv.id)}>
+                            Revogar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Lista de usuários ativos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Equipe ativa</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {isLoading ? (
+              <p className="text-center text-muted-foreground py-6">Carregando…</p>
+            ) : (users ?? []).length === 0 ? (
+              <p className="text-center text-muted-foreground py-6">
+                Nenhum usuário ativo. Use "Convidar usuário" pra começar.
+              </p>
+            ) : (
+              (users ?? []).map((u) => (
+                <div
+                  key={u.user_id}
+                  className="flex items-center justify-between gap-2 p-3 border rounded-md hover:bg-accent/30"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">{u.full_name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
+                      {u.roles.map((r) => (
+                        <Badge key={r} variant="outline">{ROLE_LABEL[r] ?? r}</Badge>
+                      ))}
+                      {u.ward_ids.length > 0 && (
+                        <span>· {u.ward_ids.map((id) => wardName(id)).join(", ")}</span>
+                      )}
+                      {u.ward_ids.length === 0 && (u.roles.includes("doctor") || u.roles.includes("nurse")) && (
+                        <span className="text-yellow-600">⚠ sem setor</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => setEditing(u)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive">
+                          <UserMinus className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover do hospital?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            <strong>{u.full_name ?? u.user_id.slice(0, 8)}</strong> perderá
+                            acesso ao hospital. As consultas que ele criou continuam preservadas.
+                            A conta no sistema (login) <strong>não</strong> é apagada — só o
+                            vínculo com este hospital.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleRemove(u)}>
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <EditUserDialog
+          user={editing}
+          hospitalId={hospitalId}
+          onClose={() => setEditing(null)}
+        />
+      </div>
+    </AppLayout>
+  );
+}

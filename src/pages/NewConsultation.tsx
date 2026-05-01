@@ -97,18 +97,32 @@ export default function NewConsultation() {
       const { data: trData, error: trErr } = await supabase.functions.invoke("transcribe-audio", {
         body: { consultation_id: consultation.id, audio_path: audioPath },
       });
-      if (trErr) {
-        // fallback: marca como editing pra usuário fazer manual
+
+      // Detecta TODOS os tipos de falha:
+      //  - erro HTTP da function
+      //  - resposta com campo `error`
+      //  - transcription faltando ou vazia
+      const transcription: string = trData?.transcription?.trim() ?? "";
+      const hasError = !!trErr || !!trData?.error || !transcription;
+
+      if (hasError) {
+        const reason =
+          trData?.error ??
+          trErr?.message ??
+          "Áudio não pôde ser transcrito (vazio ou inaudível).";
+        console.error("[transcribe-audio] falhou:", reason, trData);
         await updateConsultation.mutateAsync({
           id: consultation.id,
-          patch: { status: "editing", raw_transcription: null },
+          patch: { status: "editing" },
         });
-        toast.warning("Transcrição automática falhou. Use o modo manual.");
-        navigate(`/consultations/${consultation.id}/report`);
+        toast.warning(
+          `Transcrição automática falhou: ${reason}. Você pode editar manualmente o atendimento.`,
+        );
+        setStep("idle");
+        navigate(`/consultations/${consultation.id}/edit`);
         return;
       }
 
-      const transcription: string = trData?.transcription ?? "";
       await updateConsultation.mutateAsync({
         id: consultation.id,
         patch: {

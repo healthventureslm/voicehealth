@@ -1,3 +1,12 @@
+// Edge function: send-invitation
+// Adaptada para o schema v2:
+//   - usa hospital_id (não department_id)
+//   - aceita ward_ids[]
+//   - valida que quem convida é hospital_admin do hospital alvo (ou super_admin)
+//
+// Recebe: { email, role, hospital_id, ward_ids?: string[] }
+// Retorna: { invitation: { id, email, role, token, expires_at, ... } }
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -5,85 +14,115 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+const ALLOWED_ROLES = new Set(["hospital_admin", "doctor", "nurse", "auditor"]);
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      return json({ error: "Não autorizado" }, 401);
     }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    const { data: { user } } = await supabaseUser.auth.getUser();
+    if (!user) return json({ error: "Sessão inválida" }, 401);
+
+    const body = await req.json();
+    const email: string = (body.email ?? "").trim().toLowerCase();
+    const role: string = body.role;
+    const hospital_id: string | undefined = body.hospital_id;
+    const ward_ids: string[] = Array.isArray(body.ward_ids) ? body.ward_ids : [];
+
+    if (!email || !role || !hospital_id) {
+      return json({ error: "email, role e hospital_id são obrigatórios" }, 400);
+    }
+    if (!ALLOWED_ROLES.has(role)) {
+      return json({ error: `role inválida: ${role}` }, 400);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json({ error: "e-mail inválido" }, 400);
     }
 
-    const userId = claimsData.claims.sub as string;
-
-    // Check admin role
-    const { data: isAdmin } = await supabaseAdmin
+    // Verifica permissão: super_admin OU hospital_admin do hospital alvo
+    const { data: roles } = await supabaseAdmin
       .from("user_roles")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
+      .select("role, hospital_id")
+      .eq("user_id", user.id);
 
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: admin only" }), { status: 403, headers: corsHeaders });
+    const isSuperAdmin = (roles ?? []).some((r) => r.role === "super_admin");
+    const isHospitalAdminHere = (roles ?? []).some(
+      (r) => r.role === "hospital_admin" && r.hospital_id === hospital_id,
+    );
+
+    if (!isSuperAdmin && !isHospitalAdminHere) {
+      return json({ error: "Permissão negada — só admin do hospital pode convidar" }, 403);
     }
 
-    const { email, role, department_id } = await req.json();
-
-    if (!email || !role) {
-      return new Response(JSON.stringify({ error: "email and role are required" }), { status: 400, headers: corsHeaders });
+    // Valida que cada ward_id pertence ao hospital alvo
+    if (ward_ids.length > 0) {
+      const { data: wards } = await supabaseAdmin
+        .from("wards")
+        .select("id")
+        .eq("hospital_id", hospital_id)
+        .in("id", ward_ids);
+      if ((wards?.length ?? 0) !== ward_ids.length) {
+        return json({ error: "Algum ward_id não pertence ao hospital" }, 400);
+      }
     }
 
-    // Check for existing pending invitation
+    // Já existe convite pendente?
     const { data: existing } = await supabaseAdmin
       .from("invitations")
       .select("id")
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", email)
+      .eq("hospital_id", hospital_id)
       .eq("status", "pending")
       .maybeSingle();
 
     if (existing) {
-      return new Response(JSON.stringify({ error: "Já existe um convite pendente para este e-mail" }), { status: 409, headers: corsHeaders });
+      return json({ error: "Já existe um convite pendente para este e-mail neste hospital" }, 409);
     }
 
+    // Cria convite (token e expires_at vêm do default da tabela)
     const { data: invitation, error: insertError } = await supabaseAdmin
       .from("invitations")
       .insert({
-        email: email.toLowerCase().trim(),
+        email,
         role,
-        department_id: department_id || null,
-        invited_by: userId,
+        hospital_id,
+        ward_ids,
+        invited_by: user.id,
       })
       .select()
       .single();
 
     if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), { status: 500, headers: corsHeaders });
+      console.error("Insert error:", insertError);
+      return json({ error: insertError.message }, 500);
     }
 
-    return new Response(JSON.stringify({ invitation }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ invitation });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: corsHeaders });
+    console.error("send-invitation error:", err);
+    return json({ error: (err as Error).message }, 500);
   }
 });

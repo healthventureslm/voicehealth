@@ -12,6 +12,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { aiComplete, aiCompleteJson } from "../_shared/ai-gateway.ts";
+// nota: usamos aiCompleteJson nos caminhos de retorno texto pra normalizar
+// automaticamente respostas do OpenAI (choices[]) E do Google (candidates[]).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,38 +67,35 @@ serve(async (req) => {
     // ── Modo simples (usado pelo PromptWizard etc): base64 → texto ──
     if (audio_base64) {
       const mimeType = content_type || "audio/webm";
-      const response = await aiComplete({
-        model: "google/gemini-2.5-pro",
-        hasAudio: true,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um transcritor preciso em português do Brasil. Transcreva EXATAMENTE o que foi dito. Retorne APENAS o texto.",
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_audio",
-                input_audio: {
-                  data: audio_base64,
-                  format: mimeType.includes("mp4") ? "mp4" : "webm",
+      try {
+        const { content } = await aiCompleteJson({
+          model: "google/gemini-2.5-pro",
+          hasAudio: true,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Você é um transcritor preciso em português do Brasil. Transcreva EXATAMENTE o que foi dito. Retorne APENAS o texto.",
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_audio",
+                  input_audio: {
+                    data: audio_base64,
+                    format: mimeType.includes("mp4") ? "mp4" : "webm",
+                  },
                 },
-              },
-              { type: "text", text: "Transcreva este áudio em português do Brasil." },
-            ],
-          },
-        ],
-      });
-      if (!response.ok) {
-        const txt = await response.text();
-        return json({ error: "Falha na transcrição", details: txt }, response.status === 429 ? 429 : 500);
+                { type: "text", text: "Transcreva este áudio em português do Brasil." },
+              ],
+            },
+          ],
+        });
+        return json({ transcription: (content || "").trim() });
+      } catch (e: any) {
+        return json({ error: "Falha na transcrição", details: e?.message }, 500);
       }
-      const result = (await response.json()) as Record<string, unknown>;
-      const choices = result.choices as Array<{ message?: { content?: string } }> | undefined;
-      const text = choices?.[0]?.message?.content || "";
-      return json({ transcription: text.trim() });
     }
 
     // ── Modo completo: pipeline da consulta ──
@@ -130,26 +129,47 @@ serve(async (req) => {
 
     if (useWhisper) {
       const openaiKey = Deno.env.get("OPENAI_API_KEY");
-      if (!openaiKey) throw new Error("OPENAI_API_KEY não configurada");
+      if (!openaiKey) {
+        return json({ error: "OPENAI_API_KEY não configurada na function" }, 500);
+      }
+
+      const audioSize = audioData.size;
+      const audioFilename = audio_path.endsWith(".mp4") ? "audio.mp4" : "audio.webm";
+      console.log(`[whisper] uploading ${audioFilename} (${audioSize} bytes)`);
+
       const formData = new FormData();
-      formData.append("file", audioData, "audio.webm");
+      formData.append("file", audioData, audioFilename);
       formData.append("model", "whisper-1");
       formData.append("language", "pt");
+      formData.append("response_format", "json");
+
       const wResp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: { Authorization: `Bearer ${openaiKey}` },
         body: formData,
       });
+
+      console.log(`[whisper] status ${wResp.status}`);
+
       if (!wResp.ok) {
         const errText = await wResp.text();
-        await supabase
-          .from("consultations")
-          .update({ status: "editing" })
-          .eq("id", consultation_id);
-        return json({ error: "Whisper failed", details: errText, fallback: true }, 200);
+        console.error(`[whisper] failed: ${errText}`);
+        return json(
+          { error: "Whisper falhou", status: wResp.status, details: errText },
+          wResp.status === 429 ? 429 : 502,
+        );
       }
+
       const wr = await wResp.json();
-      text = wr.text;
+      console.log(`[whisper] response keys: ${Object.keys(wr).join(",")}; text length: ${(wr.text || "").length}`);
+      text = wr.text || "";
+
+      if (!text.trim()) {
+        return json(
+          { error: "Whisper retornou transcrição vazia. Verifique o áudio (volume, duração, qualidade)." },
+          422,
+        );
+      }
     } else {
       // Gemini transcription
       const arrayBuffer = await audioData.arrayBuffer();
@@ -165,43 +185,40 @@ serve(async (req) => {
 
       const wardVocab = wardType && WARD_TYPE_VOCAB[wardType] ? WARD_TYPE_VOCAB[wardType] : "";
 
-      const tResp = await aiComplete({
-        model: "google/gemini-2.5-pro",
-        hasAudio: true,
-        messages: [
-          { role: "system", content: MEDICAL_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_audio",
-                input_audio: {
-                  data: base64Audio,
-                  format: mimeType === "audio/mp4" ? "mp4" : "webm",
+      let rawText = "";
+      try {
+        const { content } = await aiCompleteJson({
+          model: "google/gemini-2.5-pro",
+          hasAudio: true,
+          messages: [
+            { role: "system", content: MEDICAL_SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_audio",
+                  input_audio: {
+                    data: base64Audio,
+                    format: mimeType === "audio/mp4" ? "mp4" : "webm",
+                  },
                 },
-              },
-              {
-                type: "text",
-                text: wardVocab
-                  ? `Transcreva este áudio de atendimento em português. ${wardVocab}`
-                  : "Transcreva este áudio de atendimento em português do Brasil.",
-              },
-            ],
-          },
-        ],
-      });
-
-      if (!tResp.ok) {
-        const errText = await tResp.text();
-        if (tResp.status === 429 || tResp.status === 402) {
-          return json({ error: `Quota/limit ${tResp.status}`, fallback: true }, 200);
-        }
-        throw new Error("Erro de transcrição: " + errText);
+                {
+                  type: "text",
+                  text: wardVocab
+                    ? `Transcreva este áudio de atendimento em português. ${wardVocab}`
+                    : "Transcreva este áudio de atendimento em português do Brasil.",
+                },
+              ],
+            },
+          ],
+        });
+        rawText = content || "";
+        console.log(`[transcribe-audio] raw text length: ${rawText.length}`);
+      } catch (e: any) {
+        const msg = e?.message || String(e);
+        console.error(`[transcribe-audio] gateway error:`, msg);
+        return json({ error: "Falha na transcrição via Gemini", details: msg }, 502);
       }
-
-      const tResult = (await tResp.json()) as Record<string, unknown>;
-      const tChoices = tResult.choices as Array<{ message?: { content?: string } }> | undefined;
-      const rawText = tChoices?.[0]?.message?.content || "";
 
       // Pass 2: correção de termos médicos
       if (rawText.trim()) {
@@ -231,7 +248,14 @@ serve(async (req) => {
     }
 
     if (!text.trim()) {
-      throw new Error("Transcrição vazia — verifique a qualidade do áudio.");
+      console.warn("[transcribe-audio] texto vazio após transcrição");
+      return json(
+        {
+          error: "Transcrição vazia — verifique a qualidade do áudio (volume, duração, ruído).",
+          fallback: true,
+        },
+        422,
+      );
     }
 
     // O cliente é responsável por salvar raw_transcription / edited_transcription /
