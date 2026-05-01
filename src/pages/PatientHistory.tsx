@@ -54,7 +54,7 @@ export default function PatientHistory() {
 
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{patient.full_name}</h1>
+            <h1 className="heading-page">{patient.full_name}</h1>
             <div className="text-sm text-muted-foreground space-x-3 mt-1">
               {patient.medical_record && <span>Prontuário: {patient.medical_record}</span>}
               {patient.bed && <span>Leito: {patient.bed}</span>}
@@ -84,7 +84,7 @@ export default function PatientHistory() {
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">
             <ClipboardList className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Atendimentos</CardTitle>
+            <CardTitle className="heading-section">Atendimentos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {(consultations ?? []).length === 0 ? (
@@ -119,7 +119,7 @@ export default function PatientHistory() {
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">
             <History className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Trajetória entre setores</CardTitle>
+            <CardTitle className="heading-section">Trajetória entre setores</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {(wardHistory ?? []).length === 0 ? (
@@ -128,7 +128,7 @@ export default function PatientHistory() {
               </p>
             ) : (
               (wardHistory ?? []).map((h: any) => (
-                <div key={h.id} className="text-sm flex items-center justify-between border-l-2 border-primary/30 pl-3 py-1">
+                <div key={h.id} className="text-sm flex items-center justify-between border-l-2 border-accent/40 pl-3 py-1">
                   <div>
                     <span className="font-medium">{h.ward?.name ?? "—"}</span>
                     <span className="text-muted-foreground ml-2">

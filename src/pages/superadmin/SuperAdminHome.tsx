@@ -15,7 +15,7 @@ export default function SuperAdminHome() {
     <SuperAdminLayout>
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="heading-page">
             Olá, {profile?.full_name?.split(" ")[0] ?? "—"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -32,7 +32,7 @@ export default function SuperAdminHome() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="hv-stat">
                 {loadingStats ? "—" : stats?.hospitals ?? 0}
               </div>
             </CardContent>
@@ -44,7 +44,7 @@ export default function SuperAdminHome() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="hv-stat">
                 {loadingStats ? "—" : stats?.userRoles ?? 0}
               </div>
             </CardContent>
@@ -56,7 +56,7 @@ export default function SuperAdminHome() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="hv-stat">
                 {loadingStats ? "—" : stats?.patients ?? 0}
               </div>
             </CardContent>
@@ -68,7 +68,7 @@ export default function SuperAdminHome() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
+              <div className="hv-stat">
                 {loadingStats ? "—" : stats?.consultations ?? 0}
               </div>
             </CardContent>
@@ -78,7 +78,7 @@ export default function SuperAdminHome() {
         {/* Quick links */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Hospitais ({hospitals?.length ?? 0})</CardTitle>
+            <CardTitle className="heading-section">Hospitais ({hospitals?.length ?? 0})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {(hospitals ?? []).length === 0 ? (

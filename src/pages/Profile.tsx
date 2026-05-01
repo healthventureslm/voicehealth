@@ -1,19 +1,23 @@
+import { ReactNode } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Profile() {
-  const { user, profile, roles, signOut } = useAuth();
+  const { user, profile, roles, signOut, isSuperAdmin } = useAuth();
+  const Layout = ({ children }: { children: ReactNode }) =>
+    isSuperAdmin ? <SuperAdminLayout>{children}</SuperAdminLayout> : <AppLayout>{children}</AppLayout>;
 
   return (
-    <AppLayout>
+    <Layout>
       <div className="p-6 max-w-2xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold">Meu perfil</h1>
+        <h1 className="heading-page">Meu perfil</h1>
 
         <Card>
           <CardHeader>
-            <CardTitle>Identidade</CardTitle>
+            <CardTitle className="heading-section">Identidade</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div>
@@ -33,7 +37,7 @@ export default function Profile() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Papéis</CardTitle>
+            <CardTitle className="heading-section">Papéis</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             {roles.length === 0 ? (
@@ -55,6 +59,6 @@ export default function Profile() {
           Sair
         </Button>
       </div>
-    </AppLayout>
+    </Layout>
   );
 }

@@ -81,7 +81,7 @@ export default function AdminUsers() {
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Usuários do hospital</h1>
+            <h1 className="heading-page">Usuários do hospital</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Convide profissionais e gerencie os papéis e setores onde atuam.
             </p>
@@ -93,7 +93,7 @@ export default function AdminUsers() {
         {pendingInvitations.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="heading-card flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" />
                 Convites pendentes ({pendingInvitations.length})
               </CardTitle>
@@ -159,7 +159,7 @@ export default function AdminUsers() {
         {/* Lista de usuários ativos */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Equipe ativa</CardTitle>
+            <CardTitle className="heading-card">Equipe ativa</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {isLoading ? (

@@ -116,6 +116,8 @@ function AppRoutes() {
   }
 
   // 3) Super admin: painel /superadmin/* exclusivo
+  // Catch-all redireciona pra /superadmin (super_admin não tem /dashboard,
+  // /patients etc — qualquer URL desconhecida vai pro home dele)
   if (isSuperAdmin) {
     return (
       <Routes>
@@ -165,6 +167,11 @@ function AppRoutes() {
 
       <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
       <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
+      {/* Rotas de auth — usuário já logado, manda pro Dashboard */}
+      <Route path="/login"           element={<Navigate to="/dashboard" replace />} />
+      <Route path="/signup"          element={<Navigate to="/dashboard" replace />} />
+      <Route path="/forgot-password" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/reset-password"  element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

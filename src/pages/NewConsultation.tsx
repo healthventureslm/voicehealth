@@ -216,11 +216,11 @@ export default function NewConsultation() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
         </Button>
 
-        <h1 className="text-2xl font-bold">Novo atendimento</h1>
+        <h1 className="heading-page">Novo atendimento</h1>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Paciente & Template</CardTitle>
+            <CardTitle className="heading-card">Paciente & Template</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -257,7 +257,7 @@ export default function NewConsultation() {
         {selectedPatient && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Conteúdo do atendimento</CardTitle>
+              <CardTitle className="heading-card">Conteúdo do atendimento</CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="audio" className="w-full">

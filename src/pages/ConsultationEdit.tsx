@@ -165,12 +165,12 @@ export default function ConsultationEdit() {
           <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
         </Button>
 
-        <h1 className="text-2xl font-bold">Editar atendimento</h1>
+        <h1 className="heading-page">Editar atendimento</h1>
 
         {/* TRANSCRIÇÃO */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="heading-section flex items-center gap-2">
               <Mic className="w-5 h-5 text-primary" />
               Transcrição
             </CardTitle>
@@ -198,7 +198,7 @@ export default function ConsultationEdit() {
         {/* RELATÓRIO */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="heading-section flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               Relatório clínico {reportVersion > 0 && <span className="text-muted-foreground text-sm font-normal">(v{reportVersion})</span>}
             </CardTitle>

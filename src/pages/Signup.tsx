@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
-  Mic, Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle, ShieldAlert,
+  Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle, ShieldAlert,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AuthHero } from "@/components/auth/AuthHero";
 
 const ROLE_LABELS: Record<string, string> = {
   hospital_admin: "Admin do Hospital",
@@ -229,15 +230,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Mic className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Aceitar convite</h1>
-          <p className="text-muted-foreground text-sm">
-            Crie sua conta no VoiceHealth
-          </p>
-        </div>
+        <AuthHero subtitle="Aceitar convite e criar sua conta" />
 
         <div className="glass-card rounded-2xl p-7 space-y-5">
           {invitation && (

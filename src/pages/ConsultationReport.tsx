@@ -55,7 +55,7 @@ export default function ConsultationReport() {
 
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="heading-page">
               Atendimento — {c.patient?.full_name ?? "—"}
             </h1>
             <div className="text-sm text-muted-foreground space-x-3 mt-1">
@@ -83,7 +83,7 @@ export default function ConsultationReport() {
         </div>
 
         {c.locked_at && (
-          <Card className="border-yellow-500/30 bg-yellow-500/5">
+          <Card className="border-warning/30 bg-warning/5">
             <CardContent className="py-4 text-sm">
               Este atendimento foi bloqueado em{" "}
               <strong>{new Date(c.locked_at).toLocaleString("pt-BR")}</strong>{" "}
@@ -98,7 +98,7 @@ export default function ConsultationReport() {
         {latestReport ? (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="heading-section flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />
                 Relatório clínico (v{latestReport.version})
               </CardTitle>
@@ -117,7 +117,7 @@ export default function ConsultationReport() {
         ) : c.edited_transcription || c.raw_transcription ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="heading-section flex items-center gap-2">
                 <Mic className="w-5 h-5 text-primary" />
                 Transcrição
               </CardTitle>
@@ -147,7 +147,7 @@ export default function ConsultationReport() {
             ) : (
               <div className="space-y-3">
                 {(addenda ?? []).map((a: any) => (
-                  <div key={a.id} className="border-l-2 border-primary/30 pl-3 py-2">
+                  <div key={a.id} className="border-l-2 border-accent/40 pl-3 py-2">
                     <div className="text-xs text-muted-foreground mb-1">
                       {a.author?.full_name ?? "—"} ·{" "}
                       <span className="capitalize">{a.author_role_at_time}</span>{" "}

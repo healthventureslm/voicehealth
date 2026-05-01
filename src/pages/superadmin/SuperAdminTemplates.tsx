@@ -145,7 +145,7 @@ export default function SuperAdminTemplates() {
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+            <h1 className="heading-page flex items-center gap-2">
               <Globe className="w-6 h-6 text-primary" />
               Templates globais
             </h1>
@@ -281,7 +281,7 @@ export default function SuperAdminTemplates() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base flex items-center gap-2">
+                      <CardTitle className="heading-card flex items-center gap-2">
                         {t.name}
                         {!t.is_active && <Badge variant="secondary">inativo</Badge>}
                         <Badge variant="outline" className="gap-1">

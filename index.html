@@ -3,45 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>VoiceHealth - Qualidade Clinica</title>
+    <title>VoiceHealth — by Health Ventures</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" /></noscript>
-    <meta name="description" content="Sistema de gestão de qualidade clínica e metas internacionais de segurança do paciente">
-    <meta name="author" content="VoiceHealth" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" /></noscript>
+    <meta name="description" content="Devolvemos o tempo do profissional de saúde ao paciente. Documentação clínica conversacional.">
+    <meta name="author" content="Health Ventures" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0EA5E9" />
+    <meta name="theme-color" content="#1A1A1F" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="VoiceHealth" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
-    
-    
     <meta property="og:type" content="website" />
-
+    <meta property="og:title" content="VoiceHealth — by Health Ventures">
     <meta name="twitter:card" content="summary_large_image" />
-    <meta property="og:title" content="VoiceHealth - Qualidade Clinica">
-  <meta name="twitter:title" content="VoiceHealth - Qualidade Clinica">
-  <meta property="og:description" content="Sistema de gestão de qualidade clínica e metas internacionais de segurança do paciente">
-  <meta name="twitter:description" content="Sistema de gestão de qualidade clínica e metas internacionais de segurança do paciente">
-  <link rel="icon" type="image/png" href="/icon-192.png">
-</head>
+    <meta name="twitter:title" content="VoiceHealth — by Health Ventures">
+    <meta property="og:description" content="Devolvemos o tempo do profissional de saúde ao paciente.">
+    <meta name="twitter:description" content="Devolvemos o tempo do profissional de saúde ao paciente.">
+    <link rel="icon" type="image/png" href="/icon-192.png">
+
+    <style>
+      /* Forçar canvas escuro mesmo antes do React montar */
+      html, body { background: #1A1A1F; color: #FFFFFF; }
+    </style>
+  </head>
 
   <body>
     <div id="root">
-      <!-- Static LCP skeleton — replaced by React on mount -->
-      <div style="min-height:100vh;background:hsl(210 20% 98%);color:hsl(220 25% 12%);display:flex;align-items:center;justify-content:center;text-align:center;padding:6rem 1.5rem">
+      <!-- LCP skeleton — substituído pelo React ao montar -->
+      <div style="min-height:100vh;background:#1A1A1F;color:#FFFFFF;display:flex;align-items:center;justify-content:center;text-align:center;padding:6rem 1.5rem;font-family:'Inter',system-ui,sans-serif">
         <div style="max-width:42rem">
-          <h1 style="font-size:3.75rem;font-weight:700;letter-spacing:-0.025em;margin-bottom:1rem">
-            <span style="background:linear-gradient(to right,hsl(199 89% 42%),hsl(160 84% 36%));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">VoiceHealth</span>
+          <h1 style="font-family:'Fraunces',Georgia,serif;font-weight:300;font-size:3.75rem;letter-spacing:-0.02em;margin:0 0 1rem;line-height:1">
+            Voice<em style="font-style:italic;color:#A8C5B5;font-weight:300">Health</em>
           </h1>
-          <p style="font-size:1.25rem;color:hsl(220 10% 44%);margin-bottom:0.75rem;font-weight:500">Prontuário Médico Conversacional</p>
-          <p style="color:hsl(220 10% 44%);max-width:32rem;margin:0 auto 2.5rem;line-height:1.625">Transforme a voz do profissional em documentação clínica estruturada. Menos tempo digitando, mais tempo cuidando.</p>
+          <p style="font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#7A8298;margin:0 0 2rem">— by Health Ventures</p>
+          <p style="color:#C0C9DF;max-width:32rem;margin:0 auto;line-height:1.625;font-size:1.05rem">Devolvemos o tempo do profissional de saúde ao paciente.</p>
         </div>
       </div>
     </div>

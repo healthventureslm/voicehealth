@@ -116,7 +116,7 @@ export function AudioRecorder({ onComplete, disabled }: AudioRecorderProps) {
           <div
             className={cn(
               "w-3 h-3 rounded-full",
-              state === "recording" ? "bg-red-500 animate-pulse" : "bg-muted",
+              state === "recording" ? "bg-destructive animate-pulse" : "bg-muted",
             )}
           />
           <span className="text-2xl font-mono tabular-nums">{formatDuration(duration)}</span>

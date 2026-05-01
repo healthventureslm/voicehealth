@@ -1,10 +1,10 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  LayoutDashboard, Users, Mic, FileText, Shield, Settings, LogOut,
-  Stethoscope, ClipboardList, TrendingUp, Calculator,
+  LayoutDashboard, Users, Mic, FileText, Shield, LogOut,
+  ClipboardList, TrendingUp, Calculator,
   ShieldCheck, ClipboardCheck, AlertCircle, Building2, Menu,
-  Hospital, BookOpen, Plus, Lock, BarChart3, User, Sun, Moon, Archive
+  Hospital, BookOpen, BarChart3, User, Archive
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,7 +14,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "@/contexts/ThemeContext";
 import { ChevronRight } from "lucide-react";
 
 const dashboardItem = { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" };
@@ -82,7 +81,7 @@ function SectionGroup({ label, children, defaultOpen = true }: { label: string; 
       <Separator className="bg-sidebar-border my-3" />
       <CollapsibleTrigger className="flex items-center gap-1 w-full px-3 mb-2 group">
         <ChevronRight className={cn("w-3 h-3 text-sidebar-foreground/40 transition-transform", open && "rotate-90")} />
-        <span className="text-xs uppercase text-sidebar-foreground/60 tracking-wider font-medium">{label}</span>
+        <span className="hv-eyebrow">{label}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-1">
         {children}
@@ -94,7 +93,6 @@ function SectionGroup({ label, children, defaultOpen = true }: { label: string; 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, profile, roles, isSuperAdmin, signOut } = useAuth();
   const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin") || isSuperAdmin;
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -115,12 +113,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-5">
-        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-          <Mic className="w-4 h-4 text-white" />
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "var(--hv-card)", border: "1px solid var(--hv-accent)" }}
+        >
+          <Mic className="w-4 h-4" style={{ color: "var(--hv-accent)" }} />
         </div>
-        <span className="font-bold text-lg tracking-tight font-['Space_Grotesk'] bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          VoiceHealth
-        </span>
+        <div className="flex flex-col leading-none">
+          <span className="hv-wordmark text-lg">
+            Voice<em>Health</em>
+          </span>
+          <span className="hv-byline mt-0.5">— by Health Ventures</span>
+        </div>
       </div>
 
       <Separator className="bg-sidebar-border" />
@@ -168,9 +172,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
           </div>
         </button>
-        <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-sidebar-foreground/50 hover:text-sidebar-foreground flex-shrink-0" aria-label={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}>
-          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
         <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground/50 hover:text-destructive flex-shrink-0" aria-label="Sair do sistema">
           <LogOut className="w-4 h-4" />
         </Button>

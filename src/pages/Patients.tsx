@@ -76,7 +76,7 @@ export default function Patients() {
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Pacientes</h1>
+            <h1 className="heading-page">Pacientes</h1>
             <p className="text-sm text-muted-foreground">
               Pacientes nos seus setores ({(myWards ?? []).length} setor{(myWards ?? []).length !== 1 ? "es" : ""}).
             </p>
@@ -179,7 +179,7 @@ export default function Patients() {
                 onClick={() => navigate(`/patients/${p.id}/history`)}
               >
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
+                  <CardTitle className="heading-card flex items-center gap-2">
                     <UserCircle2 className="w-5 h-5 text-primary" />
                     {p.full_name}
                   </CardTitle>

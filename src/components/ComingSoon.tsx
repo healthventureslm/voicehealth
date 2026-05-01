@@ -9,7 +9,7 @@ export function ComingSoon({ title, description }: { title: string; description?
         <Card>
           <CardContent className="p-12 flex flex-col items-center text-center gap-4">
             <Construction className="w-12 h-12 text-muted-foreground" />
-            <h1 className="text-2xl font-bold">{title}</h1>
+            <h1 className="heading-page">{title}</h1>
             <p className="text-muted-foreground">
               {description ??
                 "Esta tela está sendo refeita para a nova arquitetura. Disponível na próxima fase."}

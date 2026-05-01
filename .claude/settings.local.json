@@ -6,7 +6,9 @@
       "Bash(rmdir \"src/components/lgpd\")",
       "Bash(npm run *)",
       "Bash(npx tsc *)",
-      "Read(//c/c/Users/Luis Felipe/Desktop/voicehealth-main/**)"
+      "Read(//c/c/Users/Luis Felipe/Desktop/voicehealth-main/**)",
+      "Bash(rm -f src/pages/dev/AudioTestPage.tsx)",
+      "Bash(rmdir src/pages/dev)"
     ]
   }
 }

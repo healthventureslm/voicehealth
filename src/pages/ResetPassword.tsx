@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mic, Lock, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { AuthHero } from "@/components/auth/AuthHero";
 
 export default function ResetPassword() {
   const { toast } = useToast();
@@ -89,13 +90,7 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Mic className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Nova senha</h1>
-          <p className="text-muted-foreground text-sm">Defina sua nova senha de acesso</p>
-        </div>
+        <AuthHero subtitle="Defina sua nova senha de acesso." />
 
         <div className="glass-card rounded-2xl p-7">
           <form onSubmit={handleReset} className="space-y-4">

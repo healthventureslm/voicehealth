@@ -13,7 +13,7 @@ export default function MyRecordings() {
     <AppLayout>
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="heading-page flex items-center gap-2">
             <Mic className="w-6 h-6 text-primary" />
             Minhas gravações
           </h1>

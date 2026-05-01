@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mic, Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { AuthHero } from "@/components/auth/AuthHero";
 
 export default function ForgotPassword() {
   const { toast } = useToast();
@@ -36,13 +37,7 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Mic className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Recuperar senha</h1>
-          <p className="text-muted-foreground text-sm">Enviaremos um link para redefinir sua senha</p>
-        </div>
+        <AuthHero subtitle="Enviaremos um link para redefinir sua senha." />
 
         <div className="glass-card rounded-2xl p-7 space-y-5">
           {sent ? (

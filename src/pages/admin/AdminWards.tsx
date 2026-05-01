@@ -124,7 +124,7 @@ export default function AdminWards() {
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+            <h1 className="heading-page flex items-center gap-2">
               <Building2 className="w-6 h-6 text-primary" />
               Setores do hospital
             </h1>

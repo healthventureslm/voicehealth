@@ -10,7 +10,7 @@ export default function Dashboard() {
     <AppLayout>
       <div className="p-6 max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="heading-page">
             Olá, {profile?.full_name?.split(" ")[0] ?? "usuário"}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -21,7 +21,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Sua sessão</CardTitle>
+              <CardTitle className="heading-section">Sua sessão</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div>
@@ -39,7 +39,7 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Próximas etapas</CardTitle>
+              <CardTitle className="heading-section">Próximas etapas</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Esta é a Fase 1 do rebuild — apenas a fundação. As telas clínicas

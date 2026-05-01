@@ -1,14 +1,13 @@
 import { ReactNode, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Building2, FileText, LayoutDashboard, LogOut, Menu, Mic, Moon, Shield, Sun, User,
+  Building2, FileText, LayoutDashboard, LogOut, Menu, Mic, Shield, User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +23,6 @@ const settingsItems = [
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, profile, signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,26 +45,26 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Wordmark do produto — idêntico ao painel do hospital */}
       <div className="flex items-center gap-3 px-4 py-5">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center flex-shrink-0">
-          <Shield className="w-4 h-4 text-white" />
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "var(--hv-card)", border: "1px solid var(--hv-accent)" }}
+        >
+          <Mic className="w-4 h-4" style={{ color: "var(--hv-accent)" }} />
         </div>
-        <div className="flex flex-col leading-tight">
-          <span className="font-bold text-sm tracking-tight font-['Space_Grotesk']">
-            Health Ventures
+        <div className="flex flex-col leading-none">
+          <span className="hv-wordmark text-lg">
+            Voice<em>Health</em>
           </span>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Super Admin
-          </span>
+          <span className="hv-byline mt-0.5">— by Health Ventures</span>
         </div>
       </div>
 
       <Separator className="bg-sidebar-border" />
 
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        <div className="px-3 mb-2 text-xs uppercase text-sidebar-foreground/60 tracking-wider font-medium">
-          Operação
-        </div>
+        <div className="hv-eyebrow px-3 mb-2">Operação</div>
         {navItems.map((item) => (
           <Button
             key={item.path}
@@ -85,9 +83,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
         <Separator className="bg-sidebar-border my-3" />
 
-        <div className="px-3 mb-2 text-xs uppercase text-sidebar-foreground/60 tracking-wider font-medium">
-          Conta
-        </div>
+        <div className="hv-eyebrow px-3 mb-2">Conta</div>
         {settingsItems.map((item) => (
           <Button
             key={item.path}
@@ -118,15 +114,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <p className="text-sm font-medium truncate">{profile?.full_name || "—"}</p>
           <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          className="text-sidebar-foreground/50"
-          aria-label="Alternar tema"
-        >
-          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -176,10 +163,11 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
         <header className="flex items-center gap-3 px-3 md:px-4 py-2 border-b bg-background flex-shrink-0">
           <MobileSidebarTrigger />
           <div className="flex items-center gap-2 text-sm">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="font-semibold">Health Ventures</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-muted-foreground">Painel global</span>
+            <Shield className="w-4 h-4" style={{ color: "var(--hv-accent)" }} />
+            <span className="hv-wordmark">
+              Voice<em>Health</em>
+            </span>
+            <span className="hv-eyebrow ml-2">Super Admin · Painel global</span>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto bg-background">{children}</main>
