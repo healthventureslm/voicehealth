@@ -1,4 +1,3 @@
-export { useDashboardStats, useRecentConsultations, useDepartments } from "./useDashboardStats";
-export { usePatients, useWards, useCreatePatient, useUpdatePatient } from "./usePatients";
-export { useConsultations, useConsultation, useUpdateConsultation } from "./useConsultations";
-export { useSpecialties } from "./useSpecialties";
+// Hooks de query foram apagados na Fase 1 do rebuild.
+// Voltam adaptados na Fase 2 — quando o fluxo clínico for reconstruído.
+export {};

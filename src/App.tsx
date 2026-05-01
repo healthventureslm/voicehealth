@@ -8,13 +8,13 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazy, Suspense, type ReactNode } from "react";
 
-// Eager: critical login flow (small, seen immediately)
+// Eager: critical login/onboarding flow
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import SelectDepartment from "./pages/SelectDepartment";
+import WaitingInvitation from "./pages/WaitingInvitation";
 import NotFound from "./pages/NotFound";
 
 // Lazy: everything else (code-split by route)
@@ -25,35 +25,30 @@ const Consultations = lazy(() => import("./pages/Consultations"));
 const ConsultationEdit = lazy(() => import("./pages/ConsultationEdit"));
 const ConsultationReport = lazy(() => import("./pages/ConsultationReport"));
 const PatientHistory = lazy(() => import("./pages/PatientHistory"));
-const AmbulatoryDashboard = lazy(() => import("./pages/ambulatory/AmbulatoryDashboard"));
-const AmbulatoryNewConsultation = lazy(() => import("./pages/ambulatory/AmbulatoryNewConsultation"));
+const MyRecordings = lazy(() => import("./pages/MyRecordings"));
+
+// Admin do hospital
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates"));
-const AdminProtocols = lazy(() => import("./pages/admin/AdminProtocols"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
-const AdminDepartments = lazy(() => import("./pages/admin/AdminDepartments"));
-const AdminIndicators = lazy(() => import("./pages/admin/AdminIndicators"));
 const AdminWards = lazy(() => import("./pages/admin/AdminWards"));
+const AdminIndicators = lazy(() => import("./pages/admin/AdminIndicators"));
 const AdminIpsg = lazy(() => import("./pages/admin/AdminIpsg"));
 const AdminSpecialties = lazy(() => import("./pages/admin/AdminSpecialties"));
-const AdminKnowledge = lazy(() => import("./pages/admin/AdminKnowledge"));
-const AdminCollectionLogs = lazy(() => import("./pages/admin/AdminCollectionLogs"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminManual = lazy(() => import("./pages/admin/AdminManual"));
+const AdminScripts = lazy(() => import("./pages/admin/AdminScripts"));
+
+// IPSG
 const IndicatorsDashboard = lazy(() => import("./pages/IndicatorsDashboard"));
 const IpsgDashboard = lazy(() => import("./pages/ipsg/IpsgDashboard"));
 const IpsgAudits = lazy(() => import("./pages/ipsg/IpsgAudits"));
 const IpsgNewAudit = lazy(() => import("./pages/ipsg/IpsgNewAudit"));
 const IpsgAuditDetail = lazy(() => import("./pages/ipsg/IpsgAuditDetail"));
 const IpsgActionPlans = lazy(() => import("./pages/ipsg/IpsgActionPlans"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const LgpdSettings = lazy(() => import("./pages/LgpdSettings"));
-const AdminLgpd = lazy(() => import("./pages/admin/AdminLgpd"));
-const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
-const AdminManual = lazy(() => import("./pages/admin/AdminManual"));
-const AdminScripts = lazy(() => import("./pages/admin/AdminScripts"));
+
+// Diversos
 const Profile = lazy(() => import("./pages/Profile"));
-const MyRecordings = lazy(() => import("./pages/MyRecordings"));
-const AudioTestPage = import.meta.env.DEV
-  ? lazy(() => import("./pages/dev/AudioTestPage"))
-  : null;
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,14 +68,15 @@ function Lazy({ children }: { children: ReactNode }) {
   return <Suspense fallback={<PageSpinner />}>{children}</Suspense>;
 }
 
-function AdminRoute({ children }: { children: ReactNode }) {
-  const { isAdmin } = useAuth();
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+function HospitalAdminRoute({ children }: { children: ReactNode }) {
+  const { roles, isSuperAdmin } = useAuth();
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
+  if (!isHospitalAdmin && !isSuperAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
 function AppRoutes() {
-  const { user, profile, isLoading } = useAuth();
+  const { user, roles, isLoading, isSuperAdmin } = useAuth();
 
   if (isLoading) {
     return (
@@ -90,6 +86,7 @@ function AppRoutes() {
     );
   }
 
+  // 1) Não autenticado: telas públicas
   if (!user) {
     return (
       <Routes>
@@ -98,59 +95,69 @@ function AppRoutes() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
   }
 
-  if (!profile?.department_id) {
+  // 2) Autenticado mas SEM role: aguardando convite
+  if (roles.length === 0) {
     return (
       <Routes>
-        <Route path="*" element={<SelectDepartment />} />
+        <Route path="*" element={<WaitingInvitation />} />
       </Routes>
     );
   }
 
+  // 3) Super admin: área separada (será criada na Fase 4)
+  if (isSuperAdmin) {
+    return (
+      <Routes>
+        {/* Por enquanto super_admin cai no dashboard normal — tela /superadmin vem depois */}
+        <Route path="/dashboard" element={<Lazy><Dashboard /></Lazy>} />
+        <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    );
+  }
+
+  // 4) Usuário regular: hospital_admin / doctor / nurse / auditor
   return (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/dashboard" element={<Lazy><Dashboard /></Lazy>} />
+
+      {/* Fluxo clínico */}
       <Route path="/patients" element={<Lazy><Patients /></Lazy>} />
+      <Route path="/patients/:id/history" element={<Lazy><PatientHistory /></Lazy>} />
       <Route path="/consultations" element={<Lazy><Consultations /></Lazy>} />
       <Route path="/consultations/new" element={<Lazy><NewConsultation /></Lazy>} />
       <Route path="/consultations/:id/edit" element={<Lazy><ConsultationEdit /></Lazy>} />
       <Route path="/consultations/:id/report" element={<Lazy><ConsultationReport /></Lazy>} />
-      <Route path="/patients/:id/history" element={<Lazy><PatientHistory /></Lazy>} />
       <Route path="/gravacoes" element={<Lazy><MyRecordings /></Lazy>} />
-      <Route path="/ambulatory" element={<Lazy><AmbulatoryDashboard /></Lazy>} />
-      <Route path="/ambulatory/new" element={<Lazy><AmbulatoryNewConsultation /></Lazy>} />
-      <Route path="/admin/templates" element={<AdminRoute><Lazy><AdminTemplates /></Lazy></AdminRoute>} />
-      <Route path="/admin/protocols" element={<AdminRoute><Lazy><AdminProtocols /></Lazy></AdminRoute>} />
-      <Route path="/admin/users" element={<AdminRoute><Lazy><AdminUsers /></Lazy></AdminRoute>} />
-      <Route path="/admin/departments" element={<AdminRoute><Lazy><AdminDepartments /></Lazy></AdminRoute>} />
-      <Route path="/admin/indicators" element={<AdminRoute><Lazy><AdminIndicators /></Lazy></AdminRoute>} />
-      <Route path="/admin/wards" element={<AdminRoute><Lazy><AdminWards /></Lazy></AdminRoute>} />
-      <Route path="/admin/ipsg" element={<AdminRoute><Lazy><AdminIpsg /></Lazy></AdminRoute>} />
-      <Route path="/admin/specialties" element={<AdminRoute><Lazy><AdminSpecialties /></Lazy></AdminRoute>} />
-      <Route path="/admin/knowledge" element={<AdminRoute><Lazy><AdminKnowledge /></Lazy></AdminRoute>} />
-      <Route path="/admin/collection-logs" element={<AdminRoute><Lazy><AdminCollectionLogs /></Lazy></AdminRoute>} />
+
+      {/* Indicadores e IPSG */}
       <Route path="/indicators" element={<Lazy><IndicatorsDashboard /></Lazy>} />
       <Route path="/ipsg" element={<Lazy><IpsgDashboard /></Lazy>} />
       <Route path="/ipsg/audits" element={<Lazy><IpsgAudits /></Lazy>} />
       <Route path="/ipsg/audit/new" element={<Lazy><IpsgNewAudit /></Lazy>} />
       <Route path="/ipsg/audit/:id" element={<Lazy><IpsgAuditDetail /></Lazy>} />
       <Route path="/ipsg/action-plans" element={<Lazy><IpsgActionPlans /></Lazy>} />
-      <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
+
+      {/* Admin do hospital */}
+      <Route path="/admin/templates" element={<HospitalAdminRoute><Lazy><AdminTemplates /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/users" element={<HospitalAdminRoute><Lazy><AdminUsers /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/wards" element={<HospitalAdminRoute><Lazy><AdminWards /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/indicators" element={<HospitalAdminRoute><Lazy><AdminIndicators /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/ipsg" element={<HospitalAdminRoute><Lazy><AdminIpsg /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/specialties" element={<HospitalAdminRoute><Lazy><AdminSpecialties /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/analytics" element={<HospitalAdminRoute><Lazy><AdminAnalytics /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/manual" element={<HospitalAdminRoute><Lazy><AdminManual /></Lazy></HospitalAdminRoute>} />
+      <Route path="/admin/scripts" element={<HospitalAdminRoute><Lazy><AdminScripts /></Lazy></HospitalAdminRoute>} />
+
       <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
-      <Route path="/settings/lgpd" element={<Lazy><LgpdSettings /></Lazy>} />
-      <Route path="/admin/lgpd" element={<AdminRoute><Lazy><AdminLgpd /></Lazy></AdminRoute>} />
-      <Route path="/admin/analytics" element={<AdminRoute><Lazy><AdminAnalytics /></Lazy></AdminRoute>} />
-      <Route path="/admin/manual" element={<AdminRoute><Lazy><AdminManual /></Lazy></AdminRoute>} />
-      <Route path="/admin/scripts" element={<AdminRoute><Lazy><AdminScripts /></Lazy></AdminRoute>} />
-      {import.meta.env.DEV && AudioTestPage && (
-        <Route path="/dev/audio-test" element={<Lazy><AudioTestPage /></Lazy>} />
-      )}
+      <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -19,16 +19,11 @@ import { ChevronRight } from "lucide-react";
 
 const dashboardItem = { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" };
 
-const internacaoNavItems = [
+const clinicalNavItems = [
   { label: "Nova Gravação", icon: Mic, path: "/consultations/new" },
   { label: "Minhas Gravações", icon: Archive, path: "/gravacoes" },
   { label: "Atendimentos", icon: ClipboardList, path: "/consultations" },
   { label: "Pacientes", icon: Users, path: "/patients" },
-];
-
-const ambulatoryNavItems = [
-  { label: "Dashboard", icon: Hospital, path: "/ambulatory" },
-  { label: "Nova Consulta", icon: Plus, path: "/ambulatory/new" },
 ];
 
 const indicadoresNavItems = [
@@ -39,25 +34,19 @@ const indicadoresNavItems = [
 ];
 
 const adminNavItems = [
-  { label: "Métricas de Uso", icon: BarChart3, path: "/admin/analytics" },
-  { label: "Templates", icon: FileText, path: "/admin/templates" },
-  { label: "Protocolos", icon: Stethoscope, path: "/admin/protocols" },
-  { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
-  { label: "Base Conhecimento", icon: BookOpen, path: "/admin/knowledge" },
-  { label: "Indicadores", icon: Calculator, path: "/admin/indicators" },
-  { label: "Enfermarias", icon: Building2, path: "/admin/wards" },
-  { label: "Config. IPSG", icon: ShieldCheck, path: "/admin/ipsg" },
-  { label: "Logs de Coleta", icon: ClipboardList, path: "/admin/collection-logs" },
-  { label: "Gestão LGPD", icon: Lock, path: "/admin/lgpd" },
   { label: "Usuários", icon: Shield, path: "/admin/users" },
-  { label: "Departamentos", icon: Settings, path: "/admin/departments" },
+  { label: "Setores", icon: Building2, path: "/admin/wards" },
+  { label: "Templates", icon: FileText, path: "/admin/templates" },
   { label: "Scripts de Consulta", icon: ClipboardList, path: "/admin/scripts" },
+  { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
+  { label: "Indicadores", icon: Calculator, path: "/admin/indicators" },
+  { label: "Config. IPSG", icon: ShieldCheck, path: "/admin/ipsg" },
+  { label: "Métricas de Uso", icon: BarChart3, path: "/admin/analytics" },
   { label: "Manual Admin", icon: BookOpen, path: "/admin/manual" },
 ];
 
 const settingsNavItems = [
   { label: "Meu Perfil", icon: User, path: "/profile" },
-  { label: "Privacidade & LGPD", icon: Lock, path: "/settings/lgpd" },
 ];
 
 function NavButton({ item, isActive, onClick }: { item: typeof dashboardItem; isActive: boolean; onClick: () => void }) {
@@ -103,7 +92,8 @@ function SectionGroup({ label, children, defaultOpen = true }: { label: string; 
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, profile, roles, isSuperAdmin, signOut } = useAuth();
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin") || isSuperAdmin;
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,14 +128,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         <NavButton item={dashboardItem} isActive={isActive(dashboardItem.path)} onClick={() => handleNav(dashboardItem.path)} />
 
-        <SectionGroup label="Internacao">
-          {internacaoNavItems.map((item) => (
-            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
-          ))}
-        </SectionGroup>
-
-        <SectionGroup label="Ambulatorio">
-          {ambulatoryNavItems.map((item) => (
+        <SectionGroup label="Clinica">
+          {clinicalNavItems.map((item) => (
             <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
           ))}
         </SectionGroup>
@@ -162,7 +146,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           ))}
         </SectionGroup>
 
-        {isAdmin && (
+        {isHospitalAdmin && (
           <SectionGroup label="Administracao" defaultOpen={false}>
             {adminNavItems.map((item) => (
               <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
