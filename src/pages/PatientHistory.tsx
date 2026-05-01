@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   usePatient, usePatientWardHistory, useConsultations,
 } from "@/hooks/queries";
@@ -7,7 +8,7 @@ import { TransferPatientDialog } from "@/components/TransferPatientDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mic, ClipboardList, History } from "lucide-react";
+import { ArrowLeft, Mic, ClipboardList, History, Lock } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   recording: "Gravando",
@@ -20,9 +21,24 @@ const STATUS_LABELS: Record<string, string> = {
 export default function PatientHistory() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { wardIds, roles, isSuperAdmin } = useAuth();
   const { data: patient, isLoading } = usePatient(id);
   const { data: wardHistory } = usePatientWardHistory(id);
   const { data: consultations } = useConsultations({ patientId: id });
+
+  // O usuário pode atender este paciente?
+  // - super_admin sempre pode
+  // - hospital_admin do hospital do paciente sempre pode
+  // - doctor/nurse só se o paciente está em um dos seus wards
+  const canAttendPatient = (() => {
+    if (!patient) return false;
+    if (isSuperAdmin) return true;
+    const isHospitalAdmin = roles.some(
+      (r) => r.role === "hospital_admin" && r.hospital_id === patient.hospital_id,
+    );
+    if (isHospitalAdmin) return true;
+    return !!patient.current_ward_id && wardIds.includes(patient.current_ward_id);
+  })();
 
   if (isLoading) {
     return (
@@ -75,11 +91,31 @@ export default function PatientHistory() {
               currentWardId={patient.current_ward_id}
               hospitalId={patient.hospital_id}
             />
-            <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
-              <Mic className="w-4 h-4" /> Nova evolução
-            </Button>
+            {canAttendPatient ? (
+              <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
+                <Mic className="w-4 h-4" /> Nova evolução
+              </Button>
+            ) : (
+              <Button disabled variant="outline" className="gap-2" title="Paciente está fora dos seus setores">
+                <Lock className="w-4 h-4" /> Sem acesso clínico
+              </Button>
+            )}
           </div>
         </div>
+
+        {!canAttendPatient && (patient as any).current_ward && (
+          <Card className="border-warning/30 bg-warning/5">
+            <CardContent className="py-3 text-sm flex items-start gap-3">
+              <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--hv-accent)" }} />
+              <div>
+                Este paciente está atualmente em <strong>{(patient as any).current_ward.name}</strong>,
+                que não está entre os seus setores ativos. Você pode visualizar o
+                histórico, mas não pode iniciar novos atendimentos. Adendos em
+                consultas suas continuam permitidos.
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">

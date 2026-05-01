@@ -25,7 +25,7 @@ type ProcessingStep = "idle" | "uploading" | "transcribing" | "generating" | "do
 export default function NewConsultation() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { user, hospitalIds, roles } = useAuth();
+  const { user, hospitalIds, roles, wardIds, isSuperAdmin } = useAuth();
   const { data: patients } = usePatients();
   const createConsultation = useCreateConsultation();
   const updateConsultation = useUpdateConsultation();
@@ -46,6 +46,17 @@ export default function NewConsultation() {
   const wardType = patient?.current_ward?.ward_type as Enums<"ward_type"> | undefined;
   const wardId = patient?.current_ward?.id ?? null;
   const hospitalId = hospitalIds[0];
+
+  // Pode atender? Mesma regra da PatientHistory (super, hospital_admin, ou ward atribuído)
+  const canAttendPatient = useMemo(() => {
+    if (!patient || !wardId) return false;
+    if (isSuperAdmin) return true;
+    const isHospitalAdmin = roles.some(
+      (r) => r.role === "hospital_admin" && r.hospital_id === patient.hospital_id,
+    );
+    if (isHospitalAdmin) return true;
+    return wardIds.includes(wardId);
+  }, [patient, wardId, isSuperAdmin, roles, wardIds]);
 
   // Pre-select se vier ?patient=
   useEffect(() => {
@@ -254,7 +265,21 @@ export default function NewConsultation() {
           </CardContent>
         </Card>
 
-        {selectedPatient && (
+        {selectedPatient && !canAttendPatient && (
+          <Card className="border-warning/30 bg-warning/5">
+            <CardContent className="py-4 text-sm">
+              Você não está atribuído ao setor onde este paciente está
+              {patient?.current_ward?.name && (
+                <> (<strong>{patient.current_ward.name}</strong>)</>
+              )}
+              . Não é possível iniciar um novo atendimento.
+              Peça ao admin do hospital pra atribuir este setor a você
+              em <code>/admin/users</code>, ou selecione outro paciente.
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedPatient && canAttendPatient && (
           <Card>
             <CardHeader>
               <CardTitle className="heading-card">Conteúdo do atendimento</CardTitle>
