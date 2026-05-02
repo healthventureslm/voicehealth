@@ -87,23 +87,23 @@ export default function PatientHistory() {
           }
           subtitle={subtitleParts.join(" · ")}
           actions={
-            <>
-              <TransferPatientDialog
-                patientId={patient.id}
-                patientName={patient.full_name}
-                currentWardId={patient.current_ward_id}
-                hospitalId={patient.hospital_id}
-              />
-              {canAttendPatient ? (
+            canAttendPatient ? (
+              <>
+                <TransferPatientDialog
+                  patientId={patient.id}
+                  patientName={patient.full_name}
+                  currentWardId={patient.current_ward_id}
+                  hospitalId={patient.hospital_id}
+                />
                 <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
                   <Mic className="w-4 h-4" /> Nova evolução
                 </Button>
-              ) : (
-                <Button disabled variant="outline" className="gap-2" title="Paciente está fora dos seus setores">
-                  <Lock className="w-4 h-4" /> Sem acesso clínico
-                </Button>
-              )}
-            </>
+              </>
+            ) : (
+              <Button disabled variant="outline" className="gap-2" title="Paciente está fora dos seus setores">
+                <Lock className="w-4 h-4" /> Sem acesso clínico
+              </Button>
+            )
           }
         />
 

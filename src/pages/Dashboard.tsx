@@ -17,13 +17,22 @@ import {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, wardIds, roles, isSuperAdmin } = useAuth();
   const { data: stats, isLoading: loadingStats } = useDashboardStats();
   const { data: patients } = usePatients();
   const { data: myRecent } = useConsultations({ mineOnly: true });
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "—";
-  const recentPatients = (patients ?? []).slice(0, 6);
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
+
+  // Mostra apenas pacientes nos setores ATUAIS do usuário.
+  // Pacientes transferidos pra fora dos meus setores (que ainda são visíveis
+  // via consultas próprias) ficam acessíveis em /gravacoes, não aqui.
+  const myActivePatients = (patients ?? []).filter((p) => {
+    if (isSuperAdmin || isHospitalAdmin) return true;
+    return !!p.current_ward_id && wardIds.includes(p.current_ward_id);
+  });
+  const recentPatients = myActivePatients.slice(0, 6);
   const recentConsultations = (myRecent ?? []).slice(0, 5);
 
   return (

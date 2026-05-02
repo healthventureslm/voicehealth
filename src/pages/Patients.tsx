@@ -22,7 +22,7 @@ import { toast } from "sonner";
 
 export default function Patients() {
   const navigate = useNavigate();
-  const { user, hospitalIds } = useAuth();
+  const { user, hospitalIds, wardIds, roles, isSuperAdmin } = useAuth();
   const { data: patients, isLoading } = usePatients();
   const { data: myWards } = useMyWards(user?.id);
   const { data: allWards } = useWards();
@@ -40,7 +40,17 @@ export default function Patients() {
     current_ward_id: "",
   });
 
-  const filtered = (patients ?? []).filter((p) => {
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
+
+  // Apenas pacientes nos setores ATUAIS do usuário (pra doctor/nurse).
+  // Pacientes que ele atendeu antes mas foram transferidos pra fora ficam
+  // disponíveis em /gravacoes — esta listagem é "operacional do dia".
+  const inMyScope = (patients ?? []).filter((p) => {
+    if (isSuperAdmin || isHospitalAdmin) return true;
+    return !!p.current_ward_id && wardIds.includes(p.current_ward_id);
+  });
+
+  const filtered = inMyScope.filter((p) => {
     const matchesSearch =
       !search ||
       [p.full_name, p.medical_record, p.bed]
