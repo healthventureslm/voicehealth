@@ -42,3 +42,5 @@ export {
   useGlobalStats,
 } from "./useHospitals";
 export { useDashboardStats } from "./useDashboardStats";
+export { useHospitalAnalytics } from "./useHospitalAnalytics";
+export type { AnalyticsBucket } from "./useHospitalAnalytics";

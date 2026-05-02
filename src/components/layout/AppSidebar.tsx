@@ -2,9 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, Mic, FileText, Shield, LogOut,
-  ClipboardList, TrendingUp, Calculator,
-  ShieldCheck, ClipboardCheck, AlertCircle, Building2, Menu,
-  Hospital, BookOpen, BarChart3, User, Archive
+  ClipboardList, Building2, Menu,
+  Hospital, BookOpen, BarChart3, User, Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,21 +24,11 @@ const clinicalNavItems = [
   { label: "Pacientes", icon: Users, path: "/patients" },
 ];
 
-const indicadoresNavItems = [
-  { label: "Dashboard", icon: TrendingUp, path: "/indicators" },
-  { label: "Dashboard IPSG", icon: ShieldCheck, path: "/ipsg" },
-  { label: "Auditorias", icon: ClipboardCheck, path: "/ipsg/audits" },
-  { label: "Planos de Ação", icon: AlertCircle, path: "/ipsg/action-plans" },
-];
-
 const adminNavItems = [
   { label: "Usuários", icon: Shield, path: "/admin/users" },
   { label: "Setores", icon: Building2, path: "/admin/wards" },
   { label: "Templates", icon: FileText, path: "/admin/templates" },
-  { label: "Scripts de Consulta", icon: ClipboardList, path: "/admin/scripts" },
   { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
-  { label: "Indicadores", icon: Calculator, path: "/admin/indicators" },
-  { label: "Config. IPSG", icon: ShieldCheck, path: "/admin/ipsg" },
   { label: "Métricas de Uso", icon: BarChart3, path: "/admin/analytics" },
   { label: "Manual Admin", icon: BookOpen, path: "/admin/manual" },
 ];
@@ -134,12 +123,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
         <SectionGroup label="Clinica">
           {clinicalNavItems.map((item) => (
-            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
-          ))}
-        </SectionGroup>
-
-        <SectionGroup label="Indicadores" defaultOpen={false}>
-          {indicadoresNavItems.map((item) => (
             <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
           ))}
         </SectionGroup>

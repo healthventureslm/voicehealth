@@ -31,20 +31,9 @@ const MyRecordings = lazy(() => import("./pages/MyRecordings"));
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminWards = lazy(() => import("./pages/admin/AdminWards"));
-const AdminIndicators = lazy(() => import("./pages/admin/AdminIndicators"));
-const AdminIpsg = lazy(() => import("./pages/admin/AdminIpsg"));
 const AdminSpecialties = lazy(() => import("./pages/admin/AdminSpecialties"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminManual = lazy(() => import("./pages/admin/AdminManual"));
-const AdminScripts = lazy(() => import("./pages/admin/AdminScripts"));
-
-// IPSG
-const IndicatorsDashboard = lazy(() => import("./pages/IndicatorsDashboard"));
-const IpsgDashboard = lazy(() => import("./pages/ipsg/IpsgDashboard"));
-const IpsgAudits = lazy(() => import("./pages/ipsg/IpsgAudits"));
-const IpsgNewAudit = lazy(() => import("./pages/ipsg/IpsgNewAudit"));
-const IpsgAuditDetail = lazy(() => import("./pages/ipsg/IpsgAuditDetail"));
-const IpsgActionPlans = lazy(() => import("./pages/ipsg/IpsgActionPlans"));
 
 // Diversos
 const Profile = lazy(() => import("./pages/Profile"));
@@ -148,24 +137,13 @@ function AppRoutes() {
       <Route path="/consultations/:id/report" element={<Lazy><ConsultationReport /></Lazy>} />
       <Route path="/gravacoes" element={<Lazy><MyRecordings /></Lazy>} />
 
-      {/* Indicadores e IPSG */}
-      <Route path="/indicators" element={<Lazy><IndicatorsDashboard /></Lazy>} />
-      <Route path="/ipsg" element={<Lazy><IpsgDashboard /></Lazy>} />
-      <Route path="/ipsg/audits" element={<Lazy><IpsgAudits /></Lazy>} />
-      <Route path="/ipsg/audit/new" element={<Lazy><IpsgNewAudit /></Lazy>} />
-      <Route path="/ipsg/audit/:id" element={<Lazy><IpsgAuditDetail /></Lazy>} />
-      <Route path="/ipsg/action-plans" element={<Lazy><IpsgActionPlans /></Lazy>} />
-
       {/* Admin do hospital */}
       <Route path="/admin/templates" element={<HospitalAdminRoute><Lazy><AdminTemplates /></Lazy></HospitalAdminRoute>} />
       <Route path="/admin/users" element={<HospitalAdminRoute><Lazy><AdminUsers /></Lazy></HospitalAdminRoute>} />
       <Route path="/admin/wards" element={<HospitalAdminRoute><Lazy><AdminWards /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/indicators" element={<HospitalAdminRoute><Lazy><AdminIndicators /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/ipsg" element={<HospitalAdminRoute><Lazy><AdminIpsg /></Lazy></HospitalAdminRoute>} />
       <Route path="/admin/specialties" element={<HospitalAdminRoute><Lazy><AdminSpecialties /></Lazy></HospitalAdminRoute>} />
       <Route path="/admin/analytics" element={<HospitalAdminRoute><Lazy><AdminAnalytics /></Lazy></HospitalAdminRoute>} />
       <Route path="/admin/manual" element={<HospitalAdminRoute><Lazy><AdminManual /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/scripts" element={<HospitalAdminRoute><Lazy><AdminScripts /></Lazy></HospitalAdminRoute>} />
 
       <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
       <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
