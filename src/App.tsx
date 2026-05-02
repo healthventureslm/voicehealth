@@ -53,6 +53,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 // Super admin (Health Ventures)
 const SuperAdminHome = lazy(() => import("./pages/superadmin/SuperAdminHome"));
 const SuperAdminHospitals = lazy(() => import("./pages/superadmin/SuperAdminHospitals"));
+const SuperAdminHospitalDetail = lazy(() => import("./pages/superadmin/SuperAdminHospitalDetail"));
 const SuperAdminTemplates = lazy(() => import("./pages/superadmin/SuperAdminTemplates"));
 
 const queryClient = new QueryClient({
@@ -123,6 +124,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/superadmin" element={<Lazy><SuperAdminHome /></Lazy>} />
         <Route path="/superadmin/hospitals" element={<Lazy><SuperAdminHospitals /></Lazy>} />
+        <Route path="/superadmin/hospitals/:id" element={<Lazy><SuperAdminHospitalDetail /></Lazy>} />
         <Route path="/superadmin/templates" element={<Lazy><SuperAdminTemplates /></Lazy>} />
         <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
         <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />

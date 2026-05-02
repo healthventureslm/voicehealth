@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { useHospitals, useUpdateHospital } from "@/hooks/queries";
 import { CreateHospitalDialog } from "@/components/superadmin/CreateHospitalDialog";
@@ -10,11 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Building2, Pencil, Power, Search } from "lucide-react";
+import { Building2, Pencil, Power, Search, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 export default function SuperAdminHospitals() {
+  const navigate = useNavigate();
   const { data: hospitals, isLoading } = useHospitals();
   const update = useUpdateHospital();
 
@@ -101,7 +103,11 @@ export default function SuperAdminHospitals() {
         ) : (
           <div className="space-y-2">
             {filtered.map((h) => (
-              <Card key={h.id}>
+              <Card
+                key={h.id}
+                className="cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => navigate(`/superadmin/hospitals/${h.id}`)}
+              >
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium flex items-center gap-2">
@@ -114,8 +120,8 @@ export default function SuperAdminHospitals() {
                       <span>criado {new Date(h.created_at).toLocaleDateString("pt-BR")}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(h)}>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(h)} title="Editar">
                       <Pencil className="w-4 h-4" />
                     </Button>
                     <Button
@@ -127,6 +133,7 @@ export default function SuperAdminHospitals() {
                     >
                       <Power className="w-4 h-4" />
                     </Button>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground ml-1" />
                   </div>
                 </CardContent>
               </Card>

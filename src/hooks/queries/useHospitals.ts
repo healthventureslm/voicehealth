@@ -58,6 +58,81 @@ export function useUpdateHospital() {
 }
 
 /**
+ * Detalhes de UM hospital: info + stats + listas resumidas.
+ * Usado pelo super_admin pra drill-down em cada cliente.
+ */
+export function useHospitalDetail(hospitalId: string | undefined) {
+  return useQuery({
+    queryKey: ["hospital_detail", hospitalId],
+    enabled: !!hospitalId,
+    queryFn: async () => {
+      if (!hospitalId) throw new Error("missing hospitalId");
+
+      const [hospital, wardsRes, rolesRes, patientsRes, consultationsRes] =
+        await Promise.all([
+          supabase.from("hospitals").select("*").eq("id", hospitalId).maybeSingle(),
+          supabase
+            .from("wards")
+            .select("id, name, ward_type, bed_count, is_active")
+            .eq("hospital_id", hospitalId)
+            .order("name"),
+          supabase
+            .from("user_roles")
+            .select("user_id, role")
+            .eq("hospital_id", hospitalId),
+          supabase
+            .from("patients")
+            .select("id", { count: "exact", head: true })
+            .eq("hospital_id", hospitalId)
+            .is("deleted_at", null),
+          supabase
+            .from("consultations")
+            .select("id", { count: "exact", head: true })
+            .eq("hospital_id", hospitalId),
+        ]);
+
+      const userIds = Array.from(new Set((rolesRes.data ?? []).map((r) => r.user_id)));
+      const profilesRes = userIds.length
+        ? await supabase
+            .from("profiles")
+            .select("user_id, full_name, professional_role")
+            .in("user_id", userIds)
+        : { data: [] as any[] };
+
+      const rolesByUser = new Map<string, string[]>();
+      (rolesRes.data ?? []).forEach((r) => {
+        const arr = rolesByUser.get(r.user_id) ?? [];
+        arr.push(r.role);
+        rolesByUser.set(r.user_id, arr);
+      });
+
+      const profileById = new Map(
+        (profilesRes.data ?? []).map((p: any) => [p.user_id, p]),
+      );
+
+      const users = userIds.map((uid) => ({
+        user_id: uid,
+        full_name: profileById.get(uid)?.full_name ?? null,
+        professional_role: profileById.get(uid)?.professional_role ?? null,
+        roles: rolesByUser.get(uid) ?? [],
+      }));
+
+      return {
+        hospital: hospital.data,
+        wards: wardsRes.data ?? [],
+        users,
+        stats: {
+          users_count: userIds.length,
+          wards_count: (wardsRes.data ?? []).length,
+          patients_count: patientsRes.count ?? 0,
+          consultations_count: consultationsRes.count ?? 0,
+        },
+      };
+    },
+  });
+}
+
+/**
  * Estatísticas globais: contagem de hospitais, usuários, pacientes,
  * consultas, etc. — só super_admin consegue ler tudo via RLS.
  */

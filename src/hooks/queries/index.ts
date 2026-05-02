@@ -38,6 +38,7 @@ export {
   useHospitals,
   useCreateHospital,
   useUpdateHospital,
+  useHospitalDetail,
   useGlobalStats,
 } from "./useHospitals";
 export { useDashboardStats } from "./useDashboardStats";
