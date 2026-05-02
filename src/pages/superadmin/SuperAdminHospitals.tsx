@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { useHospitals, useUpdateHospital } from "@/hooks/queries";
 import { CreateHospitalDialog } from "@/components/superadmin/CreateHospitalDialog";
+import { ListItemCard, ListItemContent, ListItemActions } from "@/components/layout/ListItemCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -98,23 +99,23 @@ export default function SuperAdminHospitals() {
         ) : (
           <div className="space-y-2">
             {filtered.map((h) => (
-              <Card
-                key={h.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => navigate(`/superadmin/hospitals/${h.id}`)}
-              >
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium flex items-center gap-2">
+              <ListItemCard key={h.id} onClick={() => navigate(`/superadmin/hospitals/${h.id}`)}>
+                <ListItemContent
+                  title={
+                    <span className="flex items-center gap-2">
                       {h.name}
                       {!h.is_active && <Badge variant="secondary">inativo</Badge>}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                    </span>
+                  }
+                  subtitle={
+                    <>
                       <Badge variant="outline">slug: {h.slug}</Badge>
                       <Badge variant="outline">plano: {h.plan}</Badge>
                       <span>criado {new Date(h.created_at).toLocaleDateString("pt-BR")}</span>
-                    </div>
-                  </div>
+                    </>
+                  }
+                />
+                <ListItemActions>
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(h)} title="Editar">
                       <Pencil className="w-4 h-4" />
@@ -128,10 +129,10 @@ export default function SuperAdminHospitals() {
                     >
                       <Power className="w-4 h-4" />
                     </Button>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground ml-1" />
                   </div>
-                </CardContent>
-              </Card>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </ListItemActions>
+              </ListItemCard>
             ))}
           </div>
         )}

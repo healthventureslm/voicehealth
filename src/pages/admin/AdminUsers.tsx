@@ -11,12 +11,13 @@ import { InviteUserDialog } from "@/components/admin/InviteUserDialog";
 import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, UserMinus, ShieldAlert, Mail, Copy, Check } from "lucide-react";
+import { Pencil, UserMinus, ShieldAlert, Mail, Copy, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { HospitalUserRow } from "@/hooks/queries";
 
@@ -40,8 +41,24 @@ export default function AdminUsers() {
 
   const [editing, setEditing] = useState<HospitalUserRow | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const wardName = (id: string) => (wards ?? []).find((w) => w.id === id)?.name ?? id.slice(0, 6);
+
+  // Filtra equipe por nome / role
+  const filteredUsers = (users ?? []).filter((u) => {
+    if (!search) return true;
+    const haystack = [
+      u.full_name,
+      u.professional_role,
+      ...u.roles.map((r) => ROLE_LABEL[r] ?? r),
+      ...u.ward_ids.map((id) => wardName(id)),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
 
   async function copyInviteLink(token: string) {
     const url = `${window.location.origin}/signup?token=${token}`;
@@ -156,18 +173,29 @@ export default function AdminUsers() {
 
         {/* Lista de usuários ativos */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle className="heading-card">Equipe ativa</CardTitle>
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar usuário..."
+                className="pl-10 h-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {isLoading ? (
               <p className="text-center text-muted-foreground py-6">Carregando…</p>
-            ) : (users ?? []).length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <p className="text-center text-muted-foreground py-6">
-                Nenhum usuário ativo. Use "Convidar usuário" pra começar.
+                {search
+                  ? "Nenhum usuário corresponde à busca."
+                  : 'Nenhum usuário ativo. Use "Convidar usuário" pra começar.'}
               </p>
             ) : (
-              (users ?? []).map((u) => (
+              filteredUsers.map((u) => (
                 <div
                   key={u.user_id}
                   className="flex items-center justify-between gap-2 p-3 border rounded-md hover:bg-accent/30 transition-colors"

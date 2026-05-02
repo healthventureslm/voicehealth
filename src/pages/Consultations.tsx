@@ -4,8 +4,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { ListItemCard, ListItemContent, ListItemActions } from "@/components/layout/ListItemCard";
 import { useConsultations } from "@/hooks/queries";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +116,13 @@ export default function Consultations() {
                 ? "Inicie uma nova gravação pra começar."
                 : "Tente ajustar os filtros."
             }
+            action={
+              (consultations ?? []).length === 0 ? (
+                <Button onClick={() => navigate("/consultations/new")} className="gap-2">
+                  <Mic className="w-4 h-4" /> Iniciar gravação
+                </Button>
+              ) : null
+            }
           />
         ) : (
           <div className="space-y-2">
@@ -123,32 +130,30 @@ export default function Consultations() {
               {filtered.length} atendimento{filtered.length !== 1 && "s"}
             </p>
             {filtered.map((c: any) => (
-              <Card
-                key={c.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => navigate(`/consultations/${c.id}/report`)}
-              >
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{c.patient?.full_name ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {c.ward?.name ? `${c.ward.name} · ` : ""}
-                      {new Date(c.created_at).toLocaleString("pt-BR", {
-                        day: "2-digit", month: "2-digit", year: "2-digit",
-                        hour: "2-digit", minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {c.locked_at && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Lock className="w-3 h-3" /> Bloqueada
-                      </Badge>
-                    )}
-                    <Badge variant="outline">{STATUS_LABELS[c.status] ?? c.status}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
+              <ListItemCard key={c.id} onClick={() => navigate(`/consultations/${c.id}/report`)}>
+                <ListItemContent
+                  title={c.patient?.full_name ?? "—"}
+                  subtitle={
+                    <>
+                      {c.ward?.name && <span>{c.ward.name}</span>}
+                      <span>
+                        {new Date(c.created_at).toLocaleString("pt-BR", {
+                          day: "2-digit", month: "2-digit", year: "2-digit",
+                          hour: "2-digit", minute: "2-digit",
+                        })}
+                      </span>
+                    </>
+                  }
+                />
+                <ListItemActions>
+                  {c.locked_at && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Lock className="w-3 h-3" /> Bloqueada
+                    </Badge>
+                  )}
+                  <Badge variant="outline">{STATUS_LABELS[c.status] ?? c.status}</Badge>
+                </ListItemActions>
+              </ListItemCard>
             ))}
           </div>
         )}

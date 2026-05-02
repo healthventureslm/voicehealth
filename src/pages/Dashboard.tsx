@@ -33,7 +33,7 @@ export default function Dashboard() {
           eyebrow="Hoje"
           title={`Olá, ${firstName}`}
           actions={
-            <Button onClick={() => navigate("/consultations/new")} className="gap-2" size="lg">
+            <Button onClick={() => navigate("/consultations/new")} className="gap-2">
               <Mic className="w-4 h-4" /> Nova gravação
             </Button>
           }
