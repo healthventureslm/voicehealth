@@ -97,7 +97,7 @@ const Index = () => {
                     border: "1px solid var(--hv-accent)",
                   }}
                 >
-                  <f.icon className="w-5 h-5" style={{ color: "var(--hv-accent)" }} />
+                  <f.icon className="w-5 h-5 text-primary" />
                 </div>
                 <p className="hv-eyebrow">{f.eyebrow}</p>
                 <h3 className="heading-card">{f.title}</h3>

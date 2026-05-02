@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePatients, useCreatePatient, useMyWards, useWards } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,6 @@ export default function Patients() {
       <PageContainer>
         <PageHeader
           title="Pacientes"
-          subtitle={`Pacientes nos seus setores (${(myWards ?? []).length} setor${(myWards ?? []).length !== 1 ? "es" : ""}).`}
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -200,16 +200,19 @@ export default function Patients() {
         </div>
 
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando…</p>
+          <EmptyState loading />
         ) : filtered.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              {search ? "Nenhum paciente encontrado." : "Nenhum paciente cadastrado nos seus setores."}
-            </CardContent>
-          </Card>
+          <EmptyState
+            title={search ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
+            description={search ? "Tente ajustar os filtros." : "Cadastre o primeiro paciente nos seus setores."}
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {filtered.map((p) => (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {filtered.length} paciente{filtered.length !== 1 && "s"}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filtered.map((p) => (
               <Card
                 key={p.id}
                 className="cursor-pointer hover:border-primary/50 transition-colors"
@@ -232,6 +235,7 @@ export default function Patients() {
                 </CardContent>
               </Card>
             ))}
+            </div>
           </div>
         )}
       </PageContainer>

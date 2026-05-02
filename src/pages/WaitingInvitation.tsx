@@ -15,7 +15,7 @@ export default function WaitingInvitation() {
         <Card>
           <CardContent className="p-6 space-y-5">
             <div className="flex gap-3">
-              <Mail className="w-5 h-5 flex-shrink-0 mt-1" style={{ color: "var(--hv-accent)" }} />
+              <Mail className="w-5 h-5 flex-shrink-0 mt-1 text-primary" />
               <div className="space-y-1">
                 <p className="font-medium">Aguardando convite</p>
                 <p className="text-sm text-muted-foreground">
@@ -28,7 +28,7 @@ export default function WaitingInvitation() {
             </div>
 
             <div className="flex gap-3">
-              <Clock className="w-5 h-5 flex-shrink-0 mt-1" style={{ color: "var(--hv-accent)" }} />
+              <Clock className="w-5 h-5 flex-shrink-0 mt-1 text-primary" />
               <div className="space-y-1">
                 <p className="font-medium">Após receber o link</p>
                 <p className="text-sm text-muted-foreground">

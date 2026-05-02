@@ -11,7 +11,7 @@ export function AuthHero({ subtitle }: { subtitle?: string }) {
         className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
         style={{ background: "var(--hv-card)", border: "1px solid var(--hv-accent)" }}
       >
-        <Mic className="w-5 h-5" style={{ color: "var(--hv-accent)" }} />
+        <Mic className="w-5 h-5 text-primary" />
       </div>
       <h1 className="hv-wordmark text-3xl">
         Voice<em>Health</em>

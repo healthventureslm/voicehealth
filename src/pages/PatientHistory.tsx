@@ -45,7 +45,7 @@ export default function PatientHistory() {
   if (isLoading) {
     return (
       <AppLayout>
-        <PageContainer width="narrow">Carregando…</PageContainer>
+        <PageContainer>Carregando…</PageContainer>
       </AppLayout>
     );
   }
@@ -53,7 +53,7 @@ export default function PatientHistory() {
   if (!patient) {
     return (
       <AppLayout>
-        <PageContainer width="narrow">
+        <PageContainer>
           <p>Paciente não encontrado ou sem permissão.</p>
           <Button variant="outline" onClick={() => navigate("/patients")}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
@@ -71,7 +71,7 @@ export default function PatientHistory() {
 
   return (
     <AppLayout>
-      <PageContainer width="narrow">
+      <PageContainer>
         <PageHeader
           back
           backTo="/patients"
@@ -110,7 +110,7 @@ export default function PatientHistory() {
         {!canAttendPatient && (patient as any).current_ward && (
           <Card className="border-warning/30 bg-warning/5">
             <CardContent className="py-3 text-sm flex items-start gap-3">
-              <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "var(--hv-accent)" }} />
+              <Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
               <div>
                 Este paciente está atualmente em <strong>{(patient as any).current_ward.name}</strong>,
                 que não está entre os seus setores ativos. Você pode visualizar o
@@ -135,7 +135,7 @@ export default function PatientHistory() {
               (consultations ?? []).map((c: any) => (
                 <div
                   key={c.id}
-                  className="flex items-center justify-between p-3 border rounded-md hover:bg-accent/50 cursor-pointer"
+                  className="flex items-center justify-between p-3 border rounded-md hover:bg-accent/30 cursor-pointer transition-colors"
                   onClick={() => navigate(`/consultations/${c.id}/report`)}
                 >
                   <div>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { useHospitals, useUpdateHospital } from "@/hooks/queries";
 import { CreateHospitalDialog } from "@/components/superadmin/CreateHospitalDialog";
 import { Button } from "@/components/ui/button";
@@ -88,13 +89,12 @@ export default function SuperAdminHospitals() {
         </div>
 
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando…</p>
+          <EmptyState loading />
         ) : filtered.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              {search ? "Nenhum hospital encontrado" : "Nenhum hospital cadastrado"}
-            </CardContent>
-          </Card>
+          <EmptyState
+            title={search ? "Nenhum hospital encontrado" : "Nenhum hospital cadastrado"}
+            description={search ? "Tente ajustar a busca." : "Cadastre o primeiro hospital cliente."}
+          />
         ) : (
           <div className="space-y-2">
             {filtered.map((h) => (

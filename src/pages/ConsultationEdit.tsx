@@ -49,14 +49,14 @@ export default function ConsultationEdit() {
   if (isLoading) {
     return (
       <AppLayout>
-        <PageContainer width="narrow">Carregando…</PageContainer>
+        <PageContainer>Carregando…</PageContainer>
       </AppLayout>
     );
   }
   if (!consultation) {
     return (
       <AppLayout>
-        <PageContainer width="narrow">Atendimento não encontrado.</PageContainer>
+        <PageContainer>Atendimento não encontrado.</PageContainer>
       </AppLayout>
     );
   }
@@ -64,7 +64,7 @@ export default function ConsultationEdit() {
   if (consultation.locked_at) {
     return (
       <AppLayout>
-        <PageContainer width="narrow">
+        <PageContainer>
           <PageHeader back title="Atendimento bloqueado" />
           <Card>
             <CardContent className="py-8 text-center space-y-3">
@@ -160,7 +160,7 @@ export default function ConsultationEdit() {
 
   return (
     <AppLayout>
-      <PageContainer width="narrow">
+      <PageContainer>
         <PageHeader back title="Editar atendimento" />
 
         {/* TRANSCRIÇÃO */}

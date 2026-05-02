@@ -14,7 +14,7 @@ export default function Profile() {
 
   return (
     <Layout>
-      <PageContainer width="narrow">
+      <PageContainer>
         <PageHeader title="Meu perfil" />
 
         <Card>

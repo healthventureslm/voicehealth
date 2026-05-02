@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useWards, useCreateWard, useUpdateWard, useDeleteWard,
@@ -207,13 +208,12 @@ export default function AdminWards() {
         />
 
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando…</p>
+          <EmptyState loading />
         ) : myWards.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              Nenhum setor cadastrado.
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="Nenhum setor cadastrado"
+            description='Use "Novo setor" pra criar o primeiro.'
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {myWards.map((w) => {

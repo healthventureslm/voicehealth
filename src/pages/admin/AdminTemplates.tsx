@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useAdminTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate,
@@ -284,13 +285,12 @@ export default function AdminTemplates() {
         />
 
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando…</p>
+          <EmptyState loading />
         ) : (templates ?? []).length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              Nenhum template ainda.
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="Nenhum template"
+            description="Crie templates próprios do hospital ou aproveite os globais."
+          />
         ) : (
           <div className="space-y-3">
             {(templates ?? []).map((t) => {

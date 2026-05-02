@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { useConsultations } from "@/hooks/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -102,15 +103,20 @@ export default function Consultations() {
         </div>
 
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando…</p>
+          <EmptyState loading />
         ) : filtered.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              {(consultations ?? []).length === 0
-                ? "Nenhum atendimento registrado ainda."
-                : "Nenhum atendimento corresponde aos filtros."}
-            </CardContent>
-          </Card>
+          <EmptyState
+            title={
+              (consultations ?? []).length === 0
+                ? "Nenhum atendimento registrado"
+                : "Nenhum atendimento encontrado"
+            }
+            description={
+              (consultations ?? []).length === 0
+                ? "Inicie uma nova gravação pra começar."
+                : "Tente ajustar os filtros."
+            }
+          />
         ) : (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
@@ -119,7 +125,7 @@ export default function Consultations() {
             {filtered.map((c: any) => (
               <Card
                 key={c.id}
-                className="cursor-pointer hover:border-primary/50"
+                className="cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => navigate(`/consultations/${c.id}/report`)}
               >
                 <CardContent className="p-4 flex items-center justify-between gap-3">

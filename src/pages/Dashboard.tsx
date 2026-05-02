@@ -179,7 +179,7 @@ function StatCard({
     <Card className="hv-card">
       <CardHeader className="pb-2">
         <CardDescription className="hv-eyebrow flex items-center gap-2">
-          <span style={{ color: "var(--hv-accent)" }}>{icon}</span>
+          <span className="text-primary">{icon}</span>
           {label}
         </CardDescription>
       </CardHeader>

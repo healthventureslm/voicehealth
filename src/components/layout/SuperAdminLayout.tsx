@@ -51,7 +51,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: "var(--hv-card)", border: "1px solid var(--hv-accent)" }}
         >
-          <Mic className="w-4 h-4" style={{ color: "var(--hv-accent)" }} />
+          <Mic className="w-4 h-4 text-primary" />
         </div>
         <div className="flex flex-col leading-none">
           <span className="hv-wordmark text-lg">
@@ -163,7 +163,7 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
         <header className="flex items-center gap-3 px-3 md:px-4 py-2 border-b bg-background flex-shrink-0">
           <MobileSidebarTrigger />
           <div className="flex items-center gap-2 text-sm">
-            <Shield className="w-4 h-4" style={{ color: "var(--hv-accent)" }} />
+            <Shield className="w-4 h-4 text-primary" />
             <span className="hv-wordmark">
               Voice<em>Health</em>
             </span>

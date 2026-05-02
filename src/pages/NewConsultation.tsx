@@ -224,7 +224,7 @@ export default function NewConsultation() {
 
   return (
     <AppLayout>
-      <PageContainer width="narrow">
+      <PageContainer>
         <PageHeader back title="Novo atendimento" />
 
         <Card>

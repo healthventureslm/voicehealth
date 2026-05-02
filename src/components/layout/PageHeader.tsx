@@ -54,7 +54,7 @@ export function PageHeader({
         <div className="min-w-0">
           {eyebrow && <p className="hv-eyebrow mb-2">{eyebrow}</p>}
           <h1 className="heading-page flex items-center gap-3">
-            {icon && <span style={{ color: "var(--hv-accent)" }}>{icon}</span>}
+            {icon && <span className="text-primary">{icon}</span>}
             {title}
           </h1>
           {subtitle && (

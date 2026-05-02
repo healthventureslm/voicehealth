@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -264,13 +265,12 @@ export default function SuperAdminTemplates() {
         />
 
         {isLoading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando…</p>
+          <EmptyState loading />
         ) : globalTemplates.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12 text-muted-foreground">
-              Nenhum template global ainda.
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="Nenhum template global"
+            description="Crie templates pra disponibilizar em todos os hospitais."
+          />
         ) : (
           <div className="space-y-3">
             {globalTemplates.map((t) => (

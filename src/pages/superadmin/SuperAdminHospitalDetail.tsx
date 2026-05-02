@@ -120,7 +120,7 @@ export default function SuperAdminHospitalDetail() {
           <Card className="hv-card">
             <CardHeader>
               <CardTitle className="heading-section flex items-center gap-2">
-                <Building2 className="w-5 h-5" style={{ color: "var(--hv-accent)" }} />
+                <Building2 className="w-5 h-5 text-primary" />
                 Setores ({wards.length})
               </CardTitle>
               <CardDescription>Wards cadastrados neste hospital</CardDescription>
@@ -156,7 +156,7 @@ export default function SuperAdminHospitalDetail() {
           <Card className="hv-card">
             <CardHeader>
               <CardTitle className="heading-section flex items-center gap-2">
-                <Users className="w-5 h-5" style={{ color: "var(--hv-accent)" }} />
+                <Users className="w-5 h-5 text-primary" />
                 Equipe ({users.length})
               </CardTitle>
               <CardDescription>Usuários vinculados a este hospital</CardDescription>
@@ -200,7 +200,7 @@ export default function SuperAdminHospitalDetail() {
         <Card className="hv-card">
           <CardHeader>
             <CardTitle className="heading-section flex items-center gap-2">
-              <ClipboardList className="w-5 h-5" style={{ color: "var(--hv-accent)" }} />
+              <ClipboardList className="w-5 h-5 text-primary" />
               Saúde do tenant
             </CardTitle>
             <CardDescription>Sinais rápidos pra avaliar uso e adoção</CardDescription>
@@ -242,7 +242,7 @@ function KpiCard({
     <Card className="hv-card">
       <CardHeader className="pb-2">
         <CardDescription className="hv-eyebrow flex items-center gap-2">
-          <span style={{ color: "var(--hv-accent)" }}>{icon}</span>
+          <span className="text-primary">{icon}</span>
           {label}
         </CardDescription>
       </CardHeader>

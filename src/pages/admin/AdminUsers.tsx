@@ -170,7 +170,7 @@ export default function AdminUsers() {
               (users ?? []).map((u) => (
                 <div
                   key={u.user_id}
-                  className="flex items-center justify-between gap-2 p-3 border rounded-md hover:bg-accent/30"
+                  className="flex items-center justify-between gap-2 p-3 border rounded-md hover:bg-accent/30 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium">{u.full_name ?? "—"}</div>
