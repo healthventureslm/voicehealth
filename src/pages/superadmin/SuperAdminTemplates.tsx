@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -142,19 +144,13 @@ export default function SuperAdminTemplates() {
 
   return (
     <SuperAdminLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="heading-page flex items-center gap-2">
-              <Globe className="w-6 h-6 text-primary" />
-              Templates globais
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Templates aqui ficam disponíveis em <strong>todos</strong> os
-              hospitais. Cada hospital pode também criar seus próprios em /admin/templates.
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+      <PageContainer>
+        <PageHeader
+          icon={<Globe className="w-6 h-6" />}
+          title="Templates globais"
+          subtitle="Disponíveis em todos os hospitais. Cada hospital também pode criar os próprios em /admin/templates."
+          actions={
+            <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openNew} className="gap-2">
                 <Plus className="w-4 h-4" /> Novo template global
@@ -264,7 +260,8 @@ export default function SuperAdminTemplates() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+          }
+        />
 
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Carregando…</p>
@@ -347,7 +344,7 @@ export default function SuperAdminTemplates() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     </SuperAdminLayout>
   );
 }

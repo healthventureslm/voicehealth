@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   useConsultation, useUpdateConsultation, useClinicalReports,
 } from "@/hooks/queries";
@@ -11,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, FileText, Mic, Lock, RefreshCw } from "lucide-react";
+import { FileText, Mic, Lock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ConsultationEdit() {
@@ -47,14 +49,14 @@ export default function ConsultationEdit() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6">Carregando…</div>
+        <PageContainer width="narrow">Carregando…</PageContainer>
       </AppLayout>
     );
   }
   if (!consultation) {
     return (
       <AppLayout>
-        <div className="p-6">Atendimento não encontrado.</div>
+        <PageContainer width="narrow">Atendimento não encontrado.</PageContainer>
       </AppLayout>
     );
   }
@@ -62,10 +64,8 @@ export default function ConsultationEdit() {
   if (consultation.locked_at) {
     return (
       <AppLayout>
-        <div className="p-6 max-w-3xl mx-auto space-y-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-          </Button>
+        <PageContainer width="narrow">
+          <PageHeader back title="Atendimento bloqueado" />
           <Card>
             <CardContent className="py-8 text-center space-y-3">
               <Lock className="w-8 h-8 text-muted-foreground mx-auto" />
@@ -79,7 +79,7 @@ export default function ConsultationEdit() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </PageContainer>
       </AppLayout>
     );
   }
@@ -160,12 +160,8 @@ export default function ConsultationEdit() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Button>
-
-        <h1 className="heading-page">Editar atendimento</h1>
+      <PageContainer width="narrow">
+        <PageHeader back title="Editar atendimento" />
 
         {/* TRANSCRIÇÃO */}
         <Card>
@@ -241,7 +237,7 @@ export default function ConsultationEdit() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

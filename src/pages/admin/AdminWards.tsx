@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useWards, useCreateWard, useUpdateWard, useDeleteWard,
@@ -121,18 +123,13 @@ export default function AdminWards() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="heading-page flex items-center gap-2">
-              <Building2 className="w-6 h-6 text-primary" />
-              Setores do hospital
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Crie e gerencie os setores onde os profissionais atuam.
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+      <PageContainer>
+        <PageHeader
+          icon={<Building2 className="w-6 h-6" />}
+          title="Setores do hospital"
+          subtitle="Crie e gerencie os setores onde os profissionais atuam."
+          actions={
+            <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openNew} className="gap-2">
                 <Plus className="w-4 h-4" /> Novo setor
@@ -206,7 +203,8 @@ export default function AdminWards() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+          }
+        />
 
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Carregando…</p>
@@ -265,7 +263,7 @@ export default function AdminWards() {
             })}
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

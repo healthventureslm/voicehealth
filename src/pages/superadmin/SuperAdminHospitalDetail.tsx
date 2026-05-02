@@ -1,11 +1,13 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useHospitalDetail, useUpdateHospital } from "@/hooks/queries";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, Building2, Users, ClipboardList, Activity,
+  Building2, Users, ClipboardList, Activity,
   UserCircle2, Power,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,7 +37,7 @@ export default function SuperAdminHospitalDetail() {
   if (isLoading) {
     return (
       <SuperAdminLayout>
-        <div className="p-6">Carregando…</div>
+        <PageContainer>Carregando…</PageContainer>
       </SuperAdminLayout>
     );
   }
@@ -43,16 +45,14 @@ export default function SuperAdminHospitalDetail() {
   if (!data?.hospital) {
     return (
       <SuperAdminLayout>
-        <div className="p-6 max-w-3xl mx-auto space-y-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/superadmin/hospitals")} className="-ml-2">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-          </Button>
+        <PageContainer width="narrow">
+          <PageHeader back backTo="/superadmin/hospitals" title="Hospital não encontrado" />
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              Hospital não encontrado.
+              Verifique se o ID está correto.
             </CardContent>
           </Card>
-        </div>
+        </PageContainer>
       </SuperAdminLayout>
     );
   }
@@ -73,37 +73,38 @@ export default function SuperAdminHospitalDetail() {
 
   return (
     <SuperAdminLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/superadmin/hospitals")} className="-ml-2">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para hospitais
-        </Button>
-
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <p className="hv-eyebrow mb-2">Hospital</p>
-            <h1 className="heading-page flex items-center gap-3">
-              <Building2 className="w-7 h-7" style={{ color: "var(--hv-accent)" }} />
+      <PageContainer>
+        <PageHeader
+          back
+          backTo="/superadmin/hospitals"
+          eyebrow="Hospital"
+          icon={<Building2 className="w-7 h-7" />}
+          title={
+            <span className="flex items-center gap-3">
               {hospital.name}
               {!hospital.is_active && <Badge variant="secondary">inativo</Badge>}
-            </h1>
-            <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
+            </span>
+          }
+          subtitle={
+            <span className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline">slug: {hospital.slug}</Badge>
               <Badge variant="outline">plano: {hospital.plan}</Badge>
               {hospital.cnpj && <Badge variant="outline">CNPJ {hospital.cnpj}</Badge>}
               <span>· criado {new Date(hospital.created_at).toLocaleDateString("pt-BR")}</span>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            onClick={toggleActive}
-            disabled={updateHospital.isPending}
-            className="gap-2"
-          >
-            <Power className="w-4 h-4" />
-            {hospital.is_active ? "Desativar" : "Ativar"}
-          </Button>
-        </div>
+            </span>
+          }
+          actions={
+            <Button
+              variant="outline"
+              onClick={toggleActive}
+              disabled={updateHospital.isPending}
+              className="gap-2"
+            >
+              <Power className="w-4 h-4" />
+              {hospital.is_active ? "Desativar" : "Ativar"}
+            </Button>
+          }
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -225,7 +226,7 @@ export default function SuperAdminHospitalDetail() {
             />
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </SuperAdminLayout>
   );
 }

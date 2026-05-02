@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,8 +14,8 @@ export default function Profile() {
 
   return (
     <Layout>
-      <div className="p-6 max-w-2xl mx-auto space-y-6">
-        <h1 className="heading-page">Meu perfil</h1>
+      <PageContainer width="narrow">
+        <PageHeader title="Meu perfil" />
 
         <Card>
           <CardHeader>
@@ -58,7 +60,7 @@ export default function Profile() {
         <Button variant="outline" onClick={signOut}>
           Sair
         </Button>
-      </div>
+      </PageContainer>
     </Layout>
   );
 }

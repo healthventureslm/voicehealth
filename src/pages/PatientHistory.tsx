@@ -1,5 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   usePatient, usePatientWardHistory, useConsultations,
@@ -43,7 +45,7 @@ export default function PatientHistory() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 max-w-4xl mx-auto">Carregando…</div>
+        <PageContainer width="narrow">Carregando…</PageContainer>
       </AppLayout>
     );
   }
@@ -51,57 +53,59 @@ export default function PatientHistory() {
   if (!patient) {
     return (
       <AppLayout>
-        <div className="p-6 max-w-4xl mx-auto">
+        <PageContainer width="narrow">
           <p>Paciente não encontrado ou sem permissão.</p>
-          <Button variant="outline" onClick={() => navigate("/patients")} className="mt-4">
+          <Button variant="outline" onClick={() => navigate("/patients")}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
           </Button>
-        </div>
+        </PageContainer>
       </AppLayout>
     );
   }
 
+  const subtitleParts = [
+    patient.medical_record && `Prontuário: ${patient.medical_record}`,
+    patient.bed && `Leito: ${patient.bed}`,
+    patient.date_of_birth && `Nascimento: ${new Date(patient.date_of_birth).toLocaleDateString("pt-BR")}`,
+  ].filter(Boolean) as string[];
+
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/patients")} className="-ml-2">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para pacientes
-        </Button>
-
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="heading-page">{patient.full_name}</h1>
-            <div className="text-sm text-muted-foreground space-x-3 mt-1">
-              {patient.medical_record && <span>Prontuário: {patient.medical_record}</span>}
-              {patient.bed && <span>Leito: {patient.bed}</span>}
-              {patient.date_of_birth && (
-                <span>Nascimento: {new Date(patient.date_of_birth).toLocaleDateString("pt-BR")}</span>
+      <PageContainer width="narrow">
+        <PageHeader
+          back
+          backTo="/patients"
+          title={
+            <span className="flex items-center gap-3">
+              {patient.full_name}
+              {(patient as any).current_ward && (
+                <Badge variant="outline" className="text-xs font-mono">
+                  {(patient as any).current_ward.name}
+                </Badge>
               )}
-            </div>
-            {(patient as any).current_ward && (
-              <Badge variant="outline" className="mt-2">
-                {(patient as any).current_ward.name}
-              </Badge>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <TransferPatientDialog
-              patientId={patient.id}
-              patientName={patient.full_name}
-              currentWardId={patient.current_ward_id}
-              hospitalId={patient.hospital_id}
-            />
-            {canAttendPatient ? (
-              <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
-                <Mic className="w-4 h-4" /> Nova evolução
-              </Button>
-            ) : (
-              <Button disabled variant="outline" className="gap-2" title="Paciente está fora dos seus setores">
-                <Lock className="w-4 h-4" /> Sem acesso clínico
-              </Button>
-            )}
-          </div>
-        </div>
+            </span>
+          }
+          subtitle={subtitleParts.join(" · ")}
+          actions={
+            <>
+              <TransferPatientDialog
+                patientId={patient.id}
+                patientName={patient.full_name}
+                currentWardId={patient.current_ward_id}
+                hospitalId={patient.hospital_id}
+              />
+              {canAttendPatient ? (
+                <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
+                  <Mic className="w-4 h-4" /> Nova evolução
+                </Button>
+              ) : (
+                <Button disabled variant="outline" className="gap-2" title="Paciente está fora dos seus setores">
+                  <Lock className="w-4 h-4" /> Sem acesso clínico
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {!canAttendPatient && (patient as any).current_ward && (
           <Card className="border-warning/30 bg-warning/5">
@@ -178,7 +182,7 @@ export default function PatientHistory() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useAdminTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate,
@@ -146,19 +148,13 @@ export default function AdminTemplates() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="heading-page flex items-center gap-2">
-              <FileText className="w-6 h-6 text-primary" />
-              Templates de relatório
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Defina como a IA deve estruturar os relatórios. Templates globais (Health
-              Ventures) aparecem como read-only — você pode criar versões próprias do hospital.
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+      <PageContainer>
+        <PageHeader
+          icon={<FileText className="w-6 h-6" />}
+          title="Templates de relatório"
+          subtitle="Defina como a IA deve estruturar os relatórios. Templates globais (Health Ventures) aparecem como read-only — você pode criar versões próprias do hospital."
+          actions={
+            <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openNew} className="gap-2">
                 <Plus className="w-4 h-4" /> Novo template
@@ -284,7 +280,8 @@ export default function AdminTemplates() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+          }
+        />
 
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Carregando…</p>
@@ -377,7 +374,7 @@ export default function AdminTemplates() {
             })}
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

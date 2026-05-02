@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useGlobalStats, useHospitals } from "@/hooks/queries";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,15 +15,12 @@ export default function SuperAdminHome() {
 
   return (
     <SuperAdminLayout>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="heading-page">
-            Olá, {profile?.full_name?.split(" ")[0] ?? "—"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Visão consolidada de todos os hospitais que rodam VoiceHealth.
-          </p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Visão geral"
+          title={`Olá, ${profile?.full_name?.split(" ")[0] ?? "—"}`}
+          subtitle="Visão consolidada de todos os hospitais que rodam VoiceHealth."
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -112,7 +111,7 @@ export default function SuperAdminHome() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </SuperAdminLayout>
   );
 }

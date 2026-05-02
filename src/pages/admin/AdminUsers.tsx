@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useHospitalUsers, useWards, useInvitations, useRevokeInvitation,
@@ -62,14 +64,14 @@ export default function AdminUsers() {
   if (!hospitalId) {
     return (
       <AppLayout>
-        <div className="p-6 max-w-3xl mx-auto">
+        <PageContainer width="narrow">
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground space-y-2">
               <ShieldAlert className="w-8 h-8 text-muted-foreground mx-auto" />
               <p>Você não está vinculado a nenhum hospital.</p>
             </CardContent>
           </Card>
-        </div>
+        </PageContainer>
       </AppLayout>
     );
   }
@@ -78,16 +80,12 @@ export default function AdminUsers() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="heading-page">Usuários do hospital</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Convide profissionais e gerencie os papéis e setores onde atuam.
-            </p>
-          </div>
-          <InviteUserDialog hospitalId={hospitalId} />
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Usuários do hospital"
+          subtitle="Convide profissionais e gerencie os papéis e setores onde atuam."
+          actions={<InviteUserDialog hospitalId={hospitalId} />}
+        />
 
         {/* Convites pendentes */}
         {pendingInvitations.length > 0 && (
@@ -228,7 +226,7 @@ export default function AdminUsers() {
           hospitalId={hospitalId}
           onClose={() => setEditing(null)}
         />
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

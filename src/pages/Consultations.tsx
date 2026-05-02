@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useConsultations } from "@/hooks/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,13 +56,15 @@ export default function Consultations() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="heading-page">Atendimentos</h1>
-          <Button onClick={() => navigate("/consultations/new")} className="gap-2">
-            <Mic className="w-4 h-4" /> Novo atendimento
-          </Button>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Atendimentos"
+          actions={
+            <Button onClick={() => navigate("/consultations/new")} className="gap-2">
+              <Mic className="w-4 h-4" /> Novo atendimento
+            </Button>
+          }
+        />
 
         {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
@@ -142,7 +146,7 @@ export default function Consultations() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useConsultations } from "@/hooks/queries";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,17 +13,12 @@ export default function MyRecordings() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div>
-          <h1 className="heading-page flex items-center gap-2">
-            <Mic className="w-6 h-6 text-primary" />
-            Minhas gravações
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Atendimentos que você registrou. Aparecem aqui mesmo após o paciente
-            ser transferido — você sempre pode revisitar e adicionar adendos.
-          </p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Minhas gravações"
+          icon={<Mic className="w-6 h-6" />}
+          subtitle="Atendimentos que você registrou. Aparecem aqui mesmo após o paciente ser transferido — você sempre pode revisitar e adicionar adendos."
+        />
 
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Carregando…</p>
@@ -53,7 +50,7 @@ export default function MyRecordings() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

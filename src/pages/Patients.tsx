@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePatients, useCreatePatient, useMyWards, useWards } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
@@ -86,15 +88,12 @@ export default function Patients() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="heading-page">Pacientes</h1>
-            <p className="text-sm text-muted-foreground">
-              Pacientes nos seus setores ({(myWards ?? []).length} setor{(myWards ?? []).length !== 1 ? "es" : ""}).
-            </p>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+      <PageContainer>
+        <PageHeader
+          title="Pacientes"
+          subtitle={`Pacientes nos seus setores (${(myWards ?? []).length} setor${(myWards ?? []).length !== 1 ? "es" : ""}).`}
+          actions={
+            <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" /> Novo paciente
@@ -163,7 +162,8 @@ export default function Patients() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
           <div className="relative">
@@ -234,7 +234,7 @@ export default function Patients() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

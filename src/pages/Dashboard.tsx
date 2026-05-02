@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDashboardStats,
@@ -26,17 +28,16 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        {/* Cabeçalho */}
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <p className="hv-eyebrow mb-2">Hoje</p>
-            <h1 className="heading-page">Olá, {firstName}</h1>
-          </div>
-          <Button onClick={() => navigate("/consultations/new")} className="gap-2" size="lg">
-            <Mic className="w-4 h-4" /> Nova gravação
-          </Button>
-        </div>
+      <PageContainer>
+        <PageHeader
+          eyebrow="Hoje"
+          title={`Olá, ${firstName}`}
+          actions={
+            <Button onClick={() => navigate("/consultations/new")} className="gap-2" size="lg">
+              <Mic className="w-4 h-4" /> Nova gravação
+            </Button>
+          }
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -161,7 +162,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

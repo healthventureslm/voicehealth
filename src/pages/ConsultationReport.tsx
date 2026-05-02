@@ -1,5 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useConsultation, useClinicalReports, useAddenda,
@@ -8,7 +10,7 @@ import { AddendumDialog } from "@/components/consultation/AddendumDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Lock, Mic, History, Download } from "lucide-react";
+import { FileText, Lock, Mic, History, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { exportReportPdf } from "@/lib/exportReportPdf";
 import { toast } from "sonner";
@@ -53,7 +55,7 @@ export default function ConsultationReport() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 max-w-4xl mx-auto">Carregando…</div>
+        <PageContainer width="narrow">Carregando…</PageContainer>
       </AppLayout>
     );
   }
@@ -61,9 +63,9 @@ export default function ConsultationReport() {
   if (!consultation) {
     return (
       <AppLayout>
-        <div className="p-6 max-w-4xl mx-auto">
+        <PageContainer width="narrow">
           <p>Atendimento não encontrado ou sem permissão.</p>
-        </div>
+        </PageContainer>
       </AppLayout>
     );
   }
@@ -73,49 +75,46 @@ export default function ConsultationReport() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Button>
-
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="heading-page">
-              Atendimento — {c.patient?.full_name ?? "—"}
-            </h1>
-            <div className="text-sm text-muted-foreground space-x-3 mt-1">
+      <PageContainer width="narrow">
+        <PageHeader
+          back
+          title={`Atendimento — ${c.patient?.full_name ?? "—"}`}
+          subtitle={
+            <span className="flex flex-wrap items-center gap-2 text-sm">
               <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
               {c.ward?.name && <span>· {c.ward.name}</span>}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline">{STATUS_LABELS[c.status] ?? c.status}</Badge>
+              <Badge variant="outline" className="ml-1">
+                {STATUS_LABELS[c.status] ?? c.status}
+              </Badge>
               {c.locked_at && (
                 <Badge variant="secondary" className="gap-1">
-                  <Lock className="w-3 h-3" /> Bloqueada para edição
+                  <Lock className="w-3 h-3" /> Bloqueada
                 </Badge>
               )}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={handleExportPdf}
-              disabled={!latestReport}
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" /> PDF
-            </Button>
-            {!c.locked_at && (
+            </span>
+          }
+          actions={
+            <>
               <Button
                 variant="outline"
-                onClick={() => navigate(`/consultations/${c.id}/edit`)}
+                onClick={handleExportPdf}
+                disabled={!latestReport}
                 className="gap-2"
               >
-                Editar
+                <Download className="w-4 h-4" /> PDF
               </Button>
-            )}
-          </div>
-        </div>
+              {!c.locked_at && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/consultations/${c.id}/edit`)}
+                  className="gap-2"
+                >
+                  Editar
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {c.locked_at && (
           <Card className="border-warning/30 bg-warning/5">
@@ -195,7 +194,7 @@ export default function ConsultationReport() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useHospitals, useUpdateHospital } from "@/hooks/queries";
 import { CreateHospitalDialog } from "@/components/superadmin/CreateHospitalDialog";
 import { Button } from "@/components/ui/button";
@@ -67,20 +69,13 @@ export default function SuperAdminHospitals() {
 
   return (
     <SuperAdminLayout>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="heading-page flex items-center gap-2">
-              <Building2 className="w-6 h-6 text-primary" />
-              Hospitais
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Cada hospital é um tenant isolado. Cadastre + convide o primeiro
-              admin do hospital pra ele se virar dali.
-            </p>
-          </div>
-          <CreateHospitalDialog />
-        </div>
+      <PageContainer>
+        <PageHeader
+          icon={<Building2 className="w-6 h-6" />}
+          title="Hospitais"
+          subtitle="Cada hospital é um tenant isolado. Cadastre + convide o primeiro admin do hospital pra ele se virar dali."
+          actions={<CreateHospitalDialog />}
+        />
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -182,7 +177,7 @@ export default function SuperAdminHospitals() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageContainer>
     </SuperAdminLayout>
   );
 }

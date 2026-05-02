@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -16,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Enums } from "@/integrations/supabase/types";
 
@@ -222,12 +224,8 @@ export default function NewConsultation() {
 
   return (
     <AppLayout>
-      <div className="p-6 max-w-3xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Button>
-
-        <h1 className="heading-page">Novo atendimento</h1>
+      <PageContainer width="narrow">
+        <PageHeader back title="Novo atendimento" />
 
         <Card>
           <CardHeader>
@@ -330,7 +328,7 @@ export default function NewConsultation() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </PageContainer>
     </AppLayout>
   );
 }
