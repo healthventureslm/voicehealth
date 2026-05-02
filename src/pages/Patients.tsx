@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePatients, useCreatePatient, useMyWards } from "@/hooks/queries";
+import { usePatients, useCreatePatient, useMyWards, useWards } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,9 +22,12 @@ export default function Patients() {
   const { user, hospitalIds } = useAuth();
   const { data: patients, isLoading } = usePatients();
   const { data: myWards } = useMyWards(user?.id);
+  const { data: allWards } = useWards();
   const createPatient = useCreatePatient();
 
   const [search, setSearch] = useState("");
+  const [wardFilter, setWardFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     full_name: "",
@@ -34,10 +37,20 @@ export default function Patients() {
     current_ward_id: "",
   });
 
-  const filtered = (patients ?? []).filter((p) =>
-    [p.full_name, p.medical_record, p.bed]
-      .filter(Boolean)
-      .some((v) => v!.toLowerCase().includes(search.toLowerCase())),
+  const filtered = (patients ?? []).filter((p) => {
+    const matchesSearch =
+      !search ||
+      [p.full_name, p.medical_record, p.bed]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(search.toLowerCase()));
+    const matchesWard = wardFilter === "all" || p.current_ward_id === wardFilter;
+    const matchesStatus = statusFilter === "all" || p.admission_status === statusFilter;
+    return matchesSearch && matchesWard && matchesStatus;
+  });
+
+  // Wards visíveis pra filtrar (do hospital do usuário)
+  const visibleWards = (allWards ?? []).filter((w) =>
+    hospitalIds.includes(w.hospital_id),
   );
 
   async function handleCreate() {
@@ -152,14 +165,38 @@ export default function Patients() {
           </Dialog>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, prontuário, leito..."
-            className="pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, prontuário, leito..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={wardFilter} onValueChange={setWardFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Setor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os setores</SelectItem>
+              {visibleWards.map((w) => (
+                <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="admitted">Internado</SelectItem>
+              <SelectItem value="discharged">Alta</SelectItem>
+              <SelectItem value="transferred">Transferido</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (

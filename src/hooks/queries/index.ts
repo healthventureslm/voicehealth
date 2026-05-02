@@ -40,3 +40,4 @@ export {
   useUpdateHospital,
   useGlobalStats,
 } from "./useHospitals";
+export { useDashboardStats } from "./useDashboardStats";

@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   useConsultation, useClinicalReports, useAddenda,
 } from "@/hooks/queries";
@@ -7,8 +8,10 @@ import { AddendumDialog } from "@/components/consultation/AddendumDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Lock, Mic, History } from "lucide-react";
+import { ArrowLeft, FileText, Lock, Mic, History, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { exportReportPdf } from "@/lib/exportReportPdf";
+import { toast } from "sonner";
 
 const STATUS_LABELS: Record<string, string> = {
   recording: "Gravando",
@@ -21,9 +24,31 @@ const STATUS_LABELS: Record<string, string> = {
 export default function ConsultationReport() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { data: consultation, isLoading } = useConsultation(id);
   const { data: reports } = useClinicalReports(id);
   const { data: addenda } = useAddenda(id);
+
+  function handleExportPdf() {
+    if (!consultation) return;
+    if (!latestReport) {
+      toast.error("Não há relatório pra exportar ainda");
+      return;
+    }
+    try {
+      exportReportPdf({
+        consultation: consultation as any,
+        reportContent: latestReport.content,
+        reportVersion: latestReport.version,
+        reportFormat: latestReport.format,
+        addenda: (addenda as any) ?? [],
+        professionalName: profile?.full_name ?? undefined,
+      });
+      toast.success("PDF gerado");
+    } catch (e: any) {
+      toast.error(`Falha ao exportar: ${e?.message ?? e}`);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -71,15 +96,25 @@ export default function ConsultationReport() {
               )}
             </div>
           </div>
-          {!c.locked_at && (
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => navigate(`/consultations/${c.id}/edit`)}
+              onClick={handleExportPdf}
+              disabled={!latestReport}
               className="gap-2"
             >
-              Editar
+              <Download className="w-4 h-4" /> PDF
             </Button>
-          )}
+            {!c.locked_at && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/consultations/${c.id}/edit`)}
+                className="gap-2"
+              >
+                Editar
+              </Button>
+            )}
+          </div>
         </div>
 
         {c.locked_at && (
