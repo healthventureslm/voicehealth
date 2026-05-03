@@ -27,9 +27,9 @@ REGRAS OBRIGATÓRIAS:
 2. Mantenha nomes de medicamentos como pronunciados (ex: "noradrenalina", "furosemida", "losartana")
 3. Preserve valores numéricos: PA (ex: "128/82"), FC, SpO2, temperatura, peso, altura
 4. Use pontuação adequada para clareza clínica
-5. Se houver múltiplos falantes, use "Médico:", "Paciente:", "Enfermeiro:"
+5. NUNCA adicione rótulos de falante ("Médico:", "Paciente:", "Enfermeiro:" etc). Mesmo que haja múltiplas vozes, transcreva como texto corrido, sem identificar quem falou.
 6. Mantenha abreviações: PA, FC, FR, SpO2, MMII, AAS, EV, VO, SOS, ACM, PCR, AVC, ICC, DPOC, HAS, DM2, IAM, TEP
-7. Retorne APENAS o texto transcrito, sem comentários, sem prefixos, sem markdown`;
+7. Retorne APENAS o texto transcrito, sem comentários, sem prefixos, sem markdown, sem rótulos`;
 
 const WARD_TYPE_VOCAB: Record<string, string> = {
   uti: "Contexto UTI: SOFA, APACHE II, Glasgow, RASS, CAM-ICU, PEEP, FiO2, PaO2/FiO2, noradrenalina, vasopressina, meropeném, vancomicina, balanço hídrico, PAM, VM, TOT, CVC.",
