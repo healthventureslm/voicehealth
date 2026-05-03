@@ -35,3 +35,6 @@ deno.lock
 *.njsproj
 *.sln
 *.sw?
+
+# Documentos reais de pacientes (LGPD — fora do git)
+fwddocumentos_/
