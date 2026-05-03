@@ -97,17 +97,34 @@ Deno.serve(async (req) => {
       return json({ error: "Falha ao atribuir papel: " + roleError.message }, 500);
     }
 
-    // 3) Atribui ward_assignments (se houver)
+    // 3) Atribui ward_assignments (se houver). A tabela não tem UNIQUE em
+    // (user_id, ward_id) porque guarda histórico (started_at/ended_at), então
+    // não dá pra usar upsert — checa o que já tá ativo e insere só o que falta.
     const wardIds: string[] = invitation.ward_ids ?? [];
     if (wardIds.length > 0) {
-      const inserts = wardIds.map((wid) => ({ user_id: user.id, ward_id: wid }));
-      // Limpa atribuições antigas que podem existir e estejam ativas (evita duplicatas)
-      const { error: waError } = await supabaseAdmin
+      const { data: existing, error: existingError } = await supabaseAdmin
         .from("ward_assignments")
-        .upsert(inserts, { onConflict: "user_id,ward_id" });
-      if (waError) {
-        console.error("Erro ao atribuir wards:", waError);
-        // Não fatal — role já foi atribuída
+        .select("ward_id")
+        .eq("user_id", user.id)
+        .is("ended_at", null)
+        .in("ward_id", wardIds);
+      if (existingError) {
+        console.error("Erro ao listar wards atuais:", existingError);
+        return json({ error: "Falha ao verificar setores existentes: " + existingError.message }, 500);
+      }
+      const existingSet = new Set((existing ?? []).map((w) => w.ward_id));
+      const toInsert = wardIds
+        .filter((wid) => !existingSet.has(wid))
+        .map((wid) => ({ user_id: user.id, ward_id: wid }));
+
+      if (toInsert.length > 0) {
+        const { error: waError } = await supabaseAdmin
+          .from("ward_assignments")
+          .insert(toInsert);
+        if (waError) {
+          console.error("Erro ao atribuir wards:", waError);
+          return json({ error: "Falha ao atribuir setores: " + waError.message }, 500);
+        }
       }
     }
 
