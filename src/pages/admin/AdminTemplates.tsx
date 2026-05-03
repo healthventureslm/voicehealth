@@ -205,7 +205,7 @@ export default function AdminTemplates() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="mb-2 block">Setores aplicáveis</Label>
                     <div className="space-y-1 border rounded-md p-2 text-sm">

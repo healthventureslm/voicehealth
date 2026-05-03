@@ -22,7 +22,7 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "p-6 mx-auto space-y-6",
+        "p-4 sm:p-6 mx-auto space-y-6",
         width === "wide" ? "max-w-5xl" : "max-w-4xl",
         className,
       )}
