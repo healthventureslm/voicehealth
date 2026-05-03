@@ -339,7 +339,9 @@ export type Database = {
       clinical_reports: {
         Row: {
           id: string;
-          consultation_id: string;
+          consultation_id: string | null;
+          patient_id: string;
+          source_consultation_ids: string[];
           template_id: string | null;
           version: number;
           content: string;
@@ -349,7 +351,9 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          consultation_id: string;
+          consultation_id?: string | null;
+          patient_id: string;
+          source_consultation_ids?: string[];
           template_id?: string | null;
           version?: number;
           content: string;
@@ -360,6 +364,7 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["clinical_reports"]["Insert"]>;
         Relationships: [
           { foreignKeyName: "cr_consultation_id_fkey"; columns: ["consultation_id"]; referencedRelation: "consultations"; referencedColumns: ["id"] },
+          { foreignKeyName: "cr_patient_id_fkey"; columns: ["patient_id"]; referencedRelation: "patients"; referencedColumns: ["id"] },
         ];
       };
 

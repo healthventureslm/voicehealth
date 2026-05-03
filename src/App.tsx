@@ -26,6 +26,8 @@ const ConsultationEdit = lazy(() => import("./pages/ConsultationEdit"));
 const ConsultationReport = lazy(() => import("./pages/ConsultationReport"));
 const PatientHistory = lazy(() => import("./pages/PatientHistory"));
 const MyRecordings = lazy(() => import("./pages/MyRecordings"));
+const GenerateDocument = lazy(() => import("./pages/GenerateDocument"));
+const DocumentView = lazy(() => import("./pages/DocumentView"));
 
 // Admin do hospital
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates"));
@@ -135,6 +137,8 @@ function AppRoutes() {
       <Route path="/consultations/new" element={<Lazy><NewConsultation /></Lazy>} />
       <Route path="/consultations/:id/edit" element={<Lazy><ConsultationEdit /></Lazy>} />
       <Route path="/consultations/:id/report" element={<Lazy><ConsultationReport /></Lazy>} />
+      <Route path="/documents/new" element={<Lazy><GenerateDocument /></Lazy>} />
+      <Route path="/documents/:id" element={<Lazy><DocumentView /></Lazy>} />
       <Route path="/gravacoes" element={<Lazy><MyRecordings /></Lazy>} />
 
       {/* Admin do hospital */}

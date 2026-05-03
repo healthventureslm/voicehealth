@@ -4,21 +4,22 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  usePatient, usePatientWardHistory, useConsultations,
+  usePatient, usePatientWardHistory, usePatientTimeline,
 } from "@/hooks/queries";
 import { TransferPatientDialog } from "@/components/TransferPatientDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mic, ClipboardList, History, Lock } from "lucide-react";
+import {
+  ArrowLeft, Mic, ClipboardList, History, Lock,
+  FileText, FileSignature,
+} from "lucide-react";
 
-const STATUS_LABELS: Record<string, string> = {
-  recording: "Gravando",
-  transcribing: "Transcrevendo",
-  transcribed: "Transcrita",
-  editing: "Editando",
-  completed: "Concluída",
-};
+function truncate(s: string | null | undefined, max = 140): string {
+  if (!s) return "";
+  const trimmed = s.trim();
+  return trimmed.length > max ? trimmed.slice(0, max) + "…" : trimmed;
+}
 
 export default function PatientHistory() {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +27,7 @@ export default function PatientHistory() {
   const { wardIds, roles, isSuperAdmin } = useAuth();
   const { data: patient, isLoading } = usePatient(id);
   const { data: wardHistory } = usePatientWardHistory(id);
-  const { data: consultations } = useConsultations({ patientId: id });
+  const { data: timeline } = usePatientTimeline(id);
 
   // O usuário pode atender este paciente?
   // - super_admin sempre pode
@@ -95,8 +96,15 @@ export default function PatientHistory() {
                   currentWardId={patient.current_ward_id}
                   hospitalId={patient.hospital_id}
                 />
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/documents/new?patient=${patient.id}`)}
+                  className="gap-2"
+                >
+                  <FileSignature className="w-4 h-4" /> Gerar documento
+                </Button>
                 <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
-                  <Mic className="w-4 h-4" /> Nova evolução
+                  <Mic className="w-4 h-4" /> Nova nota
                 </Button>
               </>
             ) : (
@@ -124,34 +132,61 @@ export default function PatientHistory() {
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">
             <ClipboardList className="w-5 h-5 text-primary" />
-            <CardTitle className="heading-section">Atendimentos</CardTitle>
+            <CardTitle className="heading-section">Linha do tempo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(consultations ?? []).length === 0 ? (
+            {(timeline ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
-                Nenhum atendimento registrado ainda.
+                Nada registrado ainda. Comece com uma nota.
               </p>
             ) : (
-              (consultations ?? []).map((c: any) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between p-3 border rounded-md hover:bg-accent/30 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/consultations/${c.id}/report`)}
-                >
-                  <div>
-                    <div className="text-sm font-medium">
-                      {new Date(c.created_at).toLocaleString("pt-BR")}
+              (timeline ?? []).map((item) => {
+                const p = item.payload;
+                const Icon =
+                  item.kind === "note" ? Mic
+                  : item.kind === "consultation" ? ClipboardList
+                  : FileText;
+                const targetUrl =
+                  item.kind === "document"
+                    ? `/documents/${p.id}`
+                    : `/consultations/${p.id}/report`;
+                const kindLabel =
+                  item.kind === "note" ? "Nota"
+                  : item.kind === "consultation" ? `Atendimento — ${p.template?.name ?? "—"}`
+                  : `Documento — ${p.template?.name ?? "—"}`;
+                const preview =
+                  item.kind === "note"
+                    ? truncate(p.edited_transcription ?? p.raw_transcription)
+                    : item.kind === "document"
+                    ? `Gerado a partir de ${p.source_consultation_ids?.length ?? 0} nota${(p.source_consultation_ids?.length ?? 0) === 1 ? "" : "s"}`
+                    : (p.ward?.name ?? "");
+
+                return (
+                  <div
+                    key={`${item.kind}-${item.id}`}
+                    className="flex items-start gap-3 p-3 border rounded-md hover:bg-accent/30 cursor-pointer transition-colors"
+                    onClick={() => navigate(targetUrl)}
+                  >
+                    <div className="mt-0.5 flex-shrink-0">
+                      <Icon className="w-4 h-4 text-primary" />
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {c.ward?.name ?? "—"}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{kindLabel}</span>
+                        {p.locked_at && <Badge variant="secondary" className="text-xs">bloqueada</Badge>}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(item.createdAt).toLocaleString("pt-BR")}
+                      </div>
+                      {preview && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {preview}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {c.locked_at && <Badge variant="secondary">bloqueada</Badge>}
-                    <Badge variant="outline">{STATUS_LABELS[c.status] ?? c.status}</Badge>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>

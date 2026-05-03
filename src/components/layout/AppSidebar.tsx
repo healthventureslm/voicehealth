@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Users, Mic, FileText, Shield, LogOut,
   ClipboardList, Building2, Menu,
-  Hospital, BookOpen, BarChart3, User, Archive,
+  Hospital, BookOpen, BarChart3, User, Archive, FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,10 +18,11 @@ import { ChevronRight } from "lucide-react";
 const dashboardItem = { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" };
 
 const clinicalNavItems = [
-  { label: "Nova Gravação", icon: Mic, path: "/consultations/new" },
-  { label: "Minhas Gravações", icon: Archive, path: "/gravacoes" },
-  { label: "Atendimentos", icon: ClipboardList, path: "/consultations" },
+  { label: "Atualizar paciente", icon: Mic, path: "/consultations/new" },
+  { label: "Gerar documento", icon: FileSignature, path: "/documents/new" },
   { label: "Pacientes", icon: Users, path: "/patients" },
+  { label: "Atendimentos", icon: ClipboardList, path: "/consultations" },
+  { label: "Minhas Gravações", icon: Archive, path: "/gravacoes" },
 ];
 
 const adminNavItems = [

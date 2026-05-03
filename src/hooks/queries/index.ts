@@ -15,6 +15,9 @@ export {
   useAddenda,
   useCreateAddendum,
   useClinicalReports,
+  usePatientTimeline,
+  usePatientNotes,
+  useCreateDocumentFromNotes,
 } from "./useConsultations";
 export { useTemplates } from "./useTemplates";
 export {

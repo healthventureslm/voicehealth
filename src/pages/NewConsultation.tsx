@@ -18,7 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Loader2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { FileText, Loader2, ChevronDown, FileSignature } from "lucide-react";
 import { toast } from "sonner";
 import type { Enums } from "@/integrations/supabase/types";
 
@@ -166,8 +167,13 @@ export default function NewConsultation() {
       });
 
       setStep("done");
-      toast.success("Atendimento registrado");
-      navigate(`/consultations/${consultation.id}/report`);
+      if (templateId) {
+        toast.success("Atendimento registrado");
+        navigate(`/consultations/${consultation.id}/report`);
+      } else {
+        toast.success("Nota salva");
+        navigate(`/patients/${patient.id}/history`);
+      }
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? String(e));
@@ -213,8 +219,13 @@ export default function NewConsultation() {
         patch: { status: "completed", completed_at: new Date().toISOString() },
       });
 
-      toast.success("Atendimento registrado");
-      navigate(`/consultations/${consultation.id}/report`);
+      if (templateId) {
+        toast.success("Atendimento registrado");
+        navigate(`/consultations/${consultation.id}/report`);
+      } else {
+        toast.success("Nota salva");
+        navigate(`/patients/${patient.id}/history`);
+      }
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? String(e));
@@ -222,14 +233,24 @@ export default function NewConsultation() {
     }
   }
 
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   return (
     <AppLayout>
       <PageContainer>
-        <PageHeader back title="Novo atendimento" />
+        <PageHeader
+          back
+          title={templateId ? "Novo atendimento" : "Atualizar paciente"}
+          subtitle={
+            templateId
+              ? "Gravação clínica vinculada a um template — gera documento ao final."
+              : "Grave o que está acontecendo com o paciente. Depois você pode gerar qualquer documento a partir das notas."
+          }
+        />
 
         <Card>
           <CardHeader>
-            <CardTitle className="heading-card">Paciente & Template</CardTitle>
+            <CardTitle className="heading-card">Paciente</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -254,12 +275,28 @@ export default function NewConsultation() {
               )}
             </div>
 
-            <TemplatePicker
-              value={templateId}
-              onChange={setTemplateId}
-              wardType={wardType}
-              role={role}
-            />
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${advancedOpen ? "rotate-0" : "-rotate-90"}`}
+                />
+                <FileSignature className="w-4 h-4" />
+                Gerar documento estruturado agora (opcional)
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Por padrão, gravar salva uma <strong>nota livre</strong> na linha do tempo
+                  do paciente. Selecione um template aqui se quiser gerar um documento
+                  imediatamente desta gravação específica.
+                </p>
+                <TemplatePicker
+                  value={templateId}
+                  onChange={setTemplateId}
+                  wardType={wardType}
+                  role={role}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
 
@@ -280,7 +317,9 @@ export default function NewConsultation() {
         {selectedPatient && canAttendPatient && (
           <Card>
             <CardHeader>
-              <CardTitle className="heading-card">Conteúdo do atendimento</CardTitle>
+              <CardTitle className="heading-card">
+                {templateId ? "Conteúdo do atendimento" : "Atualização"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="audio" className="w-full">
@@ -317,7 +356,7 @@ export default function NewConsultation() {
                     className="gap-2"
                   >
                     <FileText className="w-4 h-4" />
-                    Salvar atendimento
+                    {templateId ? "Salvar atendimento" : "Salvar nota"}
                   </Button>
                 </TabsContent>
               </Tabs>
