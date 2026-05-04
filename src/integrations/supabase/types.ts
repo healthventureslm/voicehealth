@@ -1,2457 +1,798 @@
+// Auto-aligned with public schema rebuild v2 (24 tables, 8 enums).
+// Hand-written from the SQL migration in db-rebuild/03_create.sql.
+// Regenerate via `supabase gen types typescript --project-id paqwiibclhahzhbvbdlz` if you want.
+
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
-      admin_whitelist: {
+      // ───────── Tenancy & Identidade ─────────
+      hospitals: {
         Row: {
-          added_by: string | null
-          created_at: string
-          email: string
-          id: string
-        }
+          id: string;
+          name: string;
+          slug: string;
+          cnpj: string | null;
+          plan: string;
+          is_active: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          added_by?: string | null
-          created_at?: string
-          email: string
-          id?: string
-        }
-        Update: {
-          added_by?: string | null
-          created_at?: string
-          email?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      app_settings: {
-        Row: {
-          description: string | null
-          id: string
-          key: string
-          updated_at: string
-          updated_by: string | null
-          value: string
-        }
-        Insert: {
-          description?: string | null
-          id?: string
-          key: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: string
-        }
-        Update: {
-          description?: string | null
-          id?: string
-          key?: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: string
-        }
-        Relationships: []
-      }
-      bundle_alerts: {
-        Row: {
-          created_at: string
-          department_id: string
-          event_id: string
-          failed_items: Json
-          id: string
-          indicator_id: string
-          is_resolved: boolean
-          message: string
-          notified_users: Json | null
-          patient_id: string | null
-          resolution_notes: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          severity: string
-          subtype_id: string | null
-          ward_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          department_id: string
-          event_id: string
-          failed_items?: Json
-          id?: string
-          indicator_id: string
-          is_resolved?: boolean
-          message: string
-          notified_users?: Json | null
-          patient_id?: string | null
-          resolution_notes?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string
-          subtype_id?: string | null
-          ward_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          department_id?: string
-          event_id?: string
-          failed_items?: Json
-          id?: string
-          indicator_id?: string
-          is_resolved?: boolean
-          message?: string
-          notified_users?: Json | null
-          patient_id?: string | null
-          resolution_notes?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string
-          subtype_id?: string | null
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bundle_alerts_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bundle_alerts_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "indicator_events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bundle_alerts_indicator_id_fkey"
-            columns: ["indicator_id"]
-            isOneToOne: false
-            referencedRelation: "indicators"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bundle_alerts_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bundle_alerts_subtype_id_fkey"
-            columns: ["subtype_id"]
-            isOneToOne: false
-            referencedRelation: "indicator_subtypes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bundle_alerts_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinical_alerts: {
-        Row: {
-          alert_type: string
-          consultation_id: string
-          created_at: string
-          description: string
-          id: string
-          is_dismissed: boolean
-          protocol_id: string | null
-          severity: string
-          title: string
-        }
-        Insert: {
-          alert_type: string
-          consultation_id: string
-          created_at?: string
-          description: string
-          id?: string
-          is_dismissed?: boolean
-          protocol_id?: string | null
-          severity?: string
-          title: string
-        }
-        Update: {
-          alert_type?: string
-          consultation_id?: string
-          created_at?: string
-          description?: string
-          id?: string
-          is_dismissed?: boolean
-          protocol_id?: string | null
-          severity?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinical_alerts_consultation_id_fkey"
-            columns: ["consultation_id"]
-            isOneToOne: false
-            referencedRelation: "consultations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinical_alerts_protocol_id_fkey"
-            columns: ["protocol_id"]
-            isOneToOne: false
-            referencedRelation: "clinical_protocols"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinical_protocols: {
-        Row: {
-          category: string | null
-          content: string
-          created_at: string
-          created_by: string | null
-          department_id: string | null
-          id: string
-          is_active: boolean
-          keywords: string[] | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          content: string
-          created_at?: string
-          created_by?: string | null
-          department_id?: string | null
-          id?: string
-          is_active?: boolean
-          keywords?: string[] | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          content?: string
-          created_at?: string
-          created_by?: string | null
-          department_id?: string | null
-          id?: string
-          is_active?: boolean
-          keywords?: string[] | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinical_protocols_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clinical_reports: {
-        Row: {
-          consultation_id: string
-          content: string
-          created_at: string
-          generated_by: string | null
-          id: string
-          organization_id: string | null
-          template_type: string
-        }
-        Insert: {
-          consultation_id: string
-          content: string
-          created_at?: string
-          generated_by?: string | null
-          id?: string
-          organization_id?: string | null
-          template_type: string
-        }
-        Update: {
-          consultation_id?: string
-          content?: string
-          created_at?: string
-          generated_by?: string | null
-          id?: string
-          organization_id?: string | null
-          template_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clinical_reports_consultation_id_fkey"
-            columns: ["consultation_id"]
-            isOneToOne: false
-            referencedRelation: "consultations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clinical_reports_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      collection_logs: {
-        Row: {
-          batch_id: string
-          calculated_value: number | null
-          created_at: string
-          denominator: number | null
-          department_id: string | null
-          department_name: string
-          error_message: string | null
-          id: string
-          indicator_id: string | null
-          indicator_name: string
-          numerator: number | null
-          status: string
-        }
-        Insert: {
-          batch_id?: string
-          calculated_value?: number | null
-          created_at?: string
-          denominator?: number | null
-          department_id?: string | null
-          department_name?: string
-          error_message?: string | null
-          id?: string
-          indicator_id?: string | null
-          indicator_name?: string
-          numerator?: number | null
-          status?: string
-        }
-        Update: {
-          batch_id?: string
-          calculated_value?: number | null
-          created_at?: string
-          denominator?: number | null
-          department_id?: string | null
-          department_name?: string
-          error_message?: string | null
-          id?: string
-          indicator_id?: string | null
-          indicator_name?: string
-          numerator?: number | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "collection_logs_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "collection_logs_indicator_id_fkey"
-            columns: ["indicator_id"]
-            isOneToOne: false
-            referencedRelation: "indicators"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      consultation_scripts: {
-        Row: {
-          created_at: string
-          description: string
-          fields: Json
-          id: string
-          is_active: boolean
-          linked_template_id: string | null
-          name: string
-          report_type: string | null
-          sector: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          fields?: Json
-          id?: string
-          is_active?: boolean
-          linked_template_id?: string | null
-          name: string
-          report_type?: string | null
-          sector?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          fields?: Json
-          id?: string
-          is_active?: boolean
-          linked_template_id?: string | null
-          name?: string
-          report_type?: string | null
-          sector?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "consultation_scripts_linked_template_id_fkey"
-            columns: ["linked_template_id"]
-            isOneToOne: false
-            referencedRelation: "report_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      consultations: {
-        Row: {
-          ai_summary: string | null
-          audio_url: string | null
-          created_at: string
-          department_id: string
-          edited_transcription: string | null
-          id: string
-          organization_id: string | null
-          patient_id: string
-          professional_id: string
-          raw_transcription: string | null
-          selected_template_id: string | null
-          specialty_id: string | null
-          status: string
-          updated_at: string
-          ward_id: string | null
-        }
-        Insert: {
-          ai_summary?: string | null
-          audio_url?: string | null
-          created_at?: string
-          department_id: string
-          edited_transcription?: string | null
-          id?: string
-          organization_id?: string | null
-          patient_id: string
-          professional_id: string
-          raw_transcription?: string | null
-          selected_template_id?: string | null
-          specialty_id?: string | null
-          status?: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Update: {
-          ai_summary?: string | null
-          audio_url?: string | null
-          created_at?: string
-          department_id?: string
-          edited_transcription?: string | null
-          id?: string
-          organization_id?: string | null
-          patient_id?: string
-          professional_id?: string
-          raw_transcription?: string | null
-          selected_template_id?: string | null
-          specialty_id?: string | null
-          status?: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "consultations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consultations_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consultations_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consultations_selected_template_id_fkey"
-            columns: ["selected_template_id"]
-            isOneToOne: false
-            referencedRelation: "report_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consultations_specialty_id_fkey"
-            columns: ["specialty_id"]
-            isOneToOne: false
-            referencedRelation: "medical_specialties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consultations_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      departments: {
-        Row: {
-          created_at: string
-          description: string | null
-          hospital_name: string | null
-          id: string
-          name: string
-          organization_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          hospital_name?: string | null
-          id?: string
-          name: string
-          organization_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          hospital_name?: string | null
-          id?: string
-          name?: string
-          organization_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "departments_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fhir_connections: {
-        Row: {
-          auth_type: string
-          base_url: string
-          created_at: string
-          credentials: Json
-          department_id: string | null
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          auth_type?: string
-          base_url: string
-          created_at?: string
-          credentials?: Json
-          department_id?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          auth_type?: string
-          base_url?: string
-          created_at?: string
-          credentials?: Json
-          department_id?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fhir_connections_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fhir_resource_mappings: {
-        Row: {
-          connection_id: string
-          created_at: string
-          field_mappings: Json
-          id: string
-          is_active: boolean
-          local_table: string
-          resource_type: string
-          updated_at: string
-        }
-        Insert: {
-          connection_id: string
-          created_at?: string
-          field_mappings?: Json
-          id?: string
-          is_active?: boolean
-          local_table: string
-          resource_type: string
-          updated_at?: string
-        }
-        Update: {
-          connection_id?: string
-          created_at?: string
-          field_mappings?: Json
-          id?: string
-          is_active?: boolean
-          local_table?: string
-          resource_type?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fhir_resource_mappings_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "fhir_connections"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fhir_sync_logs: {
-        Row: {
-          connection_id: string
-          created_at: string
-          direction: string
-          error_message: string | null
-          id: string
-          resource_id: string | null
-          resource_type: string
-          status: string
-        }
-        Insert: {
-          connection_id: string
-          created_at?: string
-          direction?: string
-          error_message?: string | null
-          id?: string
-          resource_id?: string | null
-          resource_type: string
-          status?: string
-        }
-        Update: {
-          connection_id?: string
-          created_at?: string
-          direction?: string
-          error_message?: string | null
-          id?: string
-          resource_id?: string | null
-          resource_type?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fhir_sync_logs_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: false
-            referencedRelation: "fhir_connections"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      high_alert_medications: {
-        Row: {
-          category: string | null
-          created_at: string
-          department_id: string | null
-          id: string
-          is_active: boolean
-          lasa_pairs: Json | null
-          last_review_date: string | null
-          name: string
-          risk_level: string
-          storage_requirements: string | null
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          department_id?: string | null
-          id?: string
-          is_active?: boolean
-          lasa_pairs?: Json | null
-          last_review_date?: string | null
-          name: string
-          risk_level?: string
-          storage_requirements?: string | null
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          department_id?: string | null
-          id?: string
-          is_active?: boolean
-          lasa_pairs?: Json | null
-          last_review_date?: string | null
-          name?: string
-          risk_level?: string
-          storage_requirements?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "high_alert_medications_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      indicator_alerts: {
-        Row: {
-          created_at: string
-          current_value: number | null
-          department_id: string
-          email_sent: boolean
-          id: string
-          indicator_id: string
-          indicator_value_id: string | null
-          is_read: boolean
-          message: string
-          severity: string
-          target_value: number | null
-        }
-        Insert: {
-          created_at?: string
-          current_value?: number | null
-          department_id: string
-          email_sent?: boolean
-          id?: string
-          indicator_id: string
-          indicator_value_id?: string | null
-          is_read?: boolean
-          message: string
-          severity?: string
-          target_value?: number | null
-        }
-        Update: {
-          created_at?: string
-          current_value?: number | null
-          department_id?: string
-          email_sent?: boolean
-          id?: string
-          indicator_id?: string
-          indicator_value_id?: string | null
-          is_read?: boolean
-          message?: string
-          severity?: string
-          target_value?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "indicator_alerts_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_alerts_indicator_id_fkey"
-            columns: ["indicator_id"]
-            isOneToOne: false
-            referencedRelation: "indicators"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_alerts_indicator_value_id_fkey"
-            columns: ["indicator_value_id"]
-            isOneToOne: false
-            referencedRelation: "indicator_values"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      indicator_events: {
-        Row: {
-          bundle_compliance: Json | null
-          bundle_score: number | null
-          corrective_action: string | null
-          created_at: string
-          department_id: string
-          event_date: string
-          id: string
-          indicator_id: string
-          notes: string | null
-          patient_id: string | null
-          recorded_by: string
-          root_cause: string | null
-          subtype_id: string | null
-          updated_at: string
-          ward_id: string | null
-        }
-        Insert: {
-          bundle_compliance?: Json | null
-          bundle_score?: number | null
-          corrective_action?: string | null
-          created_at?: string
-          department_id: string
-          event_date?: string
-          id?: string
-          indicator_id: string
-          notes?: string | null
-          patient_id?: string | null
-          recorded_by: string
-          root_cause?: string | null
-          subtype_id?: string | null
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Update: {
-          bundle_compliance?: Json | null
-          bundle_score?: number | null
-          corrective_action?: string | null
-          created_at?: string
-          department_id?: string
-          event_date?: string
-          id?: string
-          indicator_id?: string
-          notes?: string | null
-          patient_id?: string | null
-          recorded_by?: string
-          root_cause?: string | null
-          subtype_id?: string | null
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "indicator_events_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_events_indicator_id_fkey"
-            columns: ["indicator_id"]
-            isOneToOne: false
-            referencedRelation: "indicators"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_events_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_events_subtype_id_fkey"
-            columns: ["subtype_id"]
-            isOneToOne: false
-            referencedRelation: "indicator_subtypes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_events_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      indicator_subtypes: {
-        Row: {
-          bundle_items: Json
-          code: string
-          created_at: string
-          critical_threshold: number | null
-          description: string | null
-          id: string
-          indicator_id: string
-          is_active: boolean
-          name: string
-          target_value: number | null
-          updated_at: string
-          warning_threshold: number | null
-        }
-        Insert: {
-          bundle_items?: Json
-          code: string
-          created_at?: string
-          critical_threshold?: number | null
-          description?: string | null
-          id?: string
-          indicator_id: string
-          is_active?: boolean
-          name: string
-          target_value?: number | null
-          updated_at?: string
-          warning_threshold?: number | null
-        }
-        Update: {
-          bundle_items?: Json
-          code?: string
-          created_at?: string
-          critical_threshold?: number | null
-          description?: string | null
-          id?: string
-          indicator_id?: string
-          is_active?: boolean
-          name?: string
-          target_value?: number | null
-          updated_at?: string
-          warning_threshold?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "indicator_subtypes_indicator_id_fkey"
-            columns: ["indicator_id"]
-            isOneToOne: false
-            referencedRelation: "indicators"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      indicator_values: {
-        Row: {
-          calculated_value: number | null
-          created_at: string
-          denominator_value: number
-          department_id: string
-          id: string
-          indicator_id: string
-          notes: string | null
-          numerator_value: number
-          period_end: string
-          period_start: string
-          recorded_by: string | null
-          source: string
-          subtype_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          calculated_value?: number | null
-          created_at?: string
-          denominator_value?: number
-          department_id: string
-          id?: string
-          indicator_id: string
-          notes?: string | null
-          numerator_value?: number
-          period_end: string
-          period_start: string
-          recorded_by?: string | null
-          source?: string
-          subtype_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          calculated_value?: number | null
-          created_at?: string
-          denominator_value?: number
-          department_id?: string
-          id?: string
-          indicator_id?: string
-          notes?: string | null
-          numerator_value?: number
-          period_end?: string
-          period_start?: string
-          recorded_by?: string | null
-          source?: string
-          subtype_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "indicator_values_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_values_indicator_id_fkey"
-            columns: ["indicator_id"]
-            isOneToOne: false
-            referencedRelation: "indicators"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "indicator_values_subtype_id_fkey"
-            columns: ["subtype_id"]
-            isOneToOne: false
-            referencedRelation: "indicator_subtypes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      indicators: {
-        Row: {
-          auto_agg_column: string | null
-          auto_denominator_filter: Json | null
-          auto_enabled: boolean
-          auto_numerator_filter: Json | null
-          auto_operation: string
-          auto_source: string | null
-          calc_type: string
-          category: string | null
-          created_at: string
-          created_by: string | null
-          critical_threshold: number | null
-          denominator_label: string
-          department_id: string | null
-          description: string | null
-          formula_description: string | null
-          frequency: string
-          id: string
-          is_active: boolean
-          is_system: boolean
-          name: string
-          numerator_label: string
-          target_value: number | null
-          unit: string
-          updated_at: string
-          warning_threshold: number | null
-        }
-        Insert: {
-          auto_agg_column?: string | null
-          auto_denominator_filter?: Json | null
-          auto_enabled?: boolean
-          auto_numerator_filter?: Json | null
-          auto_operation?: string
-          auto_source?: string | null
-          calc_type?: string
-          category?: string | null
-          created_at?: string
-          created_by?: string | null
-          critical_threshold?: number | null
-          denominator_label?: string
-          department_id?: string | null
-          description?: string | null
-          formula_description?: string | null
-          frequency?: string
-          id?: string
-          is_active?: boolean
-          is_system?: boolean
-          name: string
-          numerator_label?: string
-          target_value?: number | null
-          unit?: string
-          updated_at?: string
-          warning_threshold?: number | null
-        }
-        Update: {
-          auto_agg_column?: string | null
-          auto_denominator_filter?: Json | null
-          auto_enabled?: boolean
-          auto_numerator_filter?: Json | null
-          auto_operation?: string
-          auto_source?: string | null
-          calc_type?: string
-          category?: string | null
-          created_at?: string
-          created_by?: string | null
-          critical_threshold?: number | null
-          denominator_label?: string
-          department_id?: string | null
-          description?: string | null
-          formula_description?: string | null
-          frequency?: string
-          id?: string
-          is_active?: boolean
-          is_system?: boolean
-          name?: string
-          numerator_label?: string
-          target_value?: number | null
-          unit?: string
-          updated_at?: string
-          warning_threshold?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "indicators_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      infection_surveillance: {
-        Row: {
-          bundle_compliance: Json | null
-          created_at: string
-          department_id: string
-          device_type: string | null
-          id: string
-          infection_type: string
-          is_device_related: boolean
-          notes: string | null
-          onset_date: string
-          organism: string | null
-          patient_id: string | null
-          recorded_by: string
-          updated_at: string
-          ward_id: string | null
-        }
-        Insert: {
-          bundle_compliance?: Json | null
-          created_at?: string
-          department_id: string
-          device_type?: string | null
-          id?: string
-          infection_type: string
-          is_device_related?: boolean
-          notes?: string | null
-          onset_date?: string
-          organism?: string | null
-          patient_id?: string | null
-          recorded_by: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Update: {
-          bundle_compliance?: Json | null
-          created_at?: string
-          department_id?: string
-          device_type?: string | null
-          id?: string
-          infection_type?: string
-          is_device_related?: boolean
-          notes?: string | null
-          onset_date?: string
-          organism?: string | null
-          patient_id?: string | null
-          recorded_by?: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "infection_surveillance_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "infection_surveillance_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "infection_surveillance_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invitations: {
-        Row: {
-          accepted_at: string | null
-          created_at: string
-          department_id: string | null
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          role: Database["public"]["Enums"]["app_role"]
-          status: string
-          token: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          created_at?: string
-          department_id?: string | null
-          email: string
-          expires_at?: string
-          id?: string
-          invited_by: string
-          role: Database["public"]["Enums"]["app_role"]
-          status?: string
-          token?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          created_at?: string
-          department_id?: string | null
-          email?: string
-          expires_at?: string
-          id?: string
-          invited_by?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          status?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invitations_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ipsg_action_plans: {
-        Row: {
-          audit_record_id: string | null
-          completed_at: string | null
-          created_at: string
-          department_id: string
-          description: string | null
-          due_date: string | null
-          id: string
-          ipsg_goal_id: string
-          responsible_id: string | null
-          status: string
-          title: string
-          updated_at: string
-          ward_id: string | null
-        }
-        Insert: {
-          audit_record_id?: string | null
-          completed_at?: string | null
-          created_at?: string
-          department_id: string
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          ipsg_goal_id: string
-          responsible_id?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Update: {
-          audit_record_id?: string | null
-          completed_at?: string | null
-          created_at?: string
-          department_id?: string
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          ipsg_goal_id?: string
-          responsible_id?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ipsg_action_plans_audit_record_id_fkey"
-            columns: ["audit_record_id"]
-            isOneToOne: false
-            referencedRelation: "ipsg_audit_records"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_action_plans_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_action_plans_ipsg_goal_id_fkey"
-            columns: ["ipsg_goal_id"]
-            isOneToOne: false
-            referencedRelation: "ipsg_goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_action_plans_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ipsg_audit_checklists: {
-        Row: {
-          applicable_ward_types: string[] | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          frequency: string
-          id: string
-          ipsg_goal_id: string
-          is_active: boolean
-          items: Json
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          applicable_ward_types?: string[] | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          frequency?: string
-          id?: string
-          ipsg_goal_id: string
-          is_active?: boolean
-          items?: Json
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          applicable_ward_types?: string[] | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          frequency?: string
-          id?: string
-          ipsg_goal_id?: string
-          is_active?: boolean
-          items?: Json
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ipsg_audit_checklists_ipsg_goal_id_fkey"
-            columns: ["ipsg_goal_id"]
-            isOneToOne: false
-            referencedRelation: "ipsg_goals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ipsg_audit_records: {
-        Row: {
-          audit_date: string
-          auditor_id: string
-          checklist_id: string | null
-          conforming_items: number
-          conformity_rate: number | null
-          created_at: string
-          department_id: string
-          id: string
-          ipsg_goal_id: string
-          notes: string | null
-          responses: Json
-          status: string
-          total_items: number
-          updated_at: string
-          ward_id: string | null
-        }
-        Insert: {
-          audit_date?: string
-          auditor_id: string
-          checklist_id?: string | null
-          conforming_items?: number
-          conformity_rate?: number | null
-          created_at?: string
-          department_id: string
-          id?: string
-          ipsg_goal_id: string
-          notes?: string | null
-          responses?: Json
-          status?: string
-          total_items?: number
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Update: {
-          audit_date?: string
-          auditor_id?: string
-          checklist_id?: string | null
-          conforming_items?: number
-          conformity_rate?: number | null
-          created_at?: string
-          department_id?: string
-          id?: string
-          ipsg_goal_id?: string
-          notes?: string | null
-          responses?: Json
-          status?: string
-          total_items?: number
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ipsg_audit_records_checklist_id_fkey"
-            columns: ["checklist_id"]
-            isOneToOne: false
-            referencedRelation: "ipsg_audit_checklists"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_audit_records_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_audit_records_ipsg_goal_id_fkey"
-            columns: ["ipsg_goal_id"]
-            isOneToOne: false
-            referencedRelation: "ipsg_goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_audit_records_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ipsg_events: {
-        Row: {
-          created_at: string
-          department_id: string
-          details: Json | null
-          event_type: string
-          id: string
-          ipsg_goal_id: string
-          is_conforming: boolean
-          patient_id: string | null
-          recorded_by: string
-          ward_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          department_id: string
-          details?: Json | null
-          event_type: string
-          id?: string
-          ipsg_goal_id: string
-          is_conforming?: boolean
-          patient_id?: string | null
-          recorded_by: string
-          ward_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          department_id?: string
-          details?: Json | null
-          event_type?: string
-          id?: string
-          ipsg_goal_id?: string
-          is_conforming?: boolean
-          patient_id?: string | null
-          recorded_by?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ipsg_events_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_events_ipsg_goal_id_fkey"
-            columns: ["ipsg_goal_id"]
-            isOneToOne: false
-            referencedRelation: "ipsg_goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_events_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ipsg_events_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ipsg_goals: {
-        Row: {
-          code: string
-          created_at: string
-          critical_threshold: number | null
-          description: string | null
-          edition: string
-          id: string
-          is_active: boolean
-          is_customizable: boolean
-          name: string
-          sort_order: number
-          target_value: number | null
-          unit: string
-          updated_at: string
-          warning_threshold: number | null
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          critical_threshold?: number | null
-          description?: string | null
-          edition?: string
-          id?: string
-          is_active?: boolean
-          is_customizable?: boolean
-          name: string
-          sort_order?: number
-          target_value?: number | null
-          unit?: string
-          updated_at?: string
-          warning_threshold?: number | null
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          critical_threshold?: number | null
-          description?: string | null
-          edition?: string
-          id?: string
-          is_active?: boolean
-          is_customizable?: boolean
-          name?: string
-          sort_order?: number
-          target_value?: number | null
-          unit?: string
-          updated_at?: string
-          warning_threshold?: number | null
-        }
-        Relationships: []
-      }
-      knowledge_documents: {
-        Row: {
-          category: string | null
-          chunks: Json | null
-          content: string
-          created_at: string
-          id: string
-          is_active: boolean
-          search_vector: unknown
-          source: string
-          specialty_id: string | null
-          title: string
-          updated_at: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          category?: string | null
-          chunks?: Json | null
-          content?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          search_vector?: unknown
-          source?: string
-          specialty_id?: string | null
-          title: string
-          updated_at?: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          category?: string | null
-          chunks?: Json | null
-          content?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          search_vector?: unknown
-          source?: string
-          specialty_id?: string | null
-          title?: string
-          updated_at?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "knowledge_documents_specialty_id_fkey"
-            columns: ["specialty_id"]
-            isOneToOne: false
-            referencedRelation: "medical_specialties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lgpd_audit_logs: {
-        Row: {
-          action: string
-          created_at: string
-          details: Json | null
-          id: string
-          ip_address: string | null
-          record_id: string | null
-          table_name: string | null
-          user_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          details?: Json | null
-          id?: string
-          ip_address?: string | null
-          record_id?: string | null
-          table_name?: string | null
-          user_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          details?: Json | null
-          id?: string
-          ip_address?: string | null
-          record_id?: string | null
-          table_name?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      lgpd_consent_records: {
-        Row: {
-          consent_type: string
-          created_at: string
-          granted: boolean
-          id: string
-          ip_address: string | null
-          revoked_at: string | null
-          user_agent: string | null
-          user_id: string
-          version: string
-        }
-        Insert: {
-          consent_type: string
-          created_at?: string
-          granted?: boolean
-          id?: string
-          ip_address?: string | null
-          revoked_at?: string | null
-          user_agent?: string | null
-          user_id: string
-          version?: string
-        }
-        Update: {
-          consent_type?: string
-          created_at?: string
-          granted?: boolean
-          id?: string
-          ip_address?: string | null
-          revoked_at?: string | null
-          user_agent?: string | null
-          user_id?: string
-          version?: string
-        }
-        Relationships: []
-      }
-      lgpd_data_requests: {
-        Row: {
-          created_at: string
-          id: string
-          notes: string | null
-          processed_at: string | null
-          processed_by: string | null
-          request_type: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          notes?: string | null
-          processed_at?: string | null
-          processed_by?: string | null
-          request_type: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          notes?: string | null
-          processed_at?: string | null
-          processed_by?: string | null
-          request_type?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      lgpd_data_retention_policies: {
-        Row: {
-          anonymize_on_expiry: boolean
-          created_at: string
-          description: string | null
-          id: string
-          retention_days: number
-          table_name: string
-          updated_at: string
-        }
-        Insert: {
-          anonymize_on_expiry?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          retention_days?: number
-          table_name: string
-          updated_at?: string
-        }
-        Update: {
-          anonymize_on_expiry?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          retention_days?: number
-          table_name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      medical_specialties: {
-        Row: {
-          code: string
-          created_at: string
-          created_by: string | null
-          description: string | null
-          icon: string | null
-          id: string
-          is_active: boolean
-          name: string
-          output_prompt: string
-          prompt_variables: Json | null
-          updated_at: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          output_prompt?: string
-          prompt_variables?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          output_prompt?: string
-          prompt_variables?: Json | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      notifications: {
-        Row: {
-          created_at: string
-          id: string
-          is_read: boolean
-          link: string | null
-          message: string | null
-          title: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          link?: string | null
-          message?: string | null
-          title: string
-          type?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          link?: string | null
-          message?: string | null
-          title?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      organizations: {
-        Row: {
-          created_at: string
-          id: string
-          logo_url: string | null
-          name: string
-          settings: Json | null
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          name: string
-          settings?: Json | null
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          name?: string
-          settings?: Json | null
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      patient_ward_history: {
-        Row: {
-          admitted_at: string
-          created_at: string
-          discharged_at: string | null
-          discharged_by: string | null
-          id: string
-          patient_id: string
-          reason: string | null
-          ward_id: string
-        }
-        Insert: {
-          admitted_at?: string
-          created_at?: string
-          discharged_at?: string | null
-          discharged_by?: string | null
-          id?: string
-          patient_id: string
-          reason?: string | null
-          ward_id: string
-        }
-        Update: {
-          admitted_at?: string
-          created_at?: string
-          discharged_at?: string | null
-          discharged_by?: string | null
-          id?: string
-          patient_id?: string
-          reason?: string | null
-          ward_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "patient_ward_history_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patient_ward_history_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      patients: {
-        Row: {
-          admission_status: string
-          bed: string | null
-          created_at: string
-          created_by: string | null
-          current_ward_id: string | null
-          date_of_birth: string | null
-          department_id: string
-          encounter_number: string | null
-          full_name: string
-          id: string
-          initials: string | null
-          medical_record: string | null
-          notes: string | null
-          organization_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          admission_status?: string
-          bed?: string | null
-          created_at?: string
-          created_by?: string | null
-          current_ward_id?: string | null
-          date_of_birth?: string | null
-          department_id: string
-          encounter_number?: string | null
-          full_name: string
-          id?: string
-          initials?: string | null
-          medical_record?: string | null
-          notes?: string | null
-          organization_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          admission_status?: string
-          bed?: string | null
-          created_at?: string
-          created_by?: string | null
-          current_ward_id?: string | null
-          date_of_birth?: string | null
-          department_id?: string
-          encounter_number?: string | null
-          full_name?: string
-          id?: string
-          initials?: string | null
-          medical_record?: string | null
-          notes?: string | null
-          organization_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "patients_current_ward_id_fkey"
-            columns: ["current_ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patients_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patients_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          department_id: string | null
-          digital_signature_enabled: boolean
-          full_name: string | null
-          id: string
-          lgpd_consent_date: string | null
-          lgpd_consent_given: boolean
-          professional_registry: string | null
-          professional_registry_type: string | null
-          professional_role: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          department_id?: string | null
-          digital_signature_enabled?: boolean
-          full_name?: string | null
-          id?: string
-          lgpd_consent_date?: string | null
-          lgpd_consent_given?: boolean
-          professional_registry?: string | null
-          professional_registry_type?: string | null
-          professional_role?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          department_id?: string | null
-          digital_signature_enabled?: boolean
-          full_name?: string | null
-          id?: string
-          lgpd_consent_date?: string | null
-          lgpd_consent_given?: boolean
-          professional_registry?: string | null
-          professional_registry_type?: string | null
-          professional_role?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      prompt_wizard_sessions: {
-        Row: {
-          context_description: string | null
-          context_name: string | null
-          context_type: string
-          created_at: string
-          generated_prompt: string | null
-          id: string
-          messages: Json
-          question_number: number
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          context_description?: string | null
-          context_name?: string | null
-          context_type?: string
-          created_at?: string
-          generated_prompt?: string | null
-          id?: string
-          messages?: Json
-          question_number?: number
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          context_description?: string | null
-          context_name?: string | null
-          context_type?: string
-          created_at?: string
-          generated_prompt?: string | null
-          id?: string
-          messages?: Json
-          question_number?: number
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      report_templates: {
-        Row: {
-          applicable_roles: string[] | null
-          created_at: string
-          created_by: string | null
-          department_id: string | null
-          description: string | null
-          id: string
-          is_active: boolean
-          min_recordings: number
-          name: string
-          organization_id: string | null
-          prompt_template: string
-          requires_serial: boolean
-          updated_at: string
-        }
-        Insert: {
-          applicable_roles?: string[] | null
-          created_at?: string
-          created_by?: string | null
-          department_id?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          min_recordings?: number
-          name: string
-          organization_id?: string | null
-          prompt_template: string
-          requires_serial?: boolean
-          updated_at?: string
-        }
-        Update: {
-          applicable_roles?: string[] | null
-          created_at?: string
-          created_by?: string | null
-          department_id?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean
-          min_recordings?: number
-          name?: string
-          organization_id?: string | null
-          prompt_template?: string
-          requires_serial?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_templates_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_templates_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      surgical_checklists: {
-        Row: {
-          completed_at: string | null
-          completed_by: string | null
-          consultation_id: string | null
-          created_at: string
-          department_id: string
-          first_timeout: Json | null
-          id: string
-          patient_id: string
-          pre_op_verification: Json | null
-          second_timeout: Json | null
-          sign_out: Json | null
-          site_marking: Json | null
-          status: string
-          updated_at: string
-          ward_id: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          completed_by?: string | null
-          consultation_id?: string | null
-          created_at?: string
-          department_id: string
-          first_timeout?: Json | null
-          id?: string
-          patient_id: string
-          pre_op_verification?: Json | null
-          second_timeout?: Json | null
-          sign_out?: Json | null
-          site_marking?: Json | null
-          status?: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          completed_by?: string | null
-          consultation_id?: string | null
-          created_at?: string
-          department_id?: string
-          first_timeout?: Json | null
-          id?: string
-          patient_id?: string
-          pre_op_verification?: Json | null
-          second_timeout?: Json | null
-          sign_out?: Json | null
-          site_marking?: Json | null
-          status?: string
-          updated_at?: string
-          ward_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "surgical_checklists_consultation_id_fkey"
-            columns: ["consultation_id"]
-            isOneToOne: false
-            referencedRelation: "consultations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "surgical_checklists_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "surgical_checklists_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "surgical_checklists_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+          id?: string;
+          name: string;
+          slug: string;
+          cnpj?: string | null;
+          plan?: string;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["hospitals"]["Insert"]>;
+        Relationships: [];
+      };
+
       wards: {
         Row: {
-          bed_count: number | null
-          created_at: string
-          department_id: string
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-          ward_type: string
-        }
+          id: string;
+          hospital_id: string;
+          name: string;
+          ward_type: Database["public"]["Enums"]["ward_type"];
+          bed_count: number;
+          is_active: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          bed_count?: number | null
-          created_at?: string
-          department_id: string
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-          ward_type?: string
-        }
-        Update: {
-          bed_count?: number | null
-          created_at?: string
-          department_id?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-          ward_type?: string
-        }
+          id?: string;
+          hospital_id: string;
+          name: string;
+          ward_type?: Database["public"]["Enums"]["ward_type"];
+          bed_count?: number;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["wards"]["Insert"]>;
         Relationships: [
-          {
-            foreignKeyName: "wards_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
+          { foreignKeyName: "wards_hospital_id_fkey"; columns: ["hospital_id"]; referencedRelation: "hospitals"; referencedColumns: ["id"] },
+        ];
+      };
+
+      medical_specialties: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          output_prompt: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          output_prompt?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["medical_specialties"]["Insert"]>;
+        Relationships: [];
+      };
+
+      profiles: {
+        Row: {
+          user_id: string;
+          full_name: string | null;
+          professional_role: string | null;
+          specialty_id: string | null;
+          avatar_url: string | null;
+          lgpd_consented_at: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          full_name?: string | null;
+          professional_role?: string | null;
+          specialty_id?: string | null;
+          avatar_url?: string | null;
+          lgpd_consented_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "profiles_specialty_id_fkey"; columns: ["specialty_id"]; referencedRelation: "medical_specialties"; referencedColumns: ["id"] },
+        ];
+      };
+
+      user_roles: {
+        Row: {
+          id: string;
+          user_id: string;
+          hospital_id: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          hospital_id?: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_roles"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "user_roles_hospital_id_fkey"; columns: ["hospital_id"]; referencedRelation: "hospitals"; referencedColumns: ["id"] },
+        ];
+      };
+
+      ward_assignments: {
+        Row: {
+          id: string;
+          user_id: string;
+          ward_id: string;
+          started_at: string;
+          ended_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          ward_id: string;
+          started_at?: string;
+          ended_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ward_assignments"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "ward_assignments_ward_id_fkey"; columns: ["ward_id"]; referencedRelation: "wards"; referencedColumns: ["id"] },
+        ];
+      };
+
+      invitations: {
+        Row: {
+          id: string;
+          hospital_id: string;
+          email: string;
+          role: Database["public"]["Enums"]["app_role"];
+          ward_ids: string[];
+          token: string;
+          status: Database["public"]["Enums"]["invitation_status"];
+          invited_by: string | null;
+          expires_at: string;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          hospital_id: string;
+          email: string;
+          role: Database["public"]["Enums"]["app_role"];
+          ward_ids?: string[];
+          token?: string;
+          status?: Database["public"]["Enums"]["invitation_status"];
+          invited_by?: string | null;
+          expires_at?: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invitations"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "invitations_hospital_id_fkey"; columns: ["hospital_id"]; referencedRelation: "hospitals"; referencedColumns: ["id"] },
+        ];
+      };
+
+      // ───────── Clínica ─────────
+      patients: {
+        Row: {
+          id: string;
+          hospital_id: string;
+          full_name: string;
+          initials: string | null;
+          medical_record: string | null;
+          bed: string | null;
+          date_of_birth: string | null;
+          current_ward_id: string | null;
+          admission_status: Database["public"]["Enums"]["patient_admission_status"];
+          notes: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          hospital_id: string;
+          full_name: string;
+          initials?: string | null;
+          medical_record?: string | null;
+          bed?: string | null;
+          date_of_birth?: string | null;
+          current_ward_id?: string | null;
+          admission_status?: Database["public"]["Enums"]["patient_admission_status"];
+          notes?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["patients"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "patients_hospital_id_fkey"; columns: ["hospital_id"]; referencedRelation: "hospitals"; referencedColumns: ["id"] },
+          { foreignKeyName: "patients_current_ward_id_fkey"; columns: ["current_ward_id"]; referencedRelation: "wards"; referencedColumns: ["id"] },
+        ];
+      };
+
+      patient_ward_history: {
+        Row: {
+          id: string;
+          patient_id: string;
+          ward_id: string;
+          admitted_at: string;
+          discharged_at: string | null;
+          discharged_by: string | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          ward_id: string;
+          admitted_at?: string;
+          discharged_at?: string | null;
+          discharged_by?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["patient_ward_history"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "pwh_patient_id_fkey"; columns: ["patient_id"]; referencedRelation: "patients"; referencedColumns: ["id"] },
+          { foreignKeyName: "pwh_ward_id_fkey"; columns: ["ward_id"]; referencedRelation: "wards"; referencedColumns: ["id"] },
+        ];
+      };
+
+      consultations: {
+        Row: {
+          id: string;
+          hospital_id: string;
+          patient_id: string;
+          ward_id: string | null;
+          professional_id: string;
+          specialty_id: string | null;
+          template_id: string | null;
+          audio_url: string | null;
+          audio_duration_seconds: number | null;
+          raw_transcription: string | null;
+          edited_transcription: string | null;
+          status: Database["public"]["Enums"]["consultation_status"];
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+          completed_at: string | null;
+          locked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          hospital_id: string;
+          patient_id: string;
+          ward_id?: string | null;
+          professional_id: string;
+          specialty_id?: string | null;
+          template_id?: string | null;
+          audio_url?: string | null;
+          audio_duration_seconds?: number | null;
+          raw_transcription?: string | null;
+          edited_transcription?: string | null;
+          status?: Database["public"]["Enums"]["consultation_status"];
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+          completed_at?: string | null;
+          locked_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["consultations"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "c_hospital_id_fkey"; columns: ["hospital_id"]; referencedRelation: "hospitals"; referencedColumns: ["id"] },
+          { foreignKeyName: "c_patient_id_fkey"; columns: ["patient_id"]; referencedRelation: "patients"; referencedColumns: ["id"] },
+          { foreignKeyName: "c_ward_id_fkey"; columns: ["ward_id"]; referencedRelation: "wards"; referencedColumns: ["id"] },
+        ];
+      };
+
+      consultation_addenda: {
+        Row: {
+          id: string;
+          consultation_id: string;
+          author_id: string;
+          author_role_at_time: Database["public"]["Enums"]["app_role"];
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          consultation_id: string;
+          author_id: string;
+          author_role_at_time: Database["public"]["Enums"]["app_role"];
+          content: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["consultation_addenda"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "ad_consultation_id_fkey"; columns: ["consultation_id"]; referencedRelation: "consultations"; referencedColumns: ["id"] },
+        ];
+      };
+
+      clinical_reports: {
+        Row: {
+          id: string;
+          consultation_id: string | null;
+          patient_id: string;
+          source_consultation_ids: string[];
+          template_id: string | null;
+          version: number;
+          content: string;
+          format: string;
+          generated_by: string | null;
+          generated_at: string;
+        };
+        Insert: {
+          id?: string;
+          consultation_id?: string | null;
+          patient_id: string;
+          source_consultation_ids?: string[];
+          template_id?: string | null;
+          version?: number;
+          content: string;
+          format?: string;
+          generated_by?: string | null;
+          generated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["clinical_reports"]["Insert"]>;
+        Relationships: [
+          { foreignKeyName: "cr_consultation_id_fkey"; columns: ["consultation_id"]; referencedRelation: "consultations"; referencedColumns: ["id"] },
+          { foreignKeyName: "cr_patient_id_fkey"; columns: ["patient_id"]; referencedRelation: "patients"; referencedColumns: ["id"] },
+        ];
+      };
+
+      // ───────── IA / Prompts ─────────
+      report_templates: {
+        Row: {
+          id: string;
+          hospital_id: string | null;
+          name: string;
+          description: string | null;
+          prompt: string;
+          applicable_ward_types: Database["public"]["Enums"]["ward_type"][];
+          applicable_specialties: string[];
+          applicable_roles: Database["public"]["Enums"]["app_role"][];
+          is_active: boolean;
+          version: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          hospital_id?: string | null;
+          name: string;
+          description?: string | null;
+          prompt: string;
+          applicable_ward_types?: Database["public"]["Enums"]["ward_type"][];
+          applicable_specialties?: string[];
+          applicable_roles?: Database["public"]["Enums"]["app_role"][];
+          is_active?: boolean;
+          version?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["report_templates"]["Insert"]>;
+        Relationships: [];
+      };
+
+      consultation_scripts: {
+        Row: {
+          id: string;
+          hospital_id: string | null;
+          name: string;
+          description: string | null;
+          fields: Json;
+          applicable_ward_types: Database["public"]["Enums"]["ward_type"][];
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          hospital_id?: string | null;
+          name: string;
+          description?: string | null;
+          fields?: Json;
+          applicable_ward_types?: Database["public"]["Enums"]["ward_type"][];
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["consultation_scripts"]["Insert"]>;
+        Relationships: [];
+      };
+
+      prompt_wizard_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          hospital_id: string | null;
+          messages: Json;
+          generated_prompt: string | null;
+          created_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          hospital_id?: string | null;
+          messages?: Json;
+          generated_prompt?: string | null;
+          created_at?: string;
+          expires_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["prompt_wizard_sessions"]["Insert"]>;
+        Relationships: [];
+      };
+
+      // ───────── Indicadores ─────────
+      indicators: {
+        Row: {
+          id: string;
+          hospital_id: string;
+          code: string | null;
+          name: string;
+          description: string | null;
+          unit: Database["public"]["Enums"]["indicator_unit"];
+          target_value: number | null;
+          threshold_warning: number | null;
+          threshold_critical: number | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          hospital_id: string;
+          code?: string | null;
+          name: string;
+          description?: string | null;
+          unit?: Database["public"]["Enums"]["indicator_unit"];
+          target_value?: number | null;
+          threshold_warning?: number | null;
+          threshold_critical?: number | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["indicators"]["Insert"]>;
+        Relationships: [];
+      };
+
+      indicator_values: {
+        Row: {
+          id: string;
+          indicator_id: string;
+          period_start: string;
+          period_end: string;
+          numerator: number | null;
+          denominator: number | null;
+          value: number;
+          collected_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          indicator_id: string;
+          period_start: string;
+          period_end: string;
+          numerator?: number | null;
+          denominator?: number | null;
+          value: number;
+          collected_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["indicator_values"]["Insert"]>;
+        Relationships: [];
+      };
+
+      indicator_events: {
+        Row: {
+          id: string;
+          indicator_id: string;
+          hospital_id: string;
+          patient_id: string | null;
+          ward_id: string | null;
+          event_data: Json;
+          occurred_at: string;
+          recorded_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          indicator_id: string;
+          hospital_id: string;
+          patient_id?: string | null;
+          ward_id?: string | null;
+          event_data?: Json;
+          occurred_at?: string;
+          recorded_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["indicator_events"]["Insert"]>;
+        Relationships: [];
+      };
+
+      // ───────── IPSG ─────────
+      ipsg_goals: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          checklist_items: Json;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          description?: string | null;
+          checklist_items?: Json;
+          is_active?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["ipsg_goals"]["Insert"]>;
+        Relationships: [];
+      };
+
+      ipsg_audit_records: {
+        Row: {
+          id: string;
+          hospital_id: string;
+          ward_id: string | null;
+          goal_id: string;
+          items: Json;
+          conformity_rate: number | null;
+          notes: string | null;
+          audited_by: string;
+          audited_at: string;
+        };
+        Insert: {
+          id?: string;
+          hospital_id: string;
+          ward_id?: string | null;
+          goal_id: string;
+          items?: Json;
+          conformity_rate?: number | null;
+          notes?: string | null;
+          audited_by: string;
+          audited_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ipsg_audit_records"]["Insert"]>;
+        Relationships: [];
+      };
+
+      ipsg_action_plans: {
+        Row: {
+          id: string;
+          hospital_id: string;
+          audit_record_id: string | null;
+          title: string;
+          description: string | null;
+          owner_id: string | null;
+          due_date: string | null;
+          status: Database["public"]["Enums"]["action_plan_status"];
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          hospital_id: string;
+          audit_record_id?: string | null;
+          title: string;
+          description?: string | null;
+          owner_id?: string | null;
+          due_date?: string | null;
+          status?: Database["public"]["Enums"]["action_plan_status"];
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ipsg_action_plans"]["Insert"]>;
+        Relationships: [];
+      };
+
+      // ───────── Sistema ─────────
+      access_log: {
+        Row: {
+          id: number;
+          user_id: string | null;
+          hospital_id: string | null;
+          action: string;
+          resource_type: string;
+          resource_id: string | null;
+          ip: string | null;
+          user_agent: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id?: string | null;
+          hospital_id?: string | null;
+          action: string;
+          resource_type: string;
+          resource_id?: string | null;
+          ip?: string | null;
+          user_agent?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["access_log"]["Insert"]>;
+        Relationships: [];
+      };
+
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body: string | null;
+          url: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body?: string | null;
+          url?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
+      };
+
+      clinical_alerts: {
+        Row: {
+          id: string;
+          consultation_id: string | null;
+          patient_id: string | null;
+          hospital_id: string;
+          kind: string;
+          severity: Database["public"]["Enums"]["alert_severity"];
+          title: string;
+          payload: Json;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          consultation_id?: string | null;
+          patient_id?: string | null;
+          hospital_id: string;
+          kind: string;
+          severity: Database["public"]["Enums"]["alert_severity"];
+          title: string;
+          payload?: Json;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["clinical_alerts"]["Insert"]>;
+        Relationships: [];
+      };
+    };
+
+    Views: { [_ in never]: never };
+
     Functions: {
-      get_user_department: { Args: { _user_id: string }; Returns: string }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_auditor_or_admin: { Args: { _user_id: string }; Returns: boolean }
-      match_knowledge_chunks: {
-        Args: {
-          filter_specialty_id?: string
-          match_count?: number
-          match_threshold?: number
-          query_embedding: string
-        }
-        Returns: {
-          content: string
-          document_id: string
-          document_source: string
-          document_title: string
-          id: string
-          similarity: number
-        }[]
-      }
-      update_cron_schedule: {
-        Args: { new_schedule: string }
-        Returns: undefined
-      }
-    }
+      is_super_admin: { Args: { uid: string }; Returns: boolean };
+      current_hospital_ids: { Args: { uid: string }; Returns: string[] };
+      current_ward_ids: { Args: { uid: string }; Returns: string[] };
+      is_hospital_admin_of: { Args: { uid: string; h_id: string }; Returns: boolean };
+      has_role_in_hospital: {
+        Args: { uid: string; r: Database["public"]["Enums"]["app_role"]; h_id: string };
+        Returns: boolean;
+      };
+      can_edit_consultation: { Args: { uid: string; c_id: string }; Returns: boolean };
+    };
+
     Enums: {
-      app_role:
-        | "admin"
-        | "medico"
-        | "enfermeiro"
-        | "tecnico"
-        | "farmaceutico"
-        | "auditor"
-        | "fisioterapeuta"
-        | "nutricionista"
-        | "fonoaudiologo"
-        | "psicologo"
-        | "assistente_social"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      app_role: "super_admin" | "hospital_admin" | "doctor" | "nurse" | "auditor";
+      ward_type: "uti" | "enfermaria" | "centro_cirurgico" | "pronto_socorro" | "ambulatorio";
+      consultation_status: "recording" | "transcribing" | "transcribed" | "editing" | "completed";
+      patient_admission_status: "admitted" | "discharged" | "transferred";
+      invitation_status: "pending" | "accepted" | "expired" | "revoked";
+      indicator_unit: "percent" | "count" | "rate" | "days";
+      action_plan_status: "open" | "in_progress" | "done" | "cancelled";
+      alert_severity: "info" | "warning" | "critical";
+    };
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+    CompositeTypes: { [_ in never]: never };
+  };
+};
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+// ─── Helpers públicos ────────────────────────────────────────────────────
+type PublicSchema = Database[Extract<keyof Database, "public">];
 
 export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends { Row: infer R }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends { Row: infer R }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends { Insert: infer I }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends { Insert: infer I }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  PublicTableNameOrOptions extends keyof PublicSchema["Tables"] | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends { Update: infer U }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends { Update: infer U }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  PublicEnumNameOrOptions extends keyof PublicSchema["Enums"] | { schema: keyof Database },
+  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      app_role: [
-        "admin",
-        "medico",
-        "enfermeiro",
-        "tecnico",
-        "farmaceutico",
-        "auditor",
-        "fisioterapeuta",
-        "nutricionista",
-        "fonoaudiologo",
-        "psicologo",
-        "assistente_social",
-      ],
-    },
-  },
-} as const
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never;

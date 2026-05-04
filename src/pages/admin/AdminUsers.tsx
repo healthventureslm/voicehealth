@@ -1,277 +1,260 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useHospitalUsers, useWards, useInvitations, useRevokeInvitation,
+  useRemoveUserFromHospital,
+} from "@/hooks/queries";
+import { InviteUserDialog } from "@/components/admin/InviteUserDialog";
+import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Pencil, UserMinus, ShieldAlert, Mail, Copy, Check, Search } from "lucide-react";
 import { toast } from "sonner";
-import { Copy, Send, Trash2, RefreshCw, Shield, Plus } from "lucide-react";
-import type { Tables, Enums } from "@/integrations/supabase/types";
+import type { HospitalUserRow } from "@/hooks/queries";
 
-type Profile = Tables<"profiles">;
-type Department = Tables<"departments">;
-type AppRole = Enums<"app_role">;
-
-const roleLabels: Record<string, string> = {
-  admin: "Administrador", medico: "Médico", enfermeiro: "Enfermeiro", tecnico: "Técnico", farmaceutico: "Farmacêutico",
-  auditor: "Auditor", fisioterapeuta: "Fisioterapeuta", nutricionista: "Nutricionista", fonoaudiologo: "Fonoaudiólogo",
-  psicologo: "Psicólogo", assistente_social: "Assistente Social",
+const ROLE_LABEL: Record<string, string> = {
+  super_admin:    "Super Admin",
+  hospital_admin: "Admin do Hospital",
+  doctor:         "Médico(a)",
+  nurse:          "Enfermeiro(a)",
+  auditor:        "Auditor(a)",
 };
 
-const allRoles: AppRole[] = ["admin", "medico", "enfermeiro", "tecnico", "farmaceutico", "auditor", "fisioterapeuta", "nutricionista", "fonoaudiologo", "psicologo", "assistente_social"];
-
-const statusLabels: Record<string, string> = { pending: "Pendente", accepted: "Aceito", expired: "Expirado" };
-const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = { pending: "outline", accepted: "default", expired: "destructive" };
-
 export default function AdminUsers() {
-  const [profiles, setProfiles] = useState<(Profile & { roles: AppRole[] })[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [invitations, setInvitations] = useState<any[]>([]);
-  const [whitelist, setWhitelist] = useState<{ id: string; email: string; created_at: string }[]>([]);
+  const { hospitalIds } = useAuth();
+  const hospitalId = hospitalIds[0];
 
-  const [invEmail, setInvEmail] = useState("");
-  const [invRole, setInvRole] = useState<AppRole | "">("");
-  const [invDept, setInvDept] = useState("");
-  const [invLoading, setInvLoading] = useState(false);
+  const { data: users, isLoading } = useHospitalUsers(hospitalId);
+  const { data: wards } = useWards();
+  const { data: invitations } = useInvitations(hospitalId);
+  const revoke = useRevokeInvitation();
+  const removeUser = useRemoveUserFromHospital();
 
-  const [wlEmail, setWlEmail] = useState("");
-  const [wlLoading, setWlLoading] = useState(false);
+  const [editing, setEditing] = useState<HospitalUserRow | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const fetchAll = async () => {
-    const [profilesRes, rolesRes, deptsRes, invRes, wlRes] = await Promise.all([
-      supabase.from("profiles").select("*").order("full_name"),
-      supabase.from("user_roles").select("*"),
-      supabase.from("departments").select("*").order("name"),
-      supabase.from("invitations").select("*, department:departments(name)").order("created_at", { ascending: false }),
-      supabase.from("admin_whitelist").select("*").order("created_at", { ascending: false }),
-    ]);
-    const roles = rolesRes.data || [];
-    setProfiles(
-      (profilesRes.data || []).map((p) => ({
-        ...p,
-        roles: roles.filter((r) => r.user_id === p.user_id).map((r) => r.role),
-      }))
+  const wardName = (id: string) => (wards ?? []).find((w) => w.id === id)?.name ?? id.slice(0, 6);
+
+  // Filtra equipe por nome / role
+  const filteredUsers = (users ?? []).filter((u) => {
+    if (!search) return true;
+    const haystack = [
+      u.full_name,
+      u.professional_role,
+      ...u.roles.map((r) => ROLE_LABEL[r] ?? r),
+      ...u.ward_ids.map((id) => wardName(id)),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(search.toLowerCase());
+  });
+
+  async function copyInviteLink(token: string) {
+    const url = `${window.location.origin}/signup?token=${token}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedToken(token);
+    toast.success("Link copiado");
+    setTimeout(() => setCopiedToken(null), 2000);
+  }
+
+  async function handleRemove(user: HospitalUserRow) {
+    if (!hospitalId) return;
+    try {
+      await removeUser.mutateAsync({ userId: user.user_id, hospitalId });
+      toast.success(`${user.full_name ?? "Usuário"} removido do hospital`);
+    } catch (e: any) {
+      toast.error(`Erro: ${e?.message ?? e}`);
+    }
+  }
+
+  if (!hospitalId) {
+    return (
+      <AppLayout>
+        <PageContainer width="narrow">
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground space-y-2">
+              <ShieldAlert className="w-8 h-8 text-muted-foreground mx-auto" />
+              <p>Você não está vinculado a nenhum hospital.</p>
+            </CardContent>
+          </Card>
+        </PageContainer>
+      </AppLayout>
     );
-    setDepartments(deptsRes.data || []);
-    setInvitations(invRes.data || []);
-    setWhitelist(wlRes.data || []);
-  };
+  }
 
-  useEffect(() => { fetchAll(); }, []);
-
-  const sendInvitation = async () => {
-    if (!invEmail.trim() || !invRole) { toast.error("Preencha e-mail e role"); return; }
-    setInvLoading(true);
-    try {
-      const res = await supabase.functions.invoke("send-invitation", {
-        body: { email: invEmail.trim(), role: invRole, department_id: invDept || null },
-      });
-      if (res.error) { toast.error(res.error.message || "Erro ao enviar convite"); }
-      else { toast.success("Convite criado com sucesso!"); setInvEmail(""); setInvRole(""); setInvDept(""); fetchAll(); }
-    } catch { toast.error("Erro ao enviar convite"); }
-    finally { setInvLoading(false); }
-  };
-
-  const copyInviteLink = (token: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/signup?token=${token}`);
-    toast.success("Link copiado!");
-  };
-
-  const revokeInvitation = async (id: string) => {
-    await supabase.from("invitations").update({ status: "expired" }).eq("id", id);
-    toast.success("Convite revogado"); fetchAll();
-  };
-
-  const assignRole = async (userId: string, role: AppRole) => {
-    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
-    if (error) { error.code === "23505" ? toast.info("Usuário já tem esta role") : toast.error("Erro ao atribuir role"); return; }
-    toast.success("Role atribuída!"); fetchAll();
-  };
-
-  const removeRole = async (userId: string, role: AppRole) => {
-    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
-    toast.success("Role removida"); fetchAll();
-  };
-
-  const changeDepartment = async (userId: string, deptId: string) => {
-    await supabase.from("profiles").update({ department_id: deptId }).eq("user_id", userId);
-    toast.success("Departamento atualizado!"); fetchAll();
-  };
-
-  const addToWhitelist = async () => {
-    if (!wlEmail.trim()) { toast.error("Digite um e-mail"); return; }
-    setWlLoading(true);
-    try {
-      const { error } = await supabase.from("admin_whitelist").insert({ email: wlEmail.trim().toLowerCase() });
-      if (error) {
-        error.code === "23505" ? toast.info("E-mail já está na lista") : toast.error("Erro ao adicionar");
-      } else {
-        toast.success("E-mail adicionado à whitelist!"); setWlEmail(""); fetchAll();
-      }
-    } catch { toast.error("Erro ao adicionar"); }
-    finally { setWlLoading(false); }
-  };
-
-  const removeFromWhitelist = async (id: string) => {
-    await supabase.from("admin_whitelist").delete().eq("id", id);
-    toast.success("E-mail removido da whitelist"); fetchAll();
-  };
+  const pendingInvitations = (invitations ?? []).filter((i) => i.status === "pending");
 
   return (
     <AppLayout>
-      <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gerenciar Usuários</h1>
-          <p className="text-muted-foreground">Envie convites, gerencie roles e acesso direto de administradores</p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Usuários do hospital"
+          subtitle="Convide profissionais e gerencie os papéis e setores onde atuam."
+          actions={<InviteUserDialog hospitalId={hospitalId} />}
+        />
 
-        {/* Admin Whitelist */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Acesso Direto de Administradores
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              E-mails nesta lista podem se cadastrar sem convite e recebem automaticamente a role de Administrador.
-            </p>
-            <div className="flex gap-2">
-              <Input type="email" placeholder="admin@email.com" value={wlEmail} onChange={(e) => setWlEmail(e.target.value)} className="max-w-sm" />
-              <Button onClick={addToWhitelist} disabled={wlLoading}>
-                {wlLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                Adicionar
-              </Button>
-            </div>
-            {whitelist.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {whitelist.map((w) => (
-                  <Badge key={w.id} variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeFromWhitelist(w.id)}>
-                    {w.email} ✕
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Invitation Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Send className="w-5 h-5" />
-              Enviar Convite
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <Label htmlFor="inv-email" className="sr-only">E-mail</Label>
-                <Input id="inv-email" type="email" placeholder="email@exemplo.com" value={invEmail} onChange={(e) => setInvEmail(e.target.value)} />
-              </div>
-              <div className="w-full sm:w-44">
-                <Select value={invRole} onValueChange={(v) => setInvRole(v as AppRole)}>
-                  <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
-                  <SelectContent>{allRoles.map((r) => <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="w-full sm:w-44">
-                <Select value={invDept} onValueChange={setInvDept}>
-                  <SelectTrigger><SelectValue placeholder="Departamento" /></SelectTrigger>
-                  <SelectContent>{departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <Button onClick={sendInvitation} disabled={invLoading} className="whitespace-nowrap">
-                {invLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-                Enviar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Invitations */}
-        {invitations.length > 0 && (
+        {/* Convites pendentes */}
+        {pendingInvitations.length > 0 && (
           <Card>
-            <CardHeader><CardTitle className="text-lg">Convites</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>E-mail</TableHead><TableHead>Role</TableHead><TableHead>Departamento</TableHead><TableHead>Status</TableHead><TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invitations.map((inv) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-medium">{inv.email}</TableCell>
-                      <TableCell><Badge variant="secondary">{roleLabels[inv.role] || inv.role}</Badge></TableCell>
-                      <TableCell>{(inv.department as any)?.name || "—"}</TableCell>
-                      <TableCell><Badge variant={statusVariants[inv.status] || "outline"}>{statusLabels[inv.status] || inv.status}</Badge></TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {inv.status === "pending" && (
-                            <>
-                              <Button size="icon" variant="ghost" onClick={() => copyInviteLink(inv.token)} title="Copiar link"><Copy className="w-4 h-4" /></Button>
-                              <Button size="icon" variant="ghost" onClick={() => revokeInvitation(inv.id)} title="Revogar"><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardHeader>
+              <CardTitle className="heading-card flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                Convites pendentes ({pendingInvitations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {pendingInvitations.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between gap-2 p-3 border rounded-md"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{inv.email}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                      <Badge variant="outline">{ROLE_LABEL[inv.role] ?? inv.role}</Badge>
+                      {inv.ward_ids.length > 0 && (
+                        <span>{inv.ward_ids.map((id) => wardName(id)).join(", ")}</span>
+                      )}
+                      <span>· expira {new Date(inv.expires_at).toLocaleDateString("pt-BR")}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyInviteLink(inv.token)}
+                      className="gap-1"
+                    >
+                      {copiedToken === inv.token ? (
+                        <Check className="w-3 h-3" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                      Link
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive">
+                          Revogar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Revogar convite?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            O link enviado pra <strong>{inv.email}</strong> deixará de funcionar.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => revoke.mutateAsync(inv.id)}>
+                            Revogar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
 
-        {/* Existing Users */}
+        {/* Lista de usuários ativos */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Usuários Cadastrados</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead><TableHead>Departamento</TableHead><TableHead>Roles</TableHead><TableHead>Adicionar Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {profiles.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.full_name || "Sem nome"}</TableCell>
-                    <TableCell>
-                      <Select value={p.department_id || ""} onValueChange={(v) => changeDepartment(p.user_id, v)}>
-                        <SelectTrigger className="w-40"><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                        <SelectContent>{departments.map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {p.roles.map((r) => (
-                          <Badge key={r} variant="secondary" className="gap-1 cursor-pointer" onClick={() => removeRole(p.user_id, r)}>
-                            {roleLabels[r] || r} ✕
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Select onValueChange={(v) => assignRole(p.user_id, v as AppRole)}>
-                        <SelectTrigger className="w-36"><SelectValue placeholder="+ Role" /></SelectTrigger>
-                        <SelectContent>{allRoles.map((r) => <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <CardTitle className="heading-card">Equipe ativa</CardTitle>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar usuário..."
+                className="pl-10 h-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {isLoading ? (
+              <p className="text-center text-muted-foreground py-6">Carregando…</p>
+            ) : filteredUsers.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6">
+                {search
+                  ? "Nenhum usuário corresponde à busca."
+                  : 'Nenhum usuário ativo. Use "Convidar usuário" pra começar.'}
+              </p>
+            ) : (
+              filteredUsers.map((u) => (
+                <div
+                  key={u.user_id}
+                  className="flex items-center justify-between gap-2 p-3 border rounded-md hover:bg-accent/30 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">{u.full_name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
+                      {u.roles.map((r) => (
+                        <Badge key={r} variant="outline">{ROLE_LABEL[r] ?? r}</Badge>
+                      ))}
+                      {u.ward_ids.length > 0 && (
+                        <span>· {u.ward_ids.map((id) => wardName(id)).join(", ")}</span>
+                      )}
+                      {u.ward_ids.length === 0 && (u.roles.includes("doctor") || u.roles.includes("nurse")) && (
+                        <span className="text-yellow-600">⚠ sem setor</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => setEditing(u)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive">
+                          <UserMinus className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover do hospital?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            <strong>{u.full_name ?? u.user_id.slice(0, 8)}</strong> perderá
+                            acesso ao hospital. As consultas que ele criou continuam preservadas.
+                            A conta no sistema (login) <strong>não</strong> é apagada — só o
+                            vínculo com este hospital.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleRemove(u)}>
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
-      </div>
+
+        <EditUserDialog
+          user={editing}
+          hospitalId={hospitalId}
+          onClose={() => setEditing(null)}
+        />
+      </PageContainer>
     </AppLayout>
   );
 }

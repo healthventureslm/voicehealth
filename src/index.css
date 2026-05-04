@@ -2,100 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts loaded via <link> in index.html to avoid render-blocking @import */
+/* ════════════════════════════════════════════════════════════════════
+   Health Ventures · Brand System V1.2
+   VoiceHealth — produto filho · acento Sage (#A8C5B5)
+   Canvas escuro como padrão. Sem light mode.
+   ════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 25% 12%;
+    /* ── HV brand vars (raw hex pra usar em estilos diretos) ── */
+    --hv-bg:             #1A1A1F;
+    --hv-card:           #2A2A33;
+    --hv-text-primary:   #FFFFFF;
+    --hv-text-secondary: #C0C9DF;
+    --hv-text-muted:     #7A8298;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 12%;
+    --hv-primary:        #4D65FF;
+    --hv-primary-deep:   #1954EC;
+    --hv-cyan:           #46CDFF;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 12%;
+    --hv-coral:          #FF6B5B;
+    --hv-sage:           #A8C5B5;
+    --hv-sun:            #FFD060;
 
-    --primary: 199 89% 42%;
-    --primary-foreground: 0 0% 100%;
+    /* Acento do produto VoiceHealth */
+    --hv-accent:         var(--hv-sage);
 
-    --secondary: 160 84% 36%;
+    /* Tipografia */
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+    /* ── Tokens de shadcn/ui (em HSL p/ Tailwind) ── */
+
+    /* Charcoal #1A1A1F  → 240 8% 11% */
+    --background: 240 8% 11%;
+    --foreground: 0 0% 100%;
+
+    /* Card  #2A2A33  → 240 9% 18% */
+    --card: 240 9% 18%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 240 9% 18%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Sage #A8C5B5  → 144 24% 73% */
+    --primary: 144 24% 73%;
+    --primary-foreground: 240 8% 11%;
+
+    /* Secondary igual à primary, mas vamos manter neutro */
+    --secondary: 240 9% 22%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 220 10% 44%;
+    /* Muted (texto secundário muted) — Muted Gray #7A8298 → 224 11% 54% */
+    --muted: 240 9% 18%;
+    --muted-foreground: 224 11% 54%;
 
-    --accent: 199 30% 94%;
-    --accent-foreground: 199 89% 32%;
+    /* Accent — Sage variante para hover/realce */
+    --accent: 240 9% 22%;
+    --accent-foreground: 144 24% 73%;
 
-    --destructive: 0 72% 51%;
+    /* Destructive — coral suave */
+    --destructive: 6 100% 68%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    /* Warning — Sun #FFD060 → 45 100% 69% */
+    --warning: 45 100% 69%;
+    --warning-foreground: 240 8% 11%;
 
-    --success: 160 84% 36%;
-    --success-foreground: 0 0% 100%;
+    --success: 144 24% 73%;
+    --success-foreground: 240 8% 11%;
 
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
-    --ring: 199 89% 42%;
+    /* Border bem sutil sobre o card */
+    --border: 240 5% 30%;
+    --input: 240 9% 22%;
+    --ring: 144 24% 73%;
 
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
-    --sidebar-background: 220 20% 96%;
-    --sidebar-foreground: 220 25% 18%;
-    --sidebar-primary: 199 89% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 199 20% 92%;
-    --sidebar-accent-foreground: 220 25% 18%;
-    --sidebar-border: 220 13% 90%;
-    --sidebar-ring: 199 89% 42%;
+    /* Sidebar — fundo levemente mais escuro que o card */
+    --sidebar-background: 240 8% 11%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 144 24% 73%;
+    --sidebar-primary-foreground: 240 8% 11%;
+    --sidebar-accent: 240 9% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 5% 22%;
+    --sidebar-ring: 144 24% 73%;
   }
 
-  .dark {
-    --background: 220 30% 12%;
-    --foreground: 210 20% 92%;
-
-    --card: 220 28% 16%;
-    --card-foreground: 210 20% 92%;
-
-    --popover: 220 28% 16%;
-    --popover-foreground: 210 20% 92%;
-
-    --primary: 199 89% 48%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 160 84% 39%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 220 25% 18%;
-    --muted-foreground: 210 15% 67%;
-
-    --accent: 220 25% 20%;
-    --accent-foreground: 199 89% 70%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --success: 160 84% 39%;
-    --success-foreground: 0 0% 100%;
-
-    --border: 220 20% 22%;
-    --input: 220 20% 22%;
-    --ring: 199 89% 48%;
-
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 199 89% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 16%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 199 89% 48%;
-  }
+  /* Forçar dark-only — ignoramos qualquer toggle .dark / .light */
+  html { color-scheme: dark; }
 }
 
 @layer base {
@@ -104,40 +101,108 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Headings em Fraunces (display serif) */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* H1 grandes ficam Light pra dar leveza editorial */
+  h1 {
+    font-weight: 300;
+  }
+
+  code, pre, kbd {
+    font-family: var(--font-mono);
   }
 }
 
 @layer utilities {
-  .gradient-primary {
-    background: linear-gradient(135deg, hsl(199 89% 48%), hsl(160 84% 39%));
+  /* ── Logo wordmark (compartilhado entre todas as telas) ── */
+  .hv-wordmark {
+    font-family: var(--font-display);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: var(--hv-text-primary);
+  }
+  .hv-wordmark em {
+    font-style: italic;
+    color: var(--hv-accent);
+  }
+  .hv-byline {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--hv-text-muted);
   }
 
+  /* ── Eyebrow label (seções, metadados, KPIs) ── */
+  .hv-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--hv-text-muted);
+    font-weight: 500;
+  }
+
+  /* ── Card padrão HV ── */
+  .hv-card {
+    background: var(--hv-card);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    border-radius: 12px;
+  }
+
+  /* ── Glass card mais sutil (depth, não cor) ── */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg;
+    background: rgb(42 42 51 / 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgb(255 255 255 / 0.06);
   }
 
+  /* ── Headings de página ── */
   .heading-page {
-    @apply text-2xl md:text-3xl font-bold tracking-tight;
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    letter-spacing: -0.015em;
+    line-height: 1.1;
   }
-
   .heading-section {
-    @apply text-lg md:text-xl font-semibold tracking-tight;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
   }
-
   .heading-card {
-    @apply text-base font-semibold;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .heading-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--hv-text-muted);
   }
 
-  .heading-label {
-    @apply text-sm font-medium text-muted-foreground uppercase tracking-wider;
+  /* ── Number / data style (KPIs grandes) ── */
+  .hv-stat {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 2.5rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
 }

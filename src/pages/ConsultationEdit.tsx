@@ -1,262 +1,255 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  useConsultation, useUpdateConsultation, useClinicalReports,
+} from "@/hooks/queries";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, AlertTriangle, Stethoscope, Pill, Save } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { FileText, Mic, Lock, RefreshCw, FileSignature } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import type { Tables } from "@/integrations/supabase/types";
-
-type Consultation = Tables<"consultations">;
-type ClinicalAlert = Tables<"clinical_alerts">;
-type ReportTemplate = Tables<"report_templates">;
-type Specialty = Tables<"medical_specialties">;
 
 export default function ConsultationEdit() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [consultation, setConsultation] = useState<Consultation | null>(null);
-  const [editedText, setEditedText] = useState("");
-  const [alerts, setAlerts] = useState<ClinicalAlert[]>([]);
-  const [templates, setTemplates] = useState<ReportTemplate[]>([]);
-  const [specialty, setSpecialty] = useState<Specialty | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [analyzingCDS, setAnalyzingCDS] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { data: consultation, isLoading } = useConsultation(id);
+  const { data: reports } = useClinicalReports(id);
+  const update = useUpdateConsultation();
+
+  const [transcript, setTranscript] = useState("");
+  const [report, setReport] = useState("");
+  const [savingTranscript, setSavingTranscript] = useState(false);
+  const [savingReport, setSavingReport] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+
+  const latestReport = (reports ?? [])[0];
+  const reportVersion = latestReport?.version ?? 0;
 
   useEffect(() => {
-    if (!id) return;
-    Promise.all([
-      supabase.from("consultations").select("*").eq("id", id).single(),
-      supabase.from("clinical_alerts").select("*").eq("consultation_id", id).order("created_at"),
-      supabase.from("report_templates").select("*").eq("is_active", true),
-    ]).then(async ([consultRes, alertsRes, templatesRes]) => {
-      if (consultRes.data) {
-        setConsultation(consultRes.data);
-        setEditedText(consultRes.data.edited_transcription || consultRes.data.raw_transcription || "");
-        // Pre-select template if saved during recording
-        if (consultRes.data.selected_template_id) {
-          setSelectedTemplate(consultRes.data.selected_template_id);
-        }
-        // Load specialty if present
-        if (consultRes.data.specialty_id) {
-          const { data: spec } = await supabase.from("medical_specialties").select("*").eq("id", consultRes.data.specialty_id).single();
-          if (spec) setSpecialty(spec);
-        }
-      }
-      setAlerts(alertsRes.data || []);
-      setTemplates(templatesRes.data || []);
-    });
-  }, [id]);
-
-  const handleSave = async () => {
-    if (!id) return;
-    setSaving(true);
-    const { error } = await supabase
-      .from("consultations")
-      .update({ edited_transcription: editedText, status: "editing" })
-      .eq("id", id);
-    if (error) toast.error("Erro ao salvar");
-    else toast.success("Transcrição salva!");
-    setSaving(false);
-  };
-
-  const handleAnalyzeCDS = async () => {
-    if (!id) return;
-    setAnalyzingCDS(true);
-    try {
-      const { error } = await supabase.functions.invoke("clinical-decision", {
-        body: { consultation_id: id, transcription: editedText },
-      });
-      if (error) throw error;
-
-      const { data: newAlerts } = await supabase
-        .from("clinical_alerts")
-        .select("*")
-        .eq("consultation_id", id)
-        .order("created_at");
-      setAlerts(newAlerts || []);
-      toast.success("Análise clínica concluída!");
-    } catch {
-      toast.error("Erro na análise clínica");
+    if (consultation) {
+      setTranscript(consultation.edited_transcription ?? consultation.raw_transcription ?? "");
     }
-    setAnalyzingCDS(false);
-  };
+  }, [consultation]);
 
-  const handleGenerateReport = async () => {
-    if (!id) return;
-    // If consultation has specialty, use ambulatory-report edge function
-    if (specialty && consultation?.specialty_id) {
-      setGenerating(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("ambulatory-report", {
-          body: { consultation_id: id, specialty_id: consultation.specialty_id, transcription: editedText },
-        });
-        if (error) throw error;
-        toast.success("Relatório ambulatorial gerado!");
-        navigate(`/consultations/${id}/report`);
-      } catch {
-        toast.error("Erro ao gerar relatório");
-      }
-      setGenerating(false);
-      return;
+  useEffect(() => {
+    if (latestReport) {
+      setReport(latestReport.content ?? "");
     }
-    // Otherwise use standard template-based report
-    if (!selectedTemplate) return;
-    setGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-report", {
-        body: { consultation_id: id, template_id: selectedTemplate, transcription: editedText },
-      });
-      if (error) throw error;
-      toast.success("Relatório gerado!");
-      navigate(`/consultations/${id}/report`);
-    } catch {
-      toast.error("Erro ao gerar relatório");
-    }
-    setGenerating(false);
-  };
+  }, [latestReport]);
 
-  const alertIcon: Record<string, any> = {
-    drug_interaction: Pill,
-    differential_diagnosis: Stethoscope,
-    protocol_suggestion: FileText,
-  };
-
-  const severityColor: Record<string, string> = {
-    critical: "bg-red-500/20 text-red-300 border-red-500/40",
-    warning: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    info: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-  };
-
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <PageContainer>Carregando…</PageContainer>
+      </AppLayout>
+    );
+  }
   if (!consultation) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <PageContainer>Atendimento não encontrado.</PageContainer>
       </AppLayout>
     );
   }
 
+  if (consultation.locked_at) {
+    return (
+      <AppLayout>
+        <PageContainer>
+          <PageHeader back title="Atendimento bloqueado" />
+          <Card>
+            <CardContent className="py-8 text-center space-y-3">
+              <Lock className="w-8 h-8 text-muted-foreground mx-auto" />
+              <div className="font-medium">Atendimento bloqueado</div>
+              <div className="text-sm text-muted-foreground">
+                Este atendimento foi bloqueado para edição (paciente transferido).
+                Você ainda pode adicionar observações na tela de visualização.
+              </div>
+              <Button onClick={() => navigate(`/consultations/${id}/report`)}>
+                Ir para visualização
+              </Button>
+            </CardContent>
+          </Card>
+        </PageContainer>
+      </AppLayout>
+    );
+  }
+
+  async function saveTranscript() {
+    setSavingTranscript(true);
+    try {
+      await update.mutateAsync({
+        id: id!,
+        patch: { edited_transcription: transcript },
+      });
+      toast.success("Transcrição salva");
+    } catch (e: any) {
+      toast.error(`Erro: ${e?.message ?? e}`);
+    } finally {
+      setSavingTranscript(false);
+    }
+  }
+
+  async function saveReport() {
+    if (!report.trim()) {
+      toast.error("Conteúdo do relatório vazio");
+      return;
+    }
+    setSavingReport(true);
+    try {
+      // Cria nova versão do relatório (clinical_reports é versionado)
+      const nextVersion = reportVersion + 1;
+      const { error } = await supabase.from("clinical_reports").insert({
+        consultation_id: id!,
+        template_id: latestReport?.template_id ?? null,
+        version: nextVersion,
+        content: report,
+        format: latestReport?.format ?? "markdown",
+        generated_by: user?.id ?? null,
+      });
+      if (error) throw error;
+      toast.success(`Relatório salvo (v${nextVersion})`);
+      qc.invalidateQueries({ queryKey: ["clinical_reports", id] });
+    } catch (e: any) {
+      toast.error(`Erro ao salvar relatório: ${e?.message ?? e}`);
+    } finally {
+      setSavingReport(false);
+    }
+  }
+
+  async function regenerateReport() {
+    if (!consultation.template_id) {
+      toast.error("Esta consulta não tem template associado — não dá pra regerar automaticamente.");
+      return;
+    }
+    if (!transcript.trim()) {
+      toast.error("Salve uma transcrição antes de regerar o relatório.");
+      return;
+    }
+
+    setRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-report", {
+        body: {
+          consultation_id: id,
+          template_id: consultation.template_id,
+          transcription: transcript,
+        },
+      });
+      if (error || data?.error) {
+        throw new Error(data?.error ?? error?.message ?? "Falha desconhecida");
+      }
+      toast.success(`Nova versão do relatório gerada (v${data.version})`);
+      setReport(data.content ?? "");
+      qc.invalidateQueries({ queryKey: ["clinical_reports", id] });
+    } catch (e: any) {
+      toast.error(`Erro ao regerar: ${e?.message ?? e}`);
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   return (
     <AppLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Editar Transcrição</h1>
-          <p className="text-muted-foreground">Revise e edite a transcrição do atendimento</p>
-        </div>
+      <PageContainer>
+        <PageHeader back title="Editar atendimento" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main editor */}
-          <div className="lg:col-span-2 space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Transcrição</CardTitle>
-                <Button onClick={handleSave} disabled={saving} variant="outline" className="gap-2">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar
+        {/* TRANSCRIÇÃO */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="heading-section flex items-center gap-2">
+              <Mic className="w-5 h-5 text-primary" />
+              Transcrição
+            </CardTitle>
+            <CardDescription>
+              Texto bruto do atendimento (origina o relatório). Editar aqui não muda
+              o relatório existente — use o botão "Regerar relatório" abaixo se quiser.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label className="sr-only">Transcrição</Label>
+            <Textarea
+              rows={10}
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              className="font-mono text-sm"
+            />
+            <div className="flex justify-end">
+              <Button onClick={saveTranscript} disabled={savingTranscript || update.isPending}>
+                {savingTranscript ? "Salvando…" : "Salvar transcrição"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* RELATÓRIO */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="heading-section flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Relatório clínico {reportVersion > 0 && <span className="text-muted-foreground text-sm font-normal">(v{reportVersion})</span>}
+            </CardTitle>
+            <CardDescription>
+              Documento estruturado em markdown. Editar aqui cria automaticamente
+              uma nova versão (versões antigas ficam preservadas no histórico).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label className="sr-only">Conteúdo do relatório</Label>
+            <Textarea
+              rows={20}
+              value={report}
+              onChange={(e) => setReport(e.target.value)}
+              placeholder={
+                reportVersion === 0
+                  ? "Nenhum relatório ainda. Você pode escrever manualmente aqui ou usar 'Regerar relatório'."
+                  : ""
+              }
+              className="font-mono text-sm"
+            />
+            <div className="flex flex-wrap gap-2 justify-between">
+              {consultation.template_id ? (
+                <Button
+                  variant="outline"
+                  onClick={regenerateReport}
+                  disabled={regenerating}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
+                  {regenerating ? "Regerando…" : "Regerar relatório a partir da transcrição"}
                 </Button>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={editedText}
-                  onChange={(e) => setEditedText(e.target.value)}
-                  className="min-h-[400px] font-mono text-sm"
-                  placeholder="A transcrição aparecerá aqui..."
-                />
-              </CardContent>
-            </Card>
-
-            {/* Generate report */}
-            <Card>
-              <CardHeader><CardTitle>Gerar Relatório Clínico</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {specialty ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <Stethoscope className="w-5 h-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm">Ambulatório - {specialty.name}</p>
-                        <p className="text-xs text-muted-foreground">Relatório será gerado com prompt específico da especialidade + RAG</p>
-                      </div>
-                    </div>
-                    <Button onClick={handleGenerateReport} disabled={generating} className="gap-2 w-full sm:w-auto">
-                      {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                      Gerar Relatório de {specialty.name}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                      <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione o tipo de relatório" /></SelectTrigger>
-                      <SelectContent>
-                        {templates.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button onClick={handleGenerateReport} disabled={generating || !selectedTemplate} className="gap-2">
-                      {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                      Gerar
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar: Clinical Decision Support */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Auxílio à Decisão Clínica</CardTitle>
-                <Button onClick={handleAnalyzeCDS} disabled={analyzingCDS} size="sm" variant="outline" className="gap-1">
-                  {analyzingCDS ? <Loader2 className="w-3 h-3 animate-spin" /> : <Stethoscope className="w-3 h-3" />}
-                  Analisar
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/documents/new?patient=${consultation.patient_id}`)}
+                  className="gap-2"
+                  title="Esta gravação foi salva como nota livre. Use 'Gerar documento' pra criar um documento estruturado a partir dela (e de outras notas, se quiser)."
+                >
+                  <FileSignature className="w-4 h-4" />
+                  Gerar documento desta nota
                 </Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {alerts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Clique em "Analisar" para obter alertas e sugestões clínicas.
-                  </p>
-                ) : (
-                  alerts.map((alert) => {
-                    const Icon = alertIcon[alert.alert_type] || AlertTriangle;
-                    return (
-                      <div
-                        key={alert.id}
-                        className={`p-3 rounded-lg border ${severityColor[alert.severity]}`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="font-medium text-sm">{alert.title}</p>
-                            <p className="text-xs mt-1 opacity-80">{alert.description}</p>
-                            <Badge variant="outline" className="mt-2 text-xs">
-                              {alert.alert_type === "drug_interaction" ? "Interação Medicamentosa" :
-                               alert.alert_type === "differential_diagnosis" ? "Diagnóstico Diferencial" :
-                               "Protocolo Sugerido"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+              )}
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => navigate(`/consultations/${id}/report`)}>
+                  Voltar pra visualização
+                </Button>
+                <Button onClick={saveReport} disabled={savingReport}>
+                  {savingReport ? "Salvando…" : `Salvar relatório (v${reportVersion + 1})`}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </PageContainer>
     </AppLayout>
   );
 }

@@ -1,68 +1,55 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface DashboardStats {
-  patients: number;
-  consultations: number;
-  todayConsultations: number;
-}
-
-async function fetchDashboardStats(): Promise<DashboardStats> {
-  const today = new Date().toISOString().split("T")[0];
-
-  const [patientsRes, consultationsRes, todayRes] = await Promise.all([
-    supabase.from("patients").select("id", { count: "exact", head: true }),
-    supabase.from("consultations").select("id", { count: "exact", head: true }),
-    supabase
-      .from("consultations")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", today),
-  ]);
-
-  return {
-    patients: patientsRes.count || 0,
-    consultations: consultationsRes.count || 0,
-    todayConsultations: todayRes.count || 0,
-  };
-}
-
-export function useDashboardStats(enabled = true) {
+/**
+ * Stats consolidados pra Dashboard do profissional.
+ * RLS já filtra: nurse/doctor só conta o que pode ver.
+ */
+export function useDashboardStats() {
   return useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: fetchDashboardStats,
-    enabled,
-    staleTime: 30 * 1000, // refresh every 30s — dashboard data changes moderately
-  });
-}
-
-export function useRecentConsultations(enabled = true) {
-  return useQuery({
-    queryKey: ["recent-consultations"],
+    queryKey: ["dashboard_stats"],
+    staleTime: 60_000, // 1 min
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("consultations")
-        .select("*, patients(full_name, bed)")
-        .order("created_at", { ascending: false })
-        .limit(5);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled,
-    staleTime: 30 * 1000, // refresh every 30s
-  });
-}
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { patients: 0, todayConsultations: 0, myInProgress: 0, myCompleted: 0 };
+      }
 
-export function useDepartments() {
-  return useQuery({
-    queryKey: ["departments"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("departments")
-        .select("id, name")
-        .order("name");
-      if (error) throw error;
-      return data ?? [];
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const isoToday = startOfToday.toISOString();
+
+      const [patientsRes, todayRes, inProgressRes, completedRes] = await Promise.all([
+        // Pacientes visíveis (RLS filtra ward-scoped pra nurse/doctor)
+        supabase
+          .from("patients")
+          .select("id", { count: "exact", head: true })
+          .is("deleted_at", null),
+        // Atendimentos criados hoje
+        supabase
+          .from("consultations")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", isoToday),
+        // Meus rascunhos (não-completed)
+        supabase
+          .from("consultations")
+          .select("id", { count: "exact", head: true })
+          .eq("professional_id", user.id)
+          .neq("status", "completed"),
+        // Meus completos
+        supabase
+          .from("consultations")
+          .select("id", { count: "exact", head: true })
+          .eq("professional_id", user.id)
+          .eq("status", "completed"),
+      ]);
+
+      return {
+        patients: patientsRes.count ?? 0,
+        todayConsultations: todayRes.count ?? 0,
+        myInProgress: inProgressRes.count ?? 0,
+        myCompleted: completedRes.count ?? 0,
+      };
     },
-    staleTime: 10 * 60 * 1000, // departments rarely change
   });
 }

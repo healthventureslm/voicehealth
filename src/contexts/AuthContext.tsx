@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, Enums } from "@/integrations/supabase/types";
@@ -6,13 +7,27 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 type Profile = Tables<"profiles">;
 type AppRole = Enums<"app_role">;
 
+interface UserRoleRow {
+  hospital_id: string | null;
+  role: AppRole;
+}
+
+interface WardAssignmentRow {
+  ward_id: string;
+  ward: { hospital_id: string; name: string; ward_type: string } | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  roles: AppRole[];
+  roles: UserRoleRow[];
+  wardIds: string[];
+  hospitalIds: string[];
   isLoading: boolean;
-  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  isHospitalAdminOf: (hospitalId: string) => boolean;
+  hasRole: (role: AppRole) => boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -21,69 +36,45 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [roles, setRoles] = useState<AppRole[]>([]);
+  const [roles, setRoles] = useState<UserRoleRow[]>([]);
+  const [wardIds, setWardIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (error) {
-        console.error("Error fetching profile:", error);
-      }
-      setProfile(data);
-    } catch (err) {
-      console.error("Profile fetch failed:", err);
-    }
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) console.error("Error fetching profile:", error);
+    setProfile(data ?? null);
   }, []);
 
-  const fetchRoles = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-      if (error) {
-        console.error("Error fetching roles:", error);
-      }
-      setRoles(data?.map((r) => r.role) ?? []);
-    } catch (err) {
-      console.error("Roles fetch failed:", err);
-    }
+  const fetchRolesAndWards = useCallback(async (userId: string) => {
+    const [rolesRes, wardsRes] = await Promise.all([
+      supabase.from("user_roles").select("hospital_id, role").eq("user_id", userId),
+      supabase
+        .from("ward_assignments")
+        .select("ward_id")
+        .eq("user_id", userId)
+        .is("ended_at", null),
+    ]);
+
+    if (rolesRes.error) console.error("Error fetching roles:", rolesRes.error);
+    if (wardsRes.error) console.error("Error fetching wards:", wardsRes.error);
+
+    setRoles((rolesRes.data ?? []) as UserRoleRow[]);
+    setWardIds((wardsRes.data ?? []).map((r: { ward_id: string }) => r.ward_id));
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (user) {
-      await Promise.all([fetchProfile(user.id), fetchRoles(user.id)]);
-    }
-  }, [user, fetchProfile, fetchRoles]);
-
-  const acceptPendingInvitation = useCallback(async (userId: string, userEmail: string) => {
-    try {
-      const invitationToken = new URLSearchParams(window.location.search).get("token");
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const metaToken = currentUser?.user_metadata?.invitation_token;
-      const isAdminWhitelist = currentUser?.user_metadata?.admin_whitelist === "true";
-      const token = invitationToken || metaToken;
-
-      if (!token && !isAdminWhitelist) return;
-
-      const body: Record<string, any> = {};
-      if (token) body.invitation_token = token;
-      if (isAdminWhitelist) body.admin_whitelist = true;
-
-      await supabase.functions.invoke("accept-invitation", { body });
-      await Promise.all([fetchProfile(userId), fetchRoles(userId)]);
-    } catch (err) {
-      console.error("Failed to accept invitation:", err);
-    }
-  }, [fetchProfile, fetchRoles]);
+    if (!user) return;
+    await Promise.all([fetchProfile(user.id), fetchRolesAndWards(user.id)]);
+  }, [user, fetchProfile, fetchRolesAndWards]);
 
   useEffect(() => {
     let mounted = true;
@@ -95,10 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         Promise.all([
           fetchProfile(session.user.id),
-          fetchRoles(session.user.id),
-        ]).then(() => {
-          acceptPendingInvitation(session.user.id, session.user.email || "");
-        }).finally(() => {
+          fetchRolesAndWards(session.user.id),
+        ]).finally(() => {
           if (mounted) setIsLoading(false);
         });
       } else {
@@ -106,38 +95,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) return;
-        if (event === "INITIAL_SESSION") return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "INITIAL_SESSION") return;
 
-        setSession(session);
-        setUser(session?.user ?? null);
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        if (session?.user) {
-          Promise.all([
-            fetchProfile(session.user.id),
-            fetchRoles(session.user.id),
-          ]).then(() => {
-            if (event === "SIGNED_IN") {
-              acceptPendingInvitation(session.user.id, session.user.email || "");
-            }
-          }).finally(() => {
-            if (mounted) setIsLoading(false);
-          });
-        } else {
-          setProfile(null);
-          setRoles([]);
-          setIsLoading(false);
-        }
+      if (session?.user) {
+        Promise.all([
+          fetchProfile(session.user.id),
+          fetchRolesAndWards(session.user.id),
+        ]).finally(() => {
+          if (mounted) setIsLoading(false);
+        });
+      } else {
+        setProfile(null);
+        setRoles([]);
+        setWardIds([]);
+        setIsLoading(false);
       }
-    );
+    });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile, fetchRoles, acceptPendingInvitation]);
+  }, [fetchProfile, fetchRolesAndWards]);
 
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
@@ -152,13 +136,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setWardIds([]);
+    // Reseta a URL pra raiz — evita ficar preso em rota do papel anterior
+    // (ex: estava em /superadmin, loga depois como nurse e cai em 404)
+    navigate("/", { replace: true });
   };
 
-  const isAdmin = roles.includes("admin");
+  const isSuperAdmin = useMemo(() => roles.some((r) => r.role === "super_admin"), [roles]);
+
+  const hospitalIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          roles
+            .filter((r) => r.hospital_id !== null)
+            .map((r) => r.hospital_id as string),
+        ),
+      ),
+    [roles],
+  );
+
+  const isHospitalAdminOf = useCallback(
+    (hospitalId: string) =>
+      roles.some((r) => r.role === "hospital_admin" && r.hospital_id === hospitalId),
+    [roles],
+  );
+
+  const hasRole = useCallback((role: AppRole) => roles.some((r) => r.role === role), [roles]);
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, roles, isLoading, isAdmin, signInWithGoogle, signOut, refreshProfile }}
+      value={{
+        user,
+        session,
+        profile,
+        roles,
+        wardIds,
+        hospitalIds,
+        isLoading,
+        isSuperAdmin,
+        isHospitalAdminOf,
+        hasRole,
+        signInWithGoogle,
+        signOut,
+        refreshProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -166,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }

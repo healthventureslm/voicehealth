@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f src/pages/admin/AdminLgpd.tsx src/pages/admin/AdminCollectionLogs.tsx src/pages/admin/AdminProtocols.tsx src/pages/admin/AdminKnowledge.tsx src/pages/admin/AdminDepartments.tsx src/pages/LgpdSettings.tsx src/pages/ambulatory/AmbulatoryDashboard.tsx src/pages/ambulatory/AmbulatoryNewConsultation.tsx src/components/lgpd/LgpdConsentBanner.tsx src/lib/offlineDb.ts src/hooks/useOfflineSync.ts src/components/OfflineIndicator.tsx)",
+      "Bash(rmdir \"src/pages/ambulatory\")",
+      "Bash(rmdir \"src/components/lgpd\")",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Read(//c/c/Users/Luis Felipe/Desktop/voicehealth-main/**)",
+      "Bash(rm -f src/pages/dev/AudioTestPage.tsx)",
+      "Bash(rmdir src/pages/dev)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

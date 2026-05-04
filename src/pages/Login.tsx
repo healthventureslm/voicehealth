@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mic, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { AuthHero } from "@/components/auth/AuthHero";
 
 export default function Login() {
   const { signInWithGoogle } = useAuth();
@@ -41,17 +42,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-5 shadow-lg">
-            <Mic className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">VoiceHealth</h1>
-          <p className="text-muted-foreground">Prontuário Médico Conversacional</p>
-        </div>
+        <AuthHero subtitle="Devolvemos o tempo do profissional ao paciente." />
 
         <div className="glass-card rounded-2xl p-7 space-y-6">
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-semibold">Entrar</h2>
+            <h2 className="heading-section">Entrar</h2>
             <p className="text-sm text-muted-foreground">Acesse sua conta</p>
           </div>
 

@@ -1,10 +1,9 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  LayoutDashboard, Users, Mic, FileText, Shield, Settings, LogOut,
-  Stethoscope, ClipboardList, TrendingUp, Calculator,
-  ShieldCheck, ClipboardCheck, AlertCircle, Building2, Menu,
-  Hospital, BookOpen, Plus, Lock, BarChart3, User, Sun, Moon, Archive
+  LayoutDashboard, Users, Mic, FileText, Shield, LogOut,
+  ClipboardList, Building2, Menu,
+  Hospital, BookOpen, BarChart3, User, Archive, FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,50 +13,29 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "@/contexts/ThemeContext";
 import { ChevronRight } from "lucide-react";
 
 const dashboardItem = { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" };
 
-const internacaoNavItems = [
-  { label: "Nova Gravação", icon: Mic, path: "/consultations/new" },
-  { label: "Minhas Gravações", icon: Archive, path: "/gravacoes" },
-  { label: "Atendimentos", icon: ClipboardList, path: "/consultations" },
+const clinicalNavItems = [
+  { label: "Atualizar paciente", icon: Mic, path: "/consultations/new" },
+  { label: "Gerar documento", icon: FileSignature, path: "/documents/new" },
   { label: "Pacientes", icon: Users, path: "/patients" },
-];
-
-const ambulatoryNavItems = [
-  { label: "Dashboard", icon: Hospital, path: "/ambulatory" },
-  { label: "Nova Consulta", icon: Plus, path: "/ambulatory/new" },
-];
-
-const indicadoresNavItems = [
-  { label: "Dashboard", icon: TrendingUp, path: "/indicators" },
-  { label: "Dashboard IPSG", icon: ShieldCheck, path: "/ipsg" },
-  { label: "Auditorias", icon: ClipboardCheck, path: "/ipsg/audits" },
-  { label: "Planos de Ação", icon: AlertCircle, path: "/ipsg/action-plans" },
+  { label: "Atendimentos", icon: ClipboardList, path: "/consultations" },
+  { label: "Minhas Gravações", icon: Archive, path: "/gravacoes" },
 ];
 
 const adminNavItems = [
-  { label: "Métricas de Uso", icon: BarChart3, path: "/admin/analytics" },
-  { label: "Templates", icon: FileText, path: "/admin/templates" },
-  { label: "Protocolos", icon: Stethoscope, path: "/admin/protocols" },
-  { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
-  { label: "Base Conhecimento", icon: BookOpen, path: "/admin/knowledge" },
-  { label: "Indicadores", icon: Calculator, path: "/admin/indicators" },
-  { label: "Enfermarias", icon: Building2, path: "/admin/wards" },
-  { label: "Config. IPSG", icon: ShieldCheck, path: "/admin/ipsg" },
-  { label: "Logs de Coleta", icon: ClipboardList, path: "/admin/collection-logs" },
-  { label: "Gestão LGPD", icon: Lock, path: "/admin/lgpd" },
   { label: "Usuários", icon: Shield, path: "/admin/users" },
-  { label: "Departamentos", icon: Settings, path: "/admin/departments" },
-  { label: "Scripts de Consulta", icon: ClipboardList, path: "/admin/scripts" },
+  { label: "Setores", icon: Building2, path: "/admin/wards" },
+  { label: "Templates", icon: FileText, path: "/admin/templates" },
+  { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
+  { label: "Métricas de Uso", icon: BarChart3, path: "/admin/analytics" },
   { label: "Manual Admin", icon: BookOpen, path: "/admin/manual" },
 ];
 
 const settingsNavItems = [
   { label: "Meu Perfil", icon: User, path: "/profile" },
-  { label: "Privacidade & LGPD", icon: Lock, path: "/settings/lgpd" },
 ];
 
 function NavButton({ item, isActive, onClick }: { item: typeof dashboardItem; isActive: boolean; onClick: () => void }) {
@@ -93,7 +71,7 @@ function SectionGroup({ label, children, defaultOpen = true }: { label: string; 
       <Separator className="bg-sidebar-border my-3" />
       <CollapsibleTrigger className="flex items-center gap-1 w-full px-3 mb-2 group">
         <ChevronRight className={cn("w-3 h-3 text-sidebar-foreground/40 transition-transform", open && "rotate-90")} />
-        <span className="text-xs uppercase text-sidebar-foreground/60 tracking-wider font-medium">{label}</span>
+        <span className="hv-eyebrow">{label}</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-1">
         {children}
@@ -103,8 +81,8 @@ function SectionGroup({ label, children, defaultOpen = true }: { label: string; 
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, profile, isAdmin, signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { user, profile, roles, isSuperAdmin, signOut } = useAuth();
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin") || isSuperAdmin;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -125,12 +103,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-5">
-        <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-          <Mic className="w-4 h-4 text-white" />
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: "var(--hv-card)", border: "1px solid var(--hv-accent)" }}
+        >
+          <Mic className="w-4 h-4 text-primary" />
         </div>
-        <span className="font-bold text-lg tracking-tight font-['Space_Grotesk'] bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          VoiceHealth
-        </span>
+        <div className="flex flex-col leading-none">
+          <span className="hv-wordmark text-lg">
+            Voice<em>Health</em>
+          </span>
+          <span className="hv-byline mt-0.5">— by Health Ventures</span>
+        </div>
       </div>
 
       <Separator className="bg-sidebar-border" />
@@ -138,20 +122,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
         <NavButton item={dashboardItem} isActive={isActive(dashboardItem.path)} onClick={() => handleNav(dashboardItem.path)} />
 
-        <SectionGroup label="Internacao">
-          {internacaoNavItems.map((item) => (
-            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
-          ))}
-        </SectionGroup>
-
-        <SectionGroup label="Ambulatorio">
-          {ambulatoryNavItems.map((item) => (
-            <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
-          ))}
-        </SectionGroup>
-
-        <SectionGroup label="Indicadores" defaultOpen={false}>
-          {indicadoresNavItems.map((item) => (
+        <SectionGroup label="Clinica">
+          {clinicalNavItems.map((item) => (
             <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
           ))}
         </SectionGroup>
@@ -162,7 +134,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           ))}
         </SectionGroup>
 
-        {isAdmin && (
+        {isHospitalAdmin && (
           <SectionGroup label="Administracao" defaultOpen={false}>
             {adminNavItems.map((item) => (
               <NavButton key={item.path} item={item} isActive={isActive(item.path)} onClick={() => handleNav(item.path)} />
@@ -184,9 +156,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
           </div>
         </button>
-        <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-sidebar-foreground/50 hover:text-sidebar-foreground flex-shrink-0" aria-label={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}>
-          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
         <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground/50 hover:text-destructive flex-shrink-0" aria-label="Sair do sistema">
           <LogOut className="w-4 h-4" />
         </Button>

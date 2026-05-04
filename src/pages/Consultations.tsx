@@ -1,100 +1,163 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { ListItemCard, ListItemContent, ListItemActions } from "@/components/layout/ListItemCard";
+import { useConsultations } from "@/hooks/queries";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Search, Plus, ClipboardList } from "lucide-react";
-import { format } from "date-fns";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Mic, Lock, Search } from "lucide-react";
 
-const statusLabel: Record<string, string> = {
-  recording: "Gravando", transcribing: "Transcrevendo", transcribed: "Transcrito",
-  editing: "Editando", completed: "Concluído",
-};
-const statusVariant: Record<string, string> = {
-  completed: "bg-success/10 text-success", transcribed: "bg-primary/10 text-primary",
-  editing: "bg-warning/10 text-warning", recording: "bg-muted text-muted-foreground",
-  transcribing: "bg-muted text-muted-foreground",
+const STATUS_LABELS: Record<string, string> = {
+  recording: "Gravando",
+  transcribing: "Transcrevendo",
+  transcribed: "Transcrita",
+  editing: "Editando",
+  completed: "Concluída",
 };
 
 export default function Consultations() {
   const navigate = useNavigate();
-  const [consultations, setConsultations] = useState<any[]>([]);
+  const { data: consultations, isLoading } = useConsultations();
+
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [periodFilter, setPeriodFilter] = useState<string>("all");
 
-  useEffect(() => {
-    supabase.from("consultations")
-      .select("*, patients(full_name, bed, medical_record)")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setConsultations(data || []));
-  }, []);
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const cutoff =
+      periodFilter === "today"
+        ? now - day
+        : periodFilter === "week"
+          ? now - 7 * day
+          : periodFilter === "month"
+            ? now - 30 * day
+            : null;
 
-  const filtered = consultations.filter((c) =>
-    c.patients?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.patients?.medical_record?.toLowerCase().includes(search.toLowerCase())
-  );
+    return (consultations ?? []).filter((c: any) => {
+      const matchesSearch =
+        !search ||
+        [c.patient?.full_name, c.patient?.medical_record, c.ward?.name]
+          .filter(Boolean)
+          .some((v: string) => v.toLowerCase().includes(search.toLowerCase()));
+      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      const matchesPeriod =
+        cutoff === null || new Date(c.created_at).getTime() >= cutoff;
+      return matchesSearch && matchesStatus && matchesPeriod;
+    });
+  }, [consultations, search, statusFilter, periodFilter]);
 
   return (
     <AppLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Atendimentos</h1>
-            <p className="text-muted-foreground">Histórico de todos os atendimentos</p>
+      <PageContainer>
+        <PageHeader
+          title="Atendimentos"
+          actions={
+            <Button onClick={() => navigate("/consultations/new")} className="gap-2">
+              <Mic className="w-4 h-4" /> Novo atendimento
+            </Button>
+          }
+        />
+
+        {/* Filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por paciente, prontuário, setor..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <Button className="gap-2" onClick={() => navigate("/consultations/new")}>
-            <Plus className="w-4 h-4" /> Nova Gravação
-          </Button>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([k, label]) => (
+                <SelectItem key={k} value={k}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={periodFilter} onValueChange={setPeriodFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os períodos</SelectItem>
+              <SelectItem value="today">Últimas 24h</SelectItem>
+              <SelectItem value="week">Últimos 7 dias</SelectItem>
+              <SelectItem value="month">Últimos 30 dias</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar por paciente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-
-        <Card>
-          <CardContent className="p-0">
-            {filtered.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p>Nenhum atendimento encontrado</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Paciente</TableHead>
-                    <TableHead>Leito</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((c) => (
-                    <TableRow key={c.id} className="cursor-pointer" role="link" tabIndex={0} onClick={() => navigate(`/consultations/${c.id}/edit`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/consultations/${c.id}/edit`); } }}>
-                      <TableCell className="font-medium">{c.patients?.full_name}</TableCell>
-                      <TableCell>{c.patients?.bed || "—"}</TableCell>
-                      <TableCell>{format(new Date(c.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                      <TableCell>
-                        <span className={`text-xs px-2 py-1 rounded-full ${statusVariant[c.status] || ""}`}>
-                          {statusLabel[c.status] || c.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">Editar</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        {isLoading ? (
+          <EmptyState loading />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={
+              (consultations ?? []).length === 0
+                ? "Nenhum atendimento registrado"
+                : "Nenhum atendimento encontrado"
+            }
+            description={
+              (consultations ?? []).length === 0
+                ? "Inicie uma nova gravação pra começar."
+                : "Tente ajustar os filtros."
+            }
+            action={
+              (consultations ?? []).length === 0 ? (
+                <Button onClick={() => navigate("/consultations/new")} className="gap-2">
+                  <Mic className="w-4 h-4" /> Iniciar gravação
+                </Button>
+              ) : null
+            }
+          />
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {filtered.length} atendimento{filtered.length !== 1 && "s"}
+            </p>
+            {filtered.map((c: any) => (
+              <ListItemCard key={c.id} onClick={() => navigate(`/consultations/${c.id}/report`)}>
+                <ListItemContent
+                  title={c.patient?.full_name ?? "—"}
+                  subtitle={
+                    <>
+                      {c.ward?.name && <span>{c.ward.name}</span>}
+                      <span>
+                        {new Date(c.created_at).toLocaleString("pt-BR", {
+                          day: "2-digit", month: "2-digit", year: "2-digit",
+                          hour: "2-digit", minute: "2-digit",
+                        })}
+                      </span>
+                    </>
+                  }
+                />
+                <ListItemActions>
+                  {c.locked_at && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Lock className="w-3 h-3" /> Bloqueada
+                    </Badge>
+                  )}
+                  <Badge variant="outline">{STATUS_LABELS[c.status] ?? c.status}</Badge>
+                </ListItemActions>
+              </ListItemCard>
+            ))}
+          </div>
+        )}
+      </PageContainer>
     </AppLayout>
   );
 }

@@ -73,9 +73,9 @@ function recordSuccess(provider: string): void {
 
 const MODEL_MAP: Record<string, Record<string, string>> = {
   google: {
-    "google/gemini-2.5-pro": "gemini-2.5-pro-preview-05-06",
-    "google/gemini-2.5-flash": "gemini-2.5-flash-preview-04-17",
-    "google/gemini-2.5-flash-lite": "gemini-2.0-flash-lite",
+    "google/gemini-2.5-pro":        "gemini-flash-latest",
+    "google/gemini-2.5-flash":      "gemini-flash-latest",
+    "google/gemini-2.5-flash-lite": "gemini-flash-latest",
   },
   openai: {
     "google/gemini-2.5-pro": "gpt-4o",

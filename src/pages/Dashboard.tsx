@@ -1,191 +1,203 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useDashboardStats,
+  usePatients,
+  useConsultations,
+} from "@/hooks/queries";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mic, Users, ClipboardList, Activity, Plus } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { useDashboardStats, useRecentConsultations, useDepartments } from "@/hooks/queries";
-
-import hospitalIcu from "@/assets/hospital-icu.jpg";
-import hospitalEmergency from "@/assets/hospital-emergency.jpg";
-import hospitalWard from "@/assets/hospital-ward.jpg";
-import hospitalClinic from "@/assets/hospital-clinic.jpg";
-
-const departmentImages: Record<string, string> = {
-  UTI: hospitalIcu,
-  Emergência: hospitalEmergency,
-  Enfermaria: hospitalWard,
-  Ambulatório: hospitalClinic,
-};
+import { Badge } from "@/components/ui/badge";
+import {
+  Mic, Users, ClipboardList, FileText, ArrowRight, Activity, UserCircle2,
+} from "lucide-react";
 
 export default function Dashboard() {
-  const { user, profile, roles } = useAuth();
   const navigate = useNavigate();
-  const hasDept = !!profile?.department_id;
-  const { data: stats, isLoading: loadingStats } = useDashboardStats(hasDept);
-  const { data: recentConsultations = [] } = useRecentConsultations(hasDept);
-  const { data: departments = [] } = useDepartments();
-  const loading = loadingStats;
+  const { profile, wardIds, roles, isSuperAdmin } = useAuth();
+  const { data: stats, isLoading: loadingStats } = useDashboardStats();
+  const { data: patients } = usePatients();
+  const { data: myRecent } = useConsultations({ mineOnly: true });
 
-  const roleLabel: Record<string, string> = {
-    admin: "Administrador",
-    medico: "Médico(a)",
-    enfermeiro: "Enfermeiro(a)",
-    tecnico: "Técnico(a)",
-    farmaceutico: "Farmacêutico(a)",
-  };
+  const firstName = profile?.full_name?.split(" ")[0] ?? "—";
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
 
-  const statusLabel: Record<string, string> = {
-    recording: "Gravando",
-    transcribing: "Transcrevendo",
-    transcribed: "Transcrito",
-    editing: "Editando",
-    completed: "Concluído",
-  };
+  // Mostra apenas pacientes nos setores ATUAIS do usuário.
+  // Pacientes transferidos pra fora dos meus setores (que ainda são visíveis
+  // via consultas próprias) ficam acessíveis em /gravacoes, não aqui.
+  const myActivePatients = (patients ?? []).filter((p) => {
+    if (isSuperAdmin || isHospitalAdmin) return true;
+    return !!p.current_ward_id && wardIds.includes(p.current_ward_id);
+  });
+  const recentPatients = myActivePatients.slice(0, 6);
+  const recentConsultations = (myRecent ?? []).slice(0, 5);
 
   return (
     <AppLayout>
-      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
-        {/* Header */}
-        <div className="flex flex-col gap-3">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Olá, {profile?.full_name?.split(" ")[0] || "Profissional"} 👋
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base mt-1">
-              {roles.map((r) => roleLabel[r] || r).join(", ")} •{" "}
-              {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-            </p>
-          </div>
-          <Button
-            onClick={() => navigate("/consultations/new")}
-            className="gap-2 h-11 md:h-12 px-5 md:px-6 rounded-xl gradient-primary border-0 text-white shadow-lg hover:opacity-90 transition-opacity w-full md:w-auto md:self-start"
-          >
-            <Mic className="w-5 h-5" />
-            Nova Gravação
-          </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 md:gap-4">
-          <Card className="glass-card">
-            <CardContent className="p-3 md:p-6 flex flex-col md:flex-row items-center gap-2 md:gap-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-              </div>
-              <div className="text-center md:text-left">
-                {loading ? <Skeleton className="h-7 w-12" /> : <p className="text-xl md:text-2xl font-bold tabular-nums">{stats?.patients ?? 0}</p>}
-                <p className="text-xs md:text-sm text-muted-foreground">Pacientes</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="p-3 md:p-6 flex flex-col md:flex-row items-center gap-2 md:gap-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-secondary/10 flex items-center justify-center">
-                <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-secondary" />
-              </div>
-              <div className="text-center md:text-left">
-                {loading ? <Skeleton className="h-7 w-12" /> : <p className="text-xl md:text-2xl font-bold">{stats?.consultations ?? 0}</p>}
-                <p className="text-xs md:text-sm text-muted-foreground">Atendimentos</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="p-3 md:p-6 flex flex-col md:flex-row items-center gap-2 md:gap-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Activity className="w-5 h-5 md:w-6 md:h-6 text-warning" />
-              </div>
-              <div className="text-center md:text-left">
-                {loading ? <Skeleton className="h-7 w-12" /> : <p className="text-xl md:text-2xl font-bold">{stats?.todayConsultations ?? 0}</p>}
-                <p className="text-xs md:text-sm text-muted-foreground">Hoje</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Hospital Rooms */}
-        <div>
-          <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Setores Hospitalares</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {departments.map((dept) => {
-              const img = departmentImages[dept.name] || hospitalClinic;
-              return (
-                <Card key={dept.id} role="link" tabIndex={0} className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/patients?department=${dept.id}&department_name=${encodeURIComponent(dept.name)}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/patients?department=${dept.id}&department_name=${encodeURIComponent(dept.name)}`); } }}>
-                  <div className="relative h-36 overflow-hidden">
-                    <img
-                      src={img}
-                      alt={`Setor ${dept.name}`}
-                      loading="lazy"
-                      width={640}
-                      height={512}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-3 left-3">
-                      <p className="text-white font-semibold text-sm">{dept.name}</p>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Recent */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Últimos Atendimentos</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/consultations")}>
-              Ver todos
+      <PageContainer>
+        <PageHeader
+          eyebrow="Hoje"
+          title={`Olá, ${firstName}`}
+          actions={
+            <Button onClick={() => navigate("/consultations/new")} className="gap-2">
+              <Mic className="w-4 h-4" /> Nova gravação
             </Button>
-          </CardHeader>
-          <CardContent>
-            {recentConsultations.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                <p>Nenhum atendimento ainda</p>
-                <Button
-                  variant="outline"
-                  className="mt-4 gap-2"
-                  onClick={() => navigate("/consultations/new")}
-                >
-                  <Plus className="w-4 h-4" /> Iniciar primeiro atendimento
-                </Button>
+          }
+        />
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            icon={<Users className="w-4 h-4" />}
+            label="Pacientes"
+            value={loadingStats ? "—" : stats?.patients ?? 0}
+            hint="visíveis pra você"
+          />
+          <StatCard
+            icon={<Activity className="w-4 h-4" />}
+            label="Atendimentos hoje"
+            value={loadingStats ? "—" : stats?.todayConsultations ?? 0}
+            hint="no hospital"
+          />
+          <StatCard
+            icon={<ClipboardList className="w-4 h-4" />}
+            label="Meus rascunhos"
+            value={loadingStats ? "—" : stats?.myInProgress ?? 0}
+            hint="não-finalizados"
+          />
+          <StatCard
+            icon={<FileText className="w-4 h-4" />}
+            label="Minhas consultas"
+            value={loadingStats ? "—" : stats?.myCompleted ?? 0}
+            hint="finalizadas"
+          />
+        </div>
+
+        {/* 2 colunas: pacientes + minhas gravações */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Pacientes */}
+          <Card className="hv-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="heading-section">Pacientes</CardTitle>
+                <CardDescription>
+                  Nos seus setores ativos
+                </CardDescription>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {recentConsultations.map((c) => (
-                  <div
-                    key={c.id}
-                    role="link"
-                    tabIndex={0}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/consultations/${c.id}/edit`)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/consultations/${c.id}/edit`); } }}
+              <Button variant="ghost" size="sm" onClick={() => navigate("/patients")} className="gap-1">
+                Ver todos <ArrowRight className="w-3 h-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {recentPatients.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  Nenhum paciente cadastrado.{" "}
+                  <button
+                    onClick={() => navigate("/patients")}
+                    className="underline hover:text-foreground"
                   >
-                    <div>
-                      <p className="font-medium">{c.patients?.full_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Leito {c.patients?.bed || "—"} • {format(new Date(c.created_at), "dd/MM HH:mm")}
-                      </p>
+                    Cadastrar
+                  </button>
+                </p>
+              ) : (
+                recentPatients.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => navigate(`/patients/${p.id}/history`)}
+                    className="w-full flex items-center justify-between p-2 rounded-md hover:bg-accent/30 text-left"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{p.full_name}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {p.bed && `Leito ${p.bed} · `}
+                          {p.current_ward?.name ?? "—"}
+                        </div>
+                      </div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      c.status === "completed" ? "bg-success/10 text-success" :
-                      c.status === "transcribed" ? "bg-primary/10 text-primary" :
-                      "bg-muted text-muted-foreground"
-                    }`}>
-                      {statusLabel[c.status] || c.status}
-                    </span>
-                  </div>
-                ))}
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Minhas gravações recentes */}
+          <Card className="hv-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="heading-section">Minhas gravações</CardTitle>
+                <CardDescription>Últimos atendimentos seus</CardDescription>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/gravacoes")} className="gap-1">
+                Ver todas <ArrowRight className="w-3 h-3" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {recentConsultations.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  Você ainda não registrou nenhum atendimento.
+                </p>
+              ) : (
+                recentConsultations.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => navigate(`/consultations/${c.id}/report`)}
+                    className="w-full flex items-center justify-between p-2 rounded-md hover:bg-accent/30 text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">
+                        {c.patient?.full_name ?? "—"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.ward?.name ? `${c.ward.name} · ` : ""}
+                        {new Date(c.created_at).toLocaleString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs ml-2 flex-shrink-0">
+                      {c.status}
+                    </Badge>
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
     </AppLayout>
+  );
+}
+
+function StatCard({
+  icon, label, value, hint,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  hint?: string;
+}) {
+  return (
+    <Card className="hv-card">
+      <CardHeader className="pb-2">
+        <CardDescription className="hv-eyebrow flex items-center gap-2">
+          <span className="text-primary">{icon}</span>
+          {label}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="hv-stat">{value}</div>
+        {hint && (
+          <p className="text-xs text-muted-foreground mt-1">{hint}</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
