@@ -242,6 +242,34 @@ export function usePatientTimeline(patientId: string | undefined) {
 }
 
 /**
+ * TODOS os clinical_reports do paciente — independente de origem
+ * (relatórios gerados de uma consulta com template OU documentos
+ * multi-fonte gerados de notas).
+ *
+ * Diferente do timeline (que mostra a CONSULTA com seu relatório embutido),
+ * isso aqui é a lista pura dos artefatos pra acesso rápido.
+ */
+export function usePatientDocuments(patientId: string | undefined) {
+  return useQuery({
+    queryKey: ["patient_documents", patientId],
+    enabled: !!patientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clinical_reports")
+        .select(`
+          id, patient_id, consultation_id, source_consultation_ids,
+          template_id, version, content, format, generated_at,
+          template:report_templates(id, name)
+        `)
+        .eq("patient_id", patientId!)
+        .order("generated_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
  * Notas (consultations sem template) recentes do paciente — usadas como fonte
  * pro fluxo "Gerar documento".
  */

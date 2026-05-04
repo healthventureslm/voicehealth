@@ -17,6 +17,7 @@ export {
   useClinicalReports,
   usePatientTimeline,
   usePatientNotes,
+  usePatientDocuments,
   useCreateDocumentFromNotes,
 } from "./useConsultations";
 export { useTemplates } from "./useTemplates";

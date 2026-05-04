@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  usePatient, usePatientWardHistory, usePatientTimeline,
+  usePatient, usePatientWardHistory, usePatientTimeline, usePatientDocuments,
 } from "@/hooks/queries";
 import { TransferPatientDialog } from "@/components/TransferPatientDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,7 @@ export default function PatientHistory() {
   const { data: patient, isLoading } = usePatient(id);
   const { data: wardHistory } = usePatientWardHistory(id);
   const { data: timeline } = usePatientTimeline(id);
+  const { data: documents } = usePatientDocuments(id);
 
   // O usuário pode atender este paciente?
   // - super_admin sempre pode
@@ -128,6 +129,53 @@ export default function PatientHistory() {
             </CardContent>
           </Card>
         )}
+
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            <CardTitle className="heading-section">
+              Documentos ({documents?.length ?? 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(documents ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Nenhum documento gerado ainda.
+              </p>
+            ) : (
+              (documents ?? []).map((d: any) => {
+                // Doc gerado de notas (sem consulta) → /documents/:id
+                // Relatório gerado de consulta com template → /consultations/:cid/report
+                const target = d.consultation_id
+                  ? `/consultations/${d.consultation_id}/report`
+                  : `/documents/${d.id}`;
+                const sourceLabel = d.consultation_id
+                  ? "atendimento"
+                  : `${d.source_consultation_ids?.length ?? 0} nota${(d.source_consultation_ids?.length ?? 0) === 1 ? "" : "s"}`;
+                return (
+                  <div
+                    key={d.id}
+                    className="flex items-start gap-3 p-3 border rounded-md hover:bg-accent/30 cursor-pointer transition-colors"
+                    onClick={() => navigate(target)}
+                  >
+                    <FileText className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">
+                          {d.template?.name ?? "Documento"}
+                        </span>
+                        <Badge variant="outline" className="text-xs">v{d.version}</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(d.generated_at).toLocaleString("pt-BR")} · gerado de {sourceLabel}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">
