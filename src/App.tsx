@@ -1,14 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, Outlet } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
+import { PageSkeleton } from "@/components/layout/PageSkeleton";
 import { lazy, Suspense, type ReactNode } from "react";
 
-// Eager: critical login/onboarding flow
+// Eager: login/onboarding (já era)
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -17,31 +20,29 @@ import ResetPassword from "./pages/ResetPassword";
 import WaitingInvitation from "./pages/WaitingInvitation";
 import NotFound from "./pages/NotFound";
 
-// Lazy: everything else (code-split by route)
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Patients = lazy(() => import("./pages/Patients"));
-const NewConsultation = lazy(() => import("./pages/NewConsultation"));
-const Consultations = lazy(() => import("./pages/Consultations"));
-const ConsultationEdit = lazy(() => import("./pages/ConsultationEdit"));
-const ConsultationReport = lazy(() => import("./pages/ConsultationReport"));
-const PatientHistory = lazy(() => import("./pages/PatientHistory"));
-const MyRecordings = lazy(() => import("./pages/MyRecordings"));
-const GenerateDocument = lazy(() => import("./pages/GenerateDocument"));
-const DocumentView = lazy(() => import("./pages/DocumentView"));
+// Eager: fluxo clínico — navegação entre essas páginas precisa ser INSTANTÂNEA.
+// Total ~100KB extra no bundle inicial; ganho de UX no dia-a-dia compensa.
+import Dashboard from "./pages/Dashboard";
+import Patients from "./pages/Patients";
+import NewConsultation from "./pages/NewConsultation";
+import Consultations from "./pages/Consultations";
+import ConsultationEdit from "./pages/ConsultationEdit";
+import ConsultationReport from "./pages/ConsultationReport";
+import PatientHistory from "./pages/PatientHistory";
+import MyRecordings from "./pages/MyRecordings";
+import GenerateDocument from "./pages/GenerateDocument";
+import DocumentView from "./pages/DocumentView";
+import Profile from "./pages/Profile";
 
-// Admin do hospital
+// Lazy: páginas raras (admin/superadmin/legal) — code-split mantém bundle enxuto.
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminWards = lazy(() => import("./pages/admin/AdminWards"));
 const AdminSpecialties = lazy(() => import("./pages/admin/AdminSpecialties"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminManual = lazy(() => import("./pages/admin/AdminManual"));
-
-// Diversos
-const Profile = lazy(() => import("./pages/Profile"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
-// Super admin (Health Ventures)
 const SuperAdminHome = lazy(() => import("./pages/superadmin/SuperAdminHome"));
 const SuperAdminHospitals = lazy(() => import("./pages/superadmin/SuperAdminHospitals"));
 const SuperAdminHospitalDetail = lazy(() => import("./pages/superadmin/SuperAdminHospitalDetail"));
@@ -53,23 +54,37 @@ const queryClient = new QueryClient({
   },
 });
 
-function PageSpinner() {
-  return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-}
-
-function Lazy({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<PageSpinner />}>{children}</Suspense>;
-}
-
 function HospitalAdminRoute({ children }: { children: ReactNode }) {
   const { roles, isSuperAdmin } = useAuth();
   const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
   if (!isHospitalAdmin && !isSuperAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
+}
+
+/**
+ * Shell de rota pra usuário regular: monta AppLayout uma vez e renderiza
+ * a página filha via Outlet. Isso mantém sidebar/header estáveis durante
+ * navegação — só a área de conteúdo entra em Suspense quando o chunk da
+ * próxima página ainda não chegou.
+ */
+function AppShellRoute() {
+  return (
+    <AppLayout>
+      <Suspense fallback={<PageSkeleton />}>
+        <Outlet />
+      </Suspense>
+    </AppLayout>
+  );
+}
+
+function SuperAdminShellRoute() {
+  return (
+    <SuperAdminLayout>
+      <Suspense fallback={<PageSkeleton />}>
+        <Outlet />
+      </Suspense>
+    </SuperAdminLayout>
+  );
 }
 
 function AppRoutes() {
@@ -92,7 +107,9 @@ function AppRoutes() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
+        <Route path="/privacy" element={
+          <Suspense fallback={<PageSkeleton />}><PrivacyPolicy /></Suspense>
+        } />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -113,12 +130,14 @@ function AppRoutes() {
   if (isSuperAdmin) {
     return (
       <Routes>
-        <Route path="/superadmin" element={<Lazy><SuperAdminHome /></Lazy>} />
-        <Route path="/superadmin/hospitals" element={<Lazy><SuperAdminHospitals /></Lazy>} />
-        <Route path="/superadmin/hospitals/:id" element={<Lazy><SuperAdminHospitalDetail /></Lazy>} />
-        <Route path="/superadmin/templates" element={<Lazy><SuperAdminTemplates /></Lazy>} />
-        <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
-        <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
+        <Route element={<SuperAdminShellRoute />}>
+          <Route path="/superadmin" element={<SuperAdminHome />} />
+          <Route path="/superadmin/hospitals" element={<SuperAdminHospitals />} />
+          <Route path="/superadmin/hospitals/:id" element={<SuperAdminHospitalDetail />} />
+          <Route path="/superadmin/templates" element={<SuperAdminTemplates />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+        </Route>
         <Route path="*" element={<Navigate to="/superadmin" replace />} />
       </Routes>
     );
@@ -127,30 +146,36 @@ function AppRoutes() {
   // 4) Usuário regular: hospital_admin / doctor / nurse / auditor
   return (
     <Routes>
+      {/* Landing — sem AppLayout */}
       <Route path="/" element={<Index />} />
-      <Route path="/dashboard" element={<Lazy><Dashboard /></Lazy>} />
 
-      {/* Fluxo clínico */}
-      <Route path="/patients" element={<Lazy><Patients /></Lazy>} />
-      <Route path="/patients/:id/history" element={<Lazy><PatientHistory /></Lazy>} />
-      <Route path="/consultations" element={<Lazy><Consultations /></Lazy>} />
-      <Route path="/consultations/new" element={<Lazy><NewConsultation /></Lazy>} />
-      <Route path="/consultations/:id/edit" element={<Lazy><ConsultationEdit /></Lazy>} />
-      <Route path="/consultations/:id/report" element={<Lazy><ConsultationReport /></Lazy>} />
-      <Route path="/documents/new" element={<Lazy><GenerateDocument /></Lazy>} />
-      <Route path="/documents/:id" element={<Lazy><DocumentView /></Lazy>} />
-      <Route path="/gravacoes" element={<Lazy><MyRecordings /></Lazy>} />
+      {/* Tudo que tem AppLayout entra pelo shell — sidebar/header não remontam */}
+      <Route element={<AppShellRoute />}>
+        <Route path="/dashboard" element={<Dashboard />} />
 
-      {/* Admin do hospital */}
-      <Route path="/admin/templates" element={<HospitalAdminRoute><Lazy><AdminTemplates /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/users" element={<HospitalAdminRoute><Lazy><AdminUsers /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/wards" element={<HospitalAdminRoute><Lazy><AdminWards /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/specialties" element={<HospitalAdminRoute><Lazy><AdminSpecialties /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/analytics" element={<HospitalAdminRoute><Lazy><AdminAnalytics /></Lazy></HospitalAdminRoute>} />
-      <Route path="/admin/manual" element={<HospitalAdminRoute><Lazy><AdminManual /></Lazy></HospitalAdminRoute>} />
+        {/* Fluxo clínico */}
+        <Route path="/patients" element={<Patients />} />
+        <Route path="/patients/:id/history" element={<PatientHistory />} />
+        <Route path="/consultations" element={<Consultations />} />
+        <Route path="/consultations/new" element={<NewConsultation />} />
+        <Route path="/consultations/:id/edit" element={<ConsultationEdit />} />
+        <Route path="/consultations/:id/report" element={<ConsultationReport />} />
+        <Route path="/documents/new" element={<GenerateDocument />} />
+        <Route path="/documents/:id" element={<DocumentView />} />
+        <Route path="/gravacoes" element={<MyRecordings />} />
 
-      <Route path="/profile" element={<Lazy><Profile /></Lazy>} />
-      <Route path="/privacy" element={<Lazy><PrivacyPolicy /></Lazy>} />
+        {/* Admin do hospital */}
+        <Route path="/admin/templates" element={<HospitalAdminRoute><AdminTemplates /></HospitalAdminRoute>} />
+        <Route path="/admin/users" element={<HospitalAdminRoute><AdminUsers /></HospitalAdminRoute>} />
+        <Route path="/admin/wards" element={<HospitalAdminRoute><AdminWards /></HospitalAdminRoute>} />
+        <Route path="/admin/specialties" element={<HospitalAdminRoute><AdminSpecialties /></HospitalAdminRoute>} />
+        <Route path="/admin/analytics" element={<HospitalAdminRoute><AdminAnalytics /></HospitalAdminRoute>} />
+        <Route path="/admin/manual" element={<HospitalAdminRoute><AdminManual /></HospitalAdminRoute>} />
+
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+      </Route>
+
       {/* Rotas de auth — usuário já logado, manda pro Dashboard */}
       <Route path="/login"           element={<Navigate to="/dashboard" replace />} />
       <Route path="/signup"          element={<Navigate to="/dashboard" replace />} />

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, createContext, useContext, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -145,10 +145,18 @@ function MobileSidebarTrigger() {
   );
 }
 
+const SuperAdminLayoutMountedContext = createContext(false);
+
 export function SuperAdminLayout({ children }: { children: ReactNode }) {
+  const alreadyMounted = useContext(SuperAdminLayoutMountedContext);
   const isMobile = useIsMobile();
 
+  // Se já há um SuperAdminLayout pai (rota-shell), só renderiza children
+  // — sidebar/header ficam estáveis entre navegações.
+  if (alreadyMounted) return <>{children}</>;
+
   return (
+    <SuperAdminLayoutMountedContext.Provider value={true}>
     <div className="flex h-screen overflow-hidden">
       {!isMobile && (
         <aside
@@ -173,5 +181,6 @@ export function SuperAdminLayout({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-y-auto bg-background">{children}</main>
       </div>
     </div>
+    </SuperAdminLayoutMountedContext.Provider>
   );
 }
