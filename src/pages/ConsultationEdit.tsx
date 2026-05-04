@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileText, Mic, Lock, RefreshCw } from "lucide-react";
+import { FileText, Mic, Lock, RefreshCw, FileSignature } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ConsultationEdit() {
@@ -217,15 +217,27 @@ export default function ConsultationEdit() {
               className="font-mono text-sm"
             />
             <div className="flex flex-wrap gap-2 justify-between">
-              <Button
-                variant="outline"
-                onClick={regenerateReport}
-                disabled={regenerating || !consultation.template_id}
-                className="gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
-                {regenerating ? "Regerando…" : "Regerar relatório a partir da transcrição"}
-              </Button>
+              {consultation.template_id ? (
+                <Button
+                  variant="outline"
+                  onClick={regenerateReport}
+                  disabled={regenerating}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
+                  {regenerating ? "Regerando…" : "Regerar relatório a partir da transcrição"}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/documents/new?patient=${consultation.patient_id}`)}
+                  className="gap-2"
+                  title="Esta gravação foi salva como nota livre. Use 'Gerar documento' pra criar um documento estruturado a partir dela (e de outras notas, se quiser)."
+                >
+                  <FileSignature className="w-4 h-4" />
+                  Gerar documento desta nota
+                </Button>
+              )}
               <div className="flex gap-2">
                 <Button variant="ghost" onClick={() => navigate(`/consultations/${id}/report`)}>
                   Voltar pra visualização
