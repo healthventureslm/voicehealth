@@ -7,9 +7,9 @@ const features = [
   {
     icon: Mic,
     eyebrow: "01 · captura",
-    title: "Atendimento por voz",
+    title: "Gravação por voz",
     description:
-      "Profissional conduz o atendimento normalmente. O VoiceHealth grava, transcreve e organiza.",
+      "Profissional fala o que precisa registrar sobre o paciente. O VoiceHealth grava, transcreve e organiza.",
   },
   {
     icon: FileText,

@@ -115,7 +115,7 @@ export default function SuperAdminHospitalDetail() {
           <KpiCard icon={<Building2 className="w-4 h-4" />} label="Setores" value={stats.wards_count} />
           <KpiCard icon={<Users className="w-4 h-4" />}      label="Usuários" value={stats.users_count} />
           <KpiCard icon={<UserCircle2 className="w-4 h-4" />} label="Pacientes" value={stats.patients_count} />
-          <KpiCard icon={<Activity className="w-4 h-4" />}    label="Atendimentos" value={stats.consultations_count} />
+          <KpiCard icon={<Activity className="w-4 h-4" />}    label="Gravações" value={stats.consultations_count} />
         </div>
 
         {/* 2 colunas */}
@@ -219,8 +219,8 @@ export default function SuperAdminHospitalDetail() {
             <Signal
               label="Atividade clínica"
               ok={stats.consultations_count > 0}
-              positive={`${stats.consultations_count} atendimento${stats.consultations_count !== 1 ? "s" : ""}`}
-              negative="Nenhuma consulta ainda"
+              positive={`${stats.consultations_count} gravaç${stats.consultations_count !== 1 ? "ões" : "ão"}`}
+              negative="Nenhuma gravação ainda"
             />
             <Signal
               label="Equipe completa"

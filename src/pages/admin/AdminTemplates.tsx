@@ -168,7 +168,7 @@ export default function AdminTemplates() {
                 </DialogTitle>
                 <DialogDescription>
                   Cada save cria uma nova versão. O prompt é o "como gerar o relatório"
-                  passado pra IA, com a transcrição do atendimento como insumo.
+                  passado pra IA, com a transcrição da gravação como insumo.
                 </DialogDescription>
               </DialogHeader>
 
@@ -330,8 +330,8 @@ export default function AdminTemplates() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Excluir "{t.name}"?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Consultas existentes que usaram este template
-                                    continuarão funcionando, mas novos atendimentos não
+                                    Gravações existentes que usaram este template
+                                    continuarão funcionando, mas novas gravações não
                                     poderão escolhê-lo.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>

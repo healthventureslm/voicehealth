@@ -63,7 +63,7 @@ export default function SuperAdminHome() {
           <Card>
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2 text-xs">
-                <FileText className="w-4 h-4" /> Atendimentos
+                <FileText className="w-4 h-4" /> Gravações
               </CardDescription>
             </CardHeader>
             <CardContent>

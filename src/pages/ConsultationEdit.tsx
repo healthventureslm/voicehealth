@@ -19,7 +19,7 @@ import { toast } from "sonner";
 export default function ConsultationEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, wardIds, isSuperAdmin } = useAuth();
   const qc = useQueryClient();
   const { data: consultation, isLoading } = useConsultation(id);
   const { data: reports } = useClinicalReports(id);
@@ -56,24 +56,58 @@ export default function ConsultationEdit() {
   if (!consultation) {
     return (
       <AppLayout>
-        <PageContainer>Atendimento não encontrado.</PageContainer>
+        <PageContainer>Gravação não encontrada.</PageContainer>
       </AppLayout>
     );
   }
 
-  if (consultation.locked_at) {
+  // Pode editar? Espelha a função SQL can_edit_consultation:
+  //   - super_admin sempre pode
+  //   - nota bloqueada (locked_at) → não
+  //   - autor diferente → não
+  //   - paciente em ward fora dos seus → não
+  // Sem isso, a tela abria normalmente, a usuária digitava, e o save batia
+  // 406 do PostgREST silenciosamente.
+  const c: any = consultation;
+  const cannotEditReason = (() => {
+    if (isSuperAdmin) return null;
+    if (c.locked_at) return "locked";
+    if (c.professional_id !== user?.id) return "not-author";
+    const patientWard = c.patient?.current_ward_id;
+    if (!patientWard) return "no-ward";
+    if (!wardIds.includes(patientWard)) return "ward-mismatch";
+    return null;
+  })();
+
+  if (cannotEditReason) {
+    const labels: Record<string, { title: string; body: string }> = {
+      locked: {
+        title: "Gravação bloqueada",
+        body: "Esta gravação foi bloqueada para edição (paciente transferido). Você ainda pode adicionar observações na tela de visualização.",
+      },
+      "not-author": {
+        title: "Sem permissão",
+        body: "Apenas quem fez a gravação pode editá-la. Você pode adicionar observações (adendos) na tela de visualização.",
+      },
+      "ward-mismatch": {
+        title: "Sem acesso clínico",
+        body: "Você não está mais atribuída ao setor onde este paciente está. Edição bloqueada — observações (adendos) na visualização continuam permitidas.",
+      },
+      "no-ward": {
+        title: "Paciente sem setor",
+        body: "Este paciente não tem setor atual atribuído. Edição bloqueada.",
+      },
+    };
+    const { title, body } = labels[cannotEditReason] ?? labels.locked;
     return (
       <AppLayout>
         <PageContainer>
-          <PageHeader back title="Atendimento bloqueado" />
+          <PageHeader back title={title} />
           <Card>
             <CardContent className="py-8 text-center space-y-3">
               <Lock className="w-8 h-8 text-muted-foreground mx-auto" />
-              <div className="font-medium">Atendimento bloqueado</div>
-              <div className="text-sm text-muted-foreground">
-                Este atendimento foi bloqueado para edição (paciente transferido).
-                Você ainda pode adicionar observações na tela de visualização.
-              </div>
+              <div className="font-medium">{title}</div>
+              <div className="text-sm text-muted-foreground">{body}</div>
               <Button onClick={() => navigate(`/consultations/${id}/report`)}>
                 Ir para visualização
               </Button>
@@ -161,7 +195,7 @@ export default function ConsultationEdit() {
   return (
     <AppLayout>
       <PageContainer>
-        <PageHeader back title="Editar atendimento" />
+        <PageHeader back title="Editar gravação" />
 
         {/* TRANSCRIÇÃO */}
         <Card>
@@ -171,7 +205,7 @@ export default function ConsultationEdit() {
               Transcrição
             </CardTitle>
             <CardDescription>
-              Texto bruto do atendimento (origina o relatório). Editar aqui não muda
+              Texto bruto da gravação (origina o relatório). Editar aqui não muda
               o relatório existente — use o botão "Regerar relatório" abaixo se quiser.
             </CardDescription>
           </CardHeader>
@@ -232,10 +266,10 @@ export default function ConsultationEdit() {
                   variant="outline"
                   onClick={() => navigate(`/documents/new?patient=${consultation.patient_id}`)}
                   className="gap-2"
-                  title="Esta gravação foi salva como nota livre. Use 'Gerar documento' pra criar um documento estruturado a partir dela (e de outras notas, se quiser)."
+                  title="Esta gravação foi salva sem template. Use 'Gerar documento' pra criar um documento estruturado a partir dela (e de outras gravações, se quiser)."
                 >
                   <FileSignature className="w-4 h-4" />
-                  Gerar documento desta nota
+                  Gerar documento desta gravação
                 </Button>
               )}
               <div className="flex gap-2">

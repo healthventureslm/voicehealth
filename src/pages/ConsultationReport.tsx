@@ -67,7 +67,7 @@ export default function ConsultationReport() {
     return (
       <AppLayout>
         <PageContainer width="narrow">
-          <p>Atendimento não encontrado ou sem permissão.</p>
+          <p>Gravação não encontrada ou sem permissão.</p>
         </PageContainer>
       </AppLayout>
     );
@@ -81,7 +81,7 @@ export default function ConsultationReport() {
       <PageContainer width="narrow">
         <PageHeader
           back
-          title={`Atendimento — ${c.patient?.full_name ?? "—"}`}
+          title={`Gravação — ${c.patient?.full_name ?? "—"}`}
           subtitle={
             <span className="flex flex-wrap items-center gap-2 text-sm">
               <span>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
@@ -122,7 +122,7 @@ export default function ConsultationReport() {
         {c.locked_at && (
           <Card className="border-warning/30 bg-warning/5">
             <CardContent className="py-4 text-sm">
-              Este atendimento foi bloqueado em{" "}
+              Esta gravação foi bloqueada em{" "}
               <strong>{new Date(c.locked_at).toLocaleString("pt-BR")}</strong>{" "}
               porque o paciente foi transferido para outro setor. Você ainda pode adicionar
               observações (adendos), que ficam permanentemente registradas com seu nome

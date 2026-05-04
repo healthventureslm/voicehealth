@@ -130,7 +130,7 @@ export default function NewConsultation() {
           patch: { status: "editing" },
         });
         toast.warning(
-          `Transcrição automática falhou: ${reason}. Você pode editar manualmente o atendimento.`,
+          `Transcrição automática falhou: ${reason}. Você pode editar manualmente a gravação.`,
         );
         setStep("idle");
         navigate(`/consultations/${consultation.id}/edit`);
@@ -168,10 +168,10 @@ export default function NewConsultation() {
 
       setStep("done");
       if (templateId) {
-        toast.success("Atendimento registrado");
+        toast.success("Gravação registrada");
         navigate(`/consultations/${consultation.id}/report`);
       } else {
-        toast.success("Nota salva");
+        toast.success("Gravação salva");
         navigate(`/patients/${patient.id}/history`);
       }
     } catch (e: any) {
@@ -188,7 +188,7 @@ export default function NewConsultation() {
       return;
     }
     if (!manualTranscript.trim()) {
-      toast.error("Escreva o conteúdo do atendimento");
+      toast.error("Escreva o conteúdo da gravação");
       return;
     }
     try {
@@ -220,16 +220,16 @@ export default function NewConsultation() {
       });
 
       if (templateId) {
-        toast.success("Atendimento registrado");
+        toast.success("Gravação registrada");
         navigate(`/consultations/${consultation.id}/report`);
       } else {
-        toast.success("Nota salva");
+        toast.success("Gravação salva");
         navigate(`/patients/${patient.id}/history`);
       }
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? String(e));
-      toast.error("Erro ao salvar atendimento");
+      toast.error("Erro ao salvar gravação");
     }
   }
 
@@ -240,11 +240,11 @@ export default function NewConsultation() {
       <PageContainer>
         <PageHeader
           back
-          title={templateId ? "Novo atendimento" : "Atualizar paciente"}
+          title={templateId ? "Nova gravação com documento" : "Nova gravação"}
           subtitle={
             templateId
-              ? "Gravação clínica vinculada a um template — gera documento ao final."
-              : "Grave o que está acontecendo com o paciente. Depois você pode gerar qualquer documento a partir das notas."
+              ? "Gravação vinculada a um template — gera documento estruturado ao final."
+              : "Grave o que está acontecendo com o paciente. Depois você pode gerar qualquer documento a partir das gravações."
           }
         />
 
@@ -285,7 +285,7 @@ export default function NewConsultation() {
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-3">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Por padrão, gravar salva uma <strong>nota livre</strong> na linha do tempo
+                  Por padrão, gravar salva uma <strong>gravação livre</strong> na linha do tempo
                   do paciente. Selecione um template aqui se quiser gerar um documento
                   imediatamente desta gravação específica.
                 </p>
@@ -307,7 +307,7 @@ export default function NewConsultation() {
               {patient?.current_ward?.name && (
                 <> (<strong>{patient.current_ward.name}</strong>)</>
               )}
-              . Não é possível iniciar um novo atendimento.
+              . Não é possível registrar uma nova gravação.
               Peça ao admin do hospital pra atribuir este setor a você
               em <code>/admin/users</code>, ou selecione outro paciente.
             </CardContent>
@@ -318,7 +318,7 @@ export default function NewConsultation() {
           <Card>
             <CardHeader>
               <CardTitle className="heading-card">
-                {templateId ? "Conteúdo do atendimento" : "Atualização"}
+                {templateId ? "Conteúdo da gravação" : "Gravação"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -346,7 +346,7 @@ export default function NewConsultation() {
                 <TabsContent value="manual" className="mt-4 space-y-3">
                   <Textarea
                     rows={8}
-                    placeholder="Digite ou cole o texto do atendimento aqui..."
+                    placeholder="Digite ou cole o texto da gravação aqui..."
                     value={manualTranscript}
                     onChange={(e) => setManualTranscript(e.target.value)}
                   />
@@ -356,7 +356,7 @@ export default function NewConsultation() {
                     className="gap-2"
                   >
                     <FileText className="w-4 h-4" />
-                    {templateId ? "Salvar atendimento" : "Salvar nota"}
+                    Salvar gravação
                   </Button>
                 </TabsContent>
               </Tabs>

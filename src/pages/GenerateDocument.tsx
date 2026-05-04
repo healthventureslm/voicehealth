@@ -69,7 +69,7 @@ export default function GenerateDocument() {
       return;
     }
     if (selectedNoteIds.size === 0) {
-      toast.error("Selecione ao menos uma nota");
+      toast.error("Selecione ao menos uma gravação");
       return;
     }
     setGenerating(true);
@@ -104,7 +104,7 @@ export default function GenerateDocument() {
         <PageHeader
           back
           title="Gerar documento"
-          subtitle="Use as notas registradas do paciente como fonte. A IA preenche o template a partir delas."
+          subtitle="Use as gravações registradas do paciente como fonte. A IA preenche o template a partir delas."
         />
 
         <Card>
@@ -156,7 +156,7 @@ export default function GenerateDocument() {
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <CardTitle className="heading-card">
-                3. Notas a usar ({selectedNoteIds.size}/{notes?.length ?? 0})
+                3. Gravações a usar ({selectedNoteIds.size}/{notes?.length ?? 0})
               </CardTitle>
               <div className="flex gap-2">
                 <Button
@@ -182,7 +182,7 @@ export default function GenerateDocument() {
                 <p className="text-sm text-muted-foreground py-4 text-center">Carregando…</p>
               ) : (notes ?? []).length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  Este paciente ainda não tem notas. Volte e grave pelo menos uma.
+                  Este paciente ainda não tem gravações. Volte e grave pelo menos uma.
                 </p>
               ) : (
                 (notes ?? []).map((n) => {
