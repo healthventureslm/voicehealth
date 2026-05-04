@@ -24,6 +24,12 @@ interface ExportOpts {
   addenda?: AddendumLite[];
   professionalName?: string;
   hospitalName?: string;
+  /** Título do bloco principal — default "Atendimento clínico". */
+  documentTitle?: string;
+  /** Título do conteúdo — default "Relatório clínico (vN)". */
+  reportTitle?: string;
+  /** Prefixo do nome do arquivo — default "atendimento". */
+  filenamePrefix?: string;
 }
 
 /**
@@ -38,6 +44,9 @@ export function exportReportPdf(opts: ExportOpts) {
     addenda = [],
     professionalName,
     hospitalName,
+    documentTitle = "Atendimento clínico",
+    reportTitle,
+    filenamePrefix = "atendimento",
   } = opts;
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -97,7 +106,7 @@ export function exportReportPdf(opts: ExportOpts) {
   // Bloco do paciente
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text("Atendimento clínico", margin, y);
+  doc.text(documentTitle, margin, y);
   y += 18;
 
   doc.setFont("helvetica", "normal");
@@ -126,7 +135,7 @@ export function exportReportPdf(opts: ExportOpts) {
   // Relatório
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text(`Relatório clínico (v${reportVersion})`, margin, y);
+  doc.text(reportTitle ?? `Relatório clínico (v${reportVersion})`, margin, y);
   y += 18;
 
   // Conversão básica de markdown — remove ** ## etc, mantém quebras
@@ -177,6 +186,6 @@ export function exportReportPdf(opts: ExportOpts) {
   }
 
   // Salva
-  const filename = `atendimento_${(p.full_name ?? "paciente").replace(/\s+/g, "_")}_${new Date(consultation.created_at).toISOString().slice(0, 10)}.pdf`;
+  const filename = `${filenamePrefix}_${(p.full_name ?? "paciente").replace(/\s+/g, "_")}_${new Date(consultation.created_at).toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
 }
