@@ -58,7 +58,7 @@ export default function Dashboard() {
           />
           <StatCard
             icon={<Activity className="w-4 h-4" />}
-            label="Atendimentos hoje"
+            label="Gravações hoje"
             value={loadingStats ? "—" : stats?.todayConsultations ?? 0}
             hint="no hospital"
           />
@@ -70,7 +70,7 @@ export default function Dashboard() {
           />
           <StatCard
             icon={<FileText className="w-4 h-4" />}
-            label="Minhas consultas"
+            label="Minhas gravações"
             value={loadingStats ? "—" : stats?.myCompleted ?? 0}
             hint="finalizadas"
           />
@@ -130,16 +130,16 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
                 <CardTitle className="heading-section">Minhas gravações</CardTitle>
-                <CardDescription>Últimos atendimentos seus</CardDescription>
+                <CardDescription>Últimas que você registrou</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/gravacoes")} className="gap-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/consultations")} className="gap-1">
                 Ver todas <ArrowRight className="w-3 h-3" />
               </Button>
             </CardHeader>
             <CardContent className="space-y-1">
               {recentConsultations.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">
-                  Você ainda não registrou nenhum atendimento.
+                  Você ainda não registrou nenhuma gravação.
                 </p>
               ) : (
                 recentConsultations.map((c: any) => (

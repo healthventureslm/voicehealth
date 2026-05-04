@@ -121,7 +121,7 @@ export default function DocumentView() {
             <span className="flex flex-wrap items-center gap-2 text-sm">
               <span>Paciente: <strong>{patient?.full_name ?? "—"}</strong></span>
               <span>· {new Date(doc.generated_at).toLocaleString("pt-BR")}</span>
-              <span>· Gerado de {doc.source_consultation_ids?.length ?? 0} nota{(doc.source_consultation_ids?.length ?? 0) === 1 ? "" : "s"}</span>
+              <span>· Gerado de {doc.source_consultation_ids?.length ?? 0} gravaç{(doc.source_consultation_ids?.length ?? 0) === 1 ? "ão" : "ões"}</span>
             </span>
           }
           actions={
@@ -150,7 +150,7 @@ export default function DocumentView() {
             <CardHeader>
               <CardTitle className="heading-section flex items-center gap-2">
                 <Mic className="w-5 h-5 text-primary" />
-                Notas usadas como fonte
+                Gravações usadas como fonte
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">

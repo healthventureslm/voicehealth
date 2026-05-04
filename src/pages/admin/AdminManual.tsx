@@ -16,15 +16,15 @@ const SECTIONS: Section[] = [
       <>
         <p>
           O VoiceHealth substitui a digitação manual de evoluções clínicas: o
-          profissional grava a fala do atendimento e a IA gera um relatório
-          estruturado em segundos. O fluxo padrão é:
+          profissional grava a fala e a IA gera um documento estruturado
+          on-demand. O fluxo padrão é:
         </p>
         <ol>
           <li>Cadastrar paciente no setor onde está internado</li>
-          <li>Iniciar uma <strong>Nova gravação</strong> selecionando o paciente e o template</li>
-          <li>Falar normalmente o atendimento (sinais vitais, queixas, conduta…)</li>
-          <li>Aguardar a transcrição + geração do relatório</li>
-          <li>Revisar e, se necessário, editar o relatório</li>
+          <li>Registrar uma <strong>Nova gravação</strong> sobre o paciente</li>
+          <li>Falar normalmente (sinais vitais, queixas, conduta…)</li>
+          <li>Quando precisar, gerar um <strong>documento estruturado</strong> a partir das gravações</li>
+          <li>Revisar e, se necessário, editar o documento</li>
           <li>Adicionar adendos posteriormente quando houver atualização</li>
         </ol>
       </>
@@ -36,7 +36,7 @@ const SECTIONS: Section[] = [
       <ul>
         <li><strong>Admin do hospital</strong>: convida usuários, cria setores, edita templates e indicadores. Vê todos os pacientes do hospital.</li>
         <li><strong>Médico(a) / Enfermeiro(a)</strong>: opera no fluxo clínico. Vê pacientes apenas dos setores onde está atribuído.</li>
-        <li><strong>Auditor(a)</strong>: acesso read-only de pacientes e atendimentos do hospital. Útil pra qualidade e compliance.</li>
+        <li><strong>Auditor(a)</strong>: acesso read-only de pacientes e gravações do hospital. Útil pra qualidade e compliance.</li>
         <li><strong>Super admin (Health Ventures)</strong>: cadastra novos hospitais e mantém templates globais. Não atende paciente.</li>
       </ul>
     ),
@@ -97,7 +97,7 @@ const SECTIONS: Section[] = [
     body: (
       <ol>
         <li>Confirme que o microfone está funcionando (ícone do navegador deve ter permissão concedida)</li>
-        <li>Se a transcrição falhar, use a aba <strong>Texto manual</strong> e digite o atendimento</li>
+        <li>Se a transcrição falhar, use a aba <strong>Texto manual</strong> e digite a gravação</li>
         <li>Se o relatório não foi gerado, volte na consulta e clique em <strong>Editar → Regerar relatório</strong></li>
         <li>Persistindo, contate o suporte (cota de IA pode ter sido excedida)</li>
       </ol>

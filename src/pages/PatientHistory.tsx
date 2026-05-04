@@ -105,7 +105,7 @@ export default function PatientHistory() {
                   <FileSignature className="w-4 h-4" /> Gerar documento
                 </Button>
                 <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
-                  <Mic className="w-4 h-4" /> Nova nota
+                  <Mic className="w-4 h-4" /> Nova gravação
                 </Button>
               </>
             ) : (
@@ -123,8 +123,8 @@ export default function PatientHistory() {
               <div>
                 Este paciente está atualmente em <strong>{(patient as any).current_ward.name}</strong>,
                 que não está entre os seus setores ativos. Você pode visualizar o
-                histórico, mas não pode iniciar novos atendimentos. Adendos em
-                consultas suas continuam permitidos.
+                histórico, mas não pode registrar novas gravações. Adendos em
+                gravações suas continuam permitidos.
               </div>
             </CardContent>
           </Card>
@@ -150,8 +150,8 @@ export default function PatientHistory() {
                   ? `/consultations/${d.consultation_id}/report`
                   : `/documents/${d.id}`;
                 const sourceLabel = d.consultation_id
-                  ? "atendimento"
-                  : `${d.source_consultation_ids?.length ?? 0} nota${(d.source_consultation_ids?.length ?? 0) === 1 ? "" : "s"}`;
+                  ? "1 gravação"
+                  : `${d.source_consultation_ids?.length ?? 0} gravaç${(d.source_consultation_ids?.length ?? 0) === 1 ? "ão" : "ões"}`;
                 return (
                   <div
                     key={d.id}
@@ -185,7 +185,7 @@ export default function PatientHistory() {
           <CardContent className="space-y-2">
             {(timeline ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
-                Nada registrado ainda. Comece com uma nota.
+                Nada registrado ainda. Comece com uma gravação.
               </p>
             ) : (
               (timeline ?? []).map((item) => {
@@ -199,14 +199,14 @@ export default function PatientHistory() {
                     ? `/documents/${p.id}`
                     : `/consultations/${p.id}/report`;
                 const kindLabel =
-                  item.kind === "note" ? "Nota"
-                  : item.kind === "consultation" ? `Atendimento — ${p.template?.name ?? "—"}`
+                  item.kind === "note" ? "Gravação"
+                  : item.kind === "consultation" ? `Gravação com documento — ${p.template?.name ?? "—"}`
                   : `Documento — ${p.template?.name ?? "—"}`;
                 const preview =
                   item.kind === "note"
                     ? truncate(p.edited_transcription ?? p.raw_transcription)
                     : item.kind === "document"
-                    ? `Gerado a partir de ${p.source_consultation_ids?.length ?? 0} nota${(p.source_consultation_ids?.length ?? 0) === 1 ? "" : "s"}`
+                    ? `Gerado a partir de ${p.source_consultation_ids?.length ?? 0} gravaç${(p.source_consultation_ids?.length ?? 0) === 1 ? "ão" : "ões"}`
                     : (p.ward?.name ?? "");
 
                 return (

@@ -64,16 +64,16 @@ export default function AdminAnalytics() {
           <>
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Kpi icon={<Activity className="w-4 h-4" />} label="Atendimentos" value={data.totals.consultations} hint={`em ${periodDays} dias`} />
+              <Kpi icon={<Activity className="w-4 h-4" />} label="Gravações" value={data.totals.consultations} hint={`em ${periodDays} dias`} />
               <Kpi icon={<Users className="w-4 h-4" />} label="Usuários" value={data.totals.users} hint="vinculados ao hospital" />
               <Kpi icon={<ClipboardList className="w-4 h-4" />} label="Pacientes" value={data.totals.patients} hint="ativos" />
               <Kpi icon={<Building2 className="w-4 h-4" />} label="Setores" value={data.totals.wards} hint="ativos" />
             </div>
 
-            {/* Gráfico de atendimentos por dia */}
+            {/* Gráfico de gravações por dia */}
             <Card className="hv-card">
               <CardHeader>
-                <CardTitle className="heading-section">Atendimentos por dia</CardTitle>
+                <CardTitle className="heading-section">Gravações por dia</CardTitle>
                 <CardDescription>
                   Distribuição diária no período selecionado
                 </CardDescription>
@@ -81,7 +81,7 @@ export default function AdminAnalytics() {
               <CardContent>
                 {data.totals.consultations === 0 ? (
                   <p className="text-sm text-muted-foreground py-12 text-center">
-                    Nenhum atendimento registrado no período.
+                    Nenhuma gravação registrada no período.
                   </p>
                 ) : (
                   <div className="h-64">
@@ -119,7 +119,7 @@ export default function AdminAnalytics() {
                               day: "2-digit", month: "long",
                             })
                           }
-                          formatter={(val: number) => [`${val} atendimento${val !== 1 ? "s" : ""}`, ""]}
+                          formatter={(val: number) => [`${val} gravaç${val !== 1 ? "ões" : "ão"}`, ""]}
                         />
                         <Area
                           type="monotone"
@@ -140,7 +140,7 @@ export default function AdminAnalytics() {
               <Card className="hv-card">
                 <CardHeader>
                   <CardTitle className="heading-section">Por setor</CardTitle>
-                  <CardDescription>Volume de atendimentos por ward</CardDescription>
+                  <CardDescription>Volume de gravações por ward</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {data.byWard.length === 0 ? (
@@ -169,7 +169,7 @@ export default function AdminAnalytics() {
               <Card className="hv-card">
                 <CardHeader>
                   <CardTitle className="heading-section">Top profissionais</CardTitle>
-                  <CardDescription>Quem mais registrou atendimentos no período</CardDescription>
+                  <CardDescription>Quem mais registrou gravações no período</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {data.topProfessionals.length === 0 ? (
@@ -204,7 +204,7 @@ export default function AdminAnalytics() {
               <CardContent className="flex flex-wrap gap-2">
                 {Object.keys(data.statusCounts).length === 0 ? (
                   <p className="text-sm text-muted-foreground py-2">
-                    Sem atendimentos no período.
+                    Sem gravações no período.
                   </p>
                 ) : (
                   Object.entries(data.statusCounts).map(([status, count]) => (

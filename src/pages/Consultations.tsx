@@ -24,11 +24,15 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function Consultations() {
   const navigate = useNavigate();
-  const { data: consultations, isLoading } = useConsultations();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
+  const [scope, setScope] = useState<"mine" | "all">("mine");
+
+  const { data: consultations, isLoading } = useConsultations({
+    mineOnly: scope === "mine",
+  });
 
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -59,16 +63,16 @@ export default function Consultations() {
     <AppLayout>
       <PageContainer>
         <PageHeader
-          title="Atendimentos"
+          title={scope === "mine" ? "Minhas gravações" : "Gravações do setor"}
           actions={
             <Button onClick={() => navigate("/consultations/new")} className="gap-2">
-              <Mic className="w-4 h-4" /> Novo atendimento
+              <Mic className="w-4 h-4" /> Nova gravação
             </Button>
           }
         />
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px] gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_160px_160px_160px] gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -78,6 +82,15 @@ export default function Consultations() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <Select value={scope} onValueChange={(v) => setScope(v as "mine" | "all")}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mine">Minhas</SelectItem>
+              <SelectItem value="all">Todas do setor</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Status" />
@@ -108,18 +121,18 @@ export default function Consultations() {
           <EmptyState
             title={
               (consultations ?? []).length === 0
-                ? "Nenhum atendimento registrado"
-                : "Nenhum atendimento encontrado"
+                ? "Nenhuma gravação registrada"
+                : "Nenhuma gravação encontrada"
             }
             description={
               (consultations ?? []).length === 0
-                ? "Inicie uma nova gravação pra começar."
+                ? "Comece registrando sua primeira gravação."
                 : "Tente ajustar os filtros."
             }
             action={
               (consultations ?? []).length === 0 ? (
                 <Button onClick={() => navigate("/consultations/new")} className="gap-2">
-                  <Mic className="w-4 h-4" /> Iniciar gravação
+                  <Mic className="w-4 h-4" /> Nova gravação
                 </Button>
               ) : null
             }
@@ -127,7 +140,7 @@ export default function Consultations() {
         ) : (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              {filtered.length} atendimento{filtered.length !== 1 && "s"}
+              {filtered.length} gravaç{filtered.length !== 1 ? "ões" : "ão"}
             </p>
             {filtered.map((c: any) => (
               <ListItemCard key={c.id} onClick={() => navigate(`/consultations/${c.id}/report`)}>
