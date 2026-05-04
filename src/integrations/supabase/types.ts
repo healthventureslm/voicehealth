@@ -23,6 +23,7 @@ export type Database = {
           plan: string;
           is_active: boolean;
           metadata: Json;
+          logo_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -34,6 +35,7 @@ export type Database = {
           plan?: string;
           is_active?: boolean;
           metadata?: Json;
+          logo_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -31,7 +31,7 @@ export default function DocumentView() {
         .select(`
           id, patient_id, consultation_id, source_consultation_ids,
           template_id, version, content, format, generated_at, generated_by,
-          patient:patients(id, full_name, medical_record, bed),
+          patient:patients(id, full_name, medical_record, bed, hospital_id, hospital:hospitals(id, name, logo_url)),
           template:report_templates(id, name)
         `)
         .eq("id", id!)
@@ -76,10 +76,10 @@ export default function DocumentView() {
   const patient: any = doc.patient;
   const templateName = doc.template?.name ?? "Documento clínico";
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
     if (!doc) return;
     try {
-      exportReportPdf({
+      await exportReportPdf({
         consultation: {
           id: doc.id,
           created_at: doc.generated_at,
@@ -94,6 +94,8 @@ export default function DocumentView() {
         reportVersion: doc.version,
         reportFormat: doc.format,
         professionalName: profile?.full_name ?? undefined,
+        hospitalName: patient?.hospital?.name ?? undefined,
+        hospitalLogoUrl: patient?.hospital?.logo_url ?? undefined,
         documentTitle: templateName,
         reportTitle: `${templateName} (v${doc.version})`,
         filenamePrefix: "documento",

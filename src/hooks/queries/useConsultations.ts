@@ -43,9 +43,10 @@ export function useConsultation(id: string | undefined) {
         .from("consultations")
         .select(`
           *,
-          patient:patients(id, full_name, medical_record, current_ward_id),
+          patient:patients(id, full_name, medical_record, current_ward_id, bed),
           ward:wards(id, name, ward_type),
-          template:report_templates(id, name)
+          template:report_templates(id, name),
+          hospital:hospitals(id, name, logo_url)
         `)
         .eq("id", id!)
         .maybeSingle();

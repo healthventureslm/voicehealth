@@ -31,20 +31,23 @@ export default function ConsultationReport() {
   const { data: reports } = useClinicalReports(id);
   const { data: addenda } = useAddenda(id);
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
     if (!consultation) return;
     if (!latestReport) {
       toast.error("Não há relatório pra exportar ainda");
       return;
     }
+    const c = consultation as any;
     try {
-      exportReportPdf({
-        consultation: consultation as any,
+      await exportReportPdf({
+        consultation: c,
         reportContent: latestReport.content,
         reportVersion: latestReport.version,
         reportFormat: latestReport.format,
         addenda: (addenda as any) ?? [],
         professionalName: profile?.full_name ?? undefined,
+        hospitalName: c.hospital?.name ?? undefined,
+        hospitalLogoUrl: c.hospital?.logo_url ?? undefined,
       });
       toast.success("PDF gerado");
     } catch (e: any) {
