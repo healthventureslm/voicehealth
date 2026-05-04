@@ -3,6 +3,7 @@ import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useHospitalDetail, useUpdateHospital } from "@/hooks/queries";
+import { HospitalLogoUpload } from "@/components/superadmin/HospitalLogoUpload";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +106,9 @@ export default function SuperAdminHospitalDetail() {
             </Button>
           }
         />
+
+        {/* Logo do hospital */}
+        <HospitalLogoUpload hospital={hospital} />
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
