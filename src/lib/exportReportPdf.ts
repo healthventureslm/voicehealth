@@ -36,12 +36,22 @@ interface ExportOpts {
   filenamePrefix?: string;
 }
 
-/** Baixa uma URL pública e converte pra data URL pra usar com jsPDF.addImage. */
+/** Baixa uma URL pública e converte pra data URL pra usar com jsPDF.addImage.
+ * Se for SVG, rasteriza pra PNG via canvas (jsPDF não suporta SVG nativamente). */
 async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; mime: string } | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
     const blob = await res.blob();
+
+    // SVG → rasteriza
+    if (blob.type.includes("svg")) {
+      const svgText = await blob.text();
+      const png = await svgToPng(svgText, 256);
+      if (png) return { dataUrl: png, mime: "image/png" };
+      return null;
+    }
+
     const reader = new FileReader();
     return await new Promise((resolve, reject) => {
       reader.onload = () => resolve({ dataUrl: reader.result as string, mime: blob.type });
@@ -51,6 +61,57 @@ async function fetchAsDataUrl(url: string): Promise<{ dataUrl: string; mime: str
   } catch {
     return null;
   }
+}
+
+/** Mede largura/altura naturais de uma imagem (data URL). */
+function measureDataUrl(dataUrl: string): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+/** Rasteriza um SVG pra PNG data URL com canvas, em px de largura quadrada. */
+function svgToPng(svgText: string, size: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const objUrl = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(objUrl);
+          resolve(null);
+          return;
+        }
+        // mantém proporção original do SVG num quadrado, centralizado
+        const w = img.naturalWidth || size;
+        const h = img.naturalHeight || size;
+        const scale = Math.min(size / w, size / h);
+        const dw = w * scale;
+        const dh = h * scale;
+        const dx = (size - dw) / 2;
+        const dy = (size - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+        URL.revokeObjectURL(objUrl);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objUrl);
+        resolve(null);
+      };
+      img.src = objUrl;
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
 // ─── Paleta (inspirada no padrão Rede D'Or institucional) ───────────
@@ -126,10 +187,17 @@ export async function exportReportPdf(opts: ExportOpts) {
     filenamePrefix = "atendimento",
   } = opts;
 
-  // Pré-carrega a logo (se houver) antes de começar a desenhar
-  let logoData: { dataUrl: string; mime: string } | null = null;
+  // Pré-carrega a logo (se houver) e descobre dimensões naturais pra
+  // preservar aspect ratio quando embedar.
+  let logoData: { dataUrl: string; mime: string; naturalW: number; naturalH: number } | null = null;
   if (hospitalLogoUrl) {
-    logoData = await fetchAsDataUrl(hospitalLogoUrl);
+    const fetched = await fetchAsDataUrl(hospitalLogoUrl);
+    if (fetched) {
+      const dims = await measureDataUrl(fetched.dataUrl);
+      if (dims) {
+        logoData = { ...fetched, naturalW: dims.w, naturalH: dims.h };
+      }
+    }
   }
 
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -197,10 +265,18 @@ export async function exportReportPdf(opts: ExportOpts) {
       // não desenha whitespace inicial de linha
       if (x === xStart && /^\s+$/.test(t.word)) continue;
 
-      doc.setFont(
-        FONT,
-        t.run.bold ? (t.run.italic ? "bolditalic" : "bold") : t.run.italic ? "italic" : "normal",
-      );
+      // Estilo Rede D'Or: bold inline (geralmente labels tipo "Repouso:")
+      // → italic + bold em navy. Italic puro vira italic em navy.
+      if (t.run.bold) {
+        doc.setFont(FONT, "bolditalic");
+        setColor(NAVY);
+      } else if (t.run.italic) {
+        doc.setFont(FONT, "italic");
+        setColor(NAVY);
+      } else {
+        doc.setFont(FONT, "normal");
+        setColor(TEXT);
+      }
       doc.setFontSize(fs);
       doc.text(t.word, x, y);
       x += t.w;
@@ -219,33 +295,24 @@ export async function exportReportPdf(opts: ExportOpts) {
     const rightX = margin + leftW + 16;
     const rightW = contentW - leftW - 16;
 
-    // Esquerda — logo (se houver) + nome do hospital
-    let textX = margin;
+    // Esquerda — logo OU wordmark (não os dois — logo já é a marca)
     if (logoData) {
-      const logoSize = 48;
-      const fmt = logoData.mime.includes("png") ? "PNG"
-        : logoData.mime.includes("jpeg") || logoData.mime.includes("jpg") ? "JPEG"
+      const maxW = leftW - 4;
+      const maxH = 90;
+      const scale = Math.min(maxW / logoData.naturalW, maxH / logoData.naturalH);
+      const w = logoData.naturalW * scale;
+      const h = logoData.naturalH * scale;
+      const fmt = logoData.mime.includes("jpeg") || logoData.mime.includes("jpg") ? "JPEG"
         : logoData.mime.includes("webp") ? "WEBP"
         : "PNG";
       try {
-        doc.addImage(logoData.dataUrl, fmt, margin, headerTop, logoSize, logoSize, undefined, "FAST");
-        textX = margin + logoSize + 12;
+        doc.addImage(logoData.dataUrl, fmt, margin, headerTop, w, h, undefined, "FAST");
       } catch {
-        // jsPDF pode não suportar SVG — falha silenciosa, segue sem logo
+        // falha → cai no wordmark
+        if (hospitalName) drawWordmark(headerTop, leftW);
       }
-    }
-
-    if (hospitalName) {
-      setColor(NAVY);
-      doc.setFont(FONT, "bold");
-      doc.setFontSize(15);
-      const availableW = leftW - (textX - margin);
-      const wrapped = doc.splitTextToSize(hospitalName.toUpperCase(), availableW) as string[];
-      let ly = headerTop + 18;
-      for (const ln of wrapped.slice(0, 2)) {
-        doc.text(ln, textX, ly);
-        ly += 17;
-      }
+    } else if (hospitalName) {
+      drawWordmark(headerTop, leftW);
     }
 
     // Direita — strip do paciente (label: valor compacto)
@@ -271,12 +338,39 @@ export async function exportReportPdf(opts: ExportOpts) {
       py += 11;
     }
 
-    // Linha navy embaixo do header
-    const headerBottom = Math.max(margin + 60, py + 4);
+    // Linha navy embaixo do header — leva em conta a altura da logo
+    const logoBottom = logoData
+      ? margin + Math.min(90, logoData.naturalH * Math.min((leftW - 4) / logoData.naturalW, 90 / logoData.naturalH))
+      : margin + 50;
+    const headerBottom = Math.max(logoBottom + 6, py + 4);
     setDraw(NAVY);
     doc.setLineWidth(1);
     doc.line(margin, headerBottom, pageW - margin, headerBottom);
     y = headerBottom + 10;
+  };
+
+  /** Desenha checkbox quadrado com X navy se checked. */
+  const drawCheckbox = (cx: number, cy: number, size: number, checked: boolean) => {
+    setDraw(NAVY);
+    doc.setLineWidth(0.7);
+    doc.rect(cx, cy, size, size, "S");
+    if (checked) {
+      doc.setLineWidth(1.2);
+      doc.line(cx + 1, cy + 1, cx + size - 1, cy + size - 1);
+      doc.line(cx + size - 1, cy + 1, cx + 1, cy + size - 1);
+    }
+  };
+
+  const drawWordmark = (top: number, w: number) => {
+    setColor(NAVY);
+    doc.setFont(FONT, "bold");
+    doc.setFontSize(15);
+    const wrapped = doc.splitTextToSize(hospitalName!.toUpperCase(), w) as string[];
+    let ly = top + 18;
+    for (const ln of wrapped.slice(0, 2)) {
+      doc.text(ln, margin, ly);
+      ly += 17;
+    }
   };
 
   /** Banda full-width pro título da seção — inspirada no Rede D'Or. */
@@ -480,16 +574,25 @@ export async function exportReportPdf(opts: ExportOpts) {
         continue;
       }
 
-      // Lista bullet: -, *, ou +
+      // Lista bullet: -, *, ou +  (com suporte a checkbox - [ ] / - [x])
       if (/^\s*[-*+]\s+/.test(line)) {
         while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-          const text = lines[i].replace(/^\s*[-*+]\s+/, "");
+          const raw = lines[i].replace(/^\s*[-*+]\s+/, "");
+          // checkbox? - [ ] texto / - [x] texto / - [X] texto
+          const cbMatch = /^\[( |x|X|✓|✔)\]\s+(.*)$/.exec(raw);
           ensureSpace(FS_BODY * LH);
-          setColor(NAVY);
-          doc.setFont(FONT, "bold");
-          doc.setFontSize(FS_BODY);
-          doc.text("•", margin + 4, y);
-          renderRuns(parseInline(text), FS_BODY, 16);
+          if (cbMatch) {
+            const checked = cbMatch[1] !== " ";
+            const text = cbMatch[2];
+            drawCheckbox(margin + 4, y - FS_BODY + 1, FS_BODY - 1, checked);
+            renderRuns(parseInline(text), FS_BODY, 18);
+          } else {
+            setColor(NAVY);
+            doc.setFont(FONT, "bold");
+            doc.setFontSize(FS_BODY);
+            doc.text("•", margin + 4, y);
+            renderRuns(parseInline(raw), FS_BODY, 16);
+          }
           i++;
         }
         continue;
