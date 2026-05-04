@@ -18,7 +18,16 @@
 
 BEGIN;
 
--- 1) Limpa templates globais (Health Ventures) e templates antigos da SV
+-- 1) Solta consultas que referenciam templates a serem apagados
+UPDATE consultations
+   SET template_id = NULL
+ WHERE template_id IN (
+   SELECT id FROM report_templates
+    WHERE hospital_id IS NULL
+       OR hospital_id = (SELECT id FROM hospitals WHERE slug = 'clinica-sao-vicente')
+ );
+
+-- 2) Limpa templates globais (Health Ventures) e templates antigos da SV
 DELETE FROM report_templates
  WHERE hospital_id IS NULL
     OR hospital_id = (SELECT id FROM hospitals WHERE slug = 'clinica-sao-vicente');
@@ -115,8 +124,8 @@ Texto livre.
 
 ## Metas
 Listar com prazo e status (Em andamento/Atingida/Não atingida).$prompt$,
-    ARRAY['uti','enfermaria']::ward_type[],
-    ARRAY['nurse']::app_role[],
+    ARRAY[]::ward_type[],
+    ARRAY[]::app_role[],
     true);
 
   -- ─────────────────────────────────────────────────────────────────────
@@ -174,8 +183,8 @@ interno, Prótese metálica ortopédica, Outros.
 - Físicas: Motora, Auditiva, Visual, Fala, Cognitiva/Intelectual/Emocional
 - Religiosa/Cultural, Idioma, Estado emocional
 - Condição econômica, Grau de instrução, Moradia$prompt$,
-    ARRAY['uti','enfermaria','pronto_socorro']::ward_type[],
-    ARRAY['nurse']::app_role[],
+    ARRAY[]::ward_type[],
+    ARRAY[]::app_role[],
     true);
 
   -- ─────────────────────────────────────────────────────────────────────
@@ -226,8 +235,8 @@ Conciso, objetivo, focado no que o próximo plantão precisa saber.
 
 ## Pareceres Pendentes / Recomendações Específicas
 Lista livre.$prompt$,
-    ARRAY['uti','enfermaria','pronto_socorro']::ward_type[],
-    ARRAY['nurse']::app_role[],
+    ARRAY[]::ward_type[],
+    ARRAY[]::app_role[],
     true);
 
   -- ─────────────────────────────────────────────────────────────────────
@@ -281,8 +290,8 @@ Pontuação total e tendência (melhora/estável/piora).
 
 ## Término / Cicatrização
 - Data de cicatrização (se aplicável)$prompt$,
-    ARRAY['uti','enfermaria']::ward_type[],
-    ARRAY['nurse']::app_role[],
+    ARRAY[]::ward_type[],
+    ARRAY[]::app_role[],
     true);
 
   -- ─────────────────────────────────────────────────────────────────────
@@ -359,8 +368,8 @@ Tipo + motivo + microrganismos MDR + início.
 - **Metas:** com prazo e previsão
 - **Exames pendentes:** com data prevista
 - **Pareceres pendentes / Recomendações específicas:** ...$prompt$,
-    ARRAY['uti','enfermaria','pronto_socorro','centro_cirurgico']::ward_type[],
-    ARRAY['nurse']::app_role[],
+    ARRAY[]::ward_type[],
+    ARRAY[]::app_role[],
     true);
 
   RAISE NOTICE '✓ 5 templates da Clínica São Vicente inseridos';
