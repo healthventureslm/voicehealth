@@ -23,17 +23,17 @@ export function useTemplates(opts?: FilterOpts) {
       if (error) throw error;
 
       const all = data ?? [];
-      return all.filter((t) => {
-        // Se a template tem array de ward_types, precisa conter o ward atual
-        if (opts?.wardType && t.applicable_ward_types?.length > 0) {
-          if (!t.applicable_ward_types.includes(opts.wardType)) return false;
-        }
-        // Se tem array de roles, precisa conter a role
-        if (opts?.role && t.applicable_roles?.length > 0) {
-          if (!t.applicable_roles.includes(opts.role)) return false;
-        }
+      const matches = (t: typeof all[number]) => {
+        if (opts?.wardType && t.applicable_ward_types?.length > 0
+            && !t.applicable_ward_types.includes(opts.wardType)) return false;
+        if (opts?.role && t.applicable_roles?.length > 0
+            && !t.applicable_roles.includes(opts.role)) return false;
         return true;
-      });
+      };
+      const filtered = all.filter(matches);
+      // Se o filtro estrito apaga tudo, devolve todos os ativos — preferimos
+      // mostrar opções a deixar a UI vazia (o filtro é dica, não regra dura)
+      return filtered.length > 0 ? filtered : all;
     },
   });
 }

@@ -61,6 +61,16 @@ serve(async (req) => {
       return json({ error: "Template não encontrado" }, 404);
     }
 
+    // patient_id da consulta (clinical_reports.patient_id é NOT NULL agora)
+    const { data: consultation, error: cErr } = await supabase
+      .from("consultations")
+      .select("patient_id")
+      .eq("id", consultation_id)
+      .single();
+    if (cErr || !consultation) {
+      return json({ error: "Consulta não encontrada" }, 404);
+    }
+
     // O prompt do template pode ter placeholder {{transcription}} ou esperar
     // o texto via mensagem de usuário separada — suportamos os dois.
     const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
@@ -94,6 +104,7 @@ serve(async (req) => {
       .from("clinical_reports")
       .insert({
         consultation_id,
+        patient_id: consultation.patient_id,
         template_id,
         version: nextVersion,
         content: reportContent,
