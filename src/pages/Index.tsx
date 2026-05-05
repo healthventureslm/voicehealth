@@ -38,11 +38,6 @@ const Index = () => {
           </span>
           <span className="hv-byline">— by Health Ventures</span>
         </div>
-        <Button asChild variant="ghost" className="gap-2">
-          <Link to="/login">
-            Entrar <ArrowRight className="w-4 h-4" />
-          </Link>
-        </Button>
       </header>
 
       {/* ── HERO ── */}

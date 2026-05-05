@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileText, Mic, Lock, RefreshCw, FileSignature } from "lucide-react";
+import { FileText, Mic, Lock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ConsultationEdit() {
@@ -118,14 +118,32 @@ export default function ConsultationEdit() {
     );
   }
 
-  async function saveTranscript() {
+  async function saveTranscriptAndGenerate() {
     setSavingTranscript(true);
     try {
       await update.mutateAsync({
         id: id!,
         patch: { edited_transcription: transcript },
       });
-      toast.success("Transcrição salva");
+
+      if (consultation.template_id) {
+        const { data, error } = await supabase.functions.invoke("generate-report", {
+          body: {
+            consultation_id: id,
+            template_id: consultation.template_id,
+            transcription: transcript,
+          },
+        });
+        if (error || data?.error) {
+          throw new Error(data?.error ?? error?.message ?? "Falha ao gerar documento");
+        }
+        toast.success(`Transcrição salva e documento gerado (v${data.version})`);
+        setReport(data.content ?? "");
+        qc.invalidateQueries({ queryKey: ["clinical_reports", id] });
+      } else {
+        toast.success("Transcrição salva. Escolha o template para gerar o documento.");
+        navigate(`/documents/new?patient=${consultation.patient_id}`);
+      }
     } catch (e: any) {
       toast.error(`Erro: ${e?.message ?? e}`);
     } finally {
@@ -218,8 +236,8 @@ export default function ConsultationEdit() {
               className="font-mono text-sm"
             />
             <div className="flex justify-end">
-              <Button onClick={saveTranscript} disabled={savingTranscript || update.isPending}>
-                {savingTranscript ? "Salvando…" : "Salvar transcrição"}
+              <Button onClick={saveTranscriptAndGenerate} disabled={savingTranscript || update.isPending}>
+                {savingTranscript ? "Salvando…" : "Salvar e gerar documento desta transcrição"}
               </Button>
             </div>
           </CardContent>
@@ -250,8 +268,8 @@ export default function ConsultationEdit() {
               }
               className="font-mono text-sm"
             />
-            <div className="flex flex-wrap gap-2 justify-between">
-              {consultation.template_id ? (
+            {consultation.template_id && (
+              <div className="flex justify-start">
                 <Button
                   variant="outline"
                   onClick={regenerateReport}
@@ -261,25 +279,12 @@ export default function ConsultationEdit() {
                   <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
                   {regenerating ? "Regerando…" : "Regerar relatório a partir da transcrição"}
                 </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/documents/new?patient=${consultation.patient_id}`)}
-                  className="gap-2"
-                  title="Esta gravação foi salva sem template. Use 'Gerar documento' pra criar um documento estruturado a partir dela (e de outras gravações, se quiser)."
-                >
-                  <FileSignature className="w-4 h-4" />
-                  Gerar documento desta gravação
-                </Button>
-              )}
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => navigate(`/consultations/${id}/report`)}>
-                  Voltar pra visualização
-                </Button>
-                <Button onClick={saveReport} disabled={savingReport}>
-                  {savingReport ? "Salvando…" : `Salvar relatório (v${reportVersion + 1})`}
-                </Button>
               </div>
+            )}
+            <div className="flex justify-end">
+              <Button onClick={saveReport} disabled={savingReport}>
+                {savingReport ? "Salvando…" : `Salvar relatório (v${reportVersion + 1})`}
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -163,6 +163,9 @@ export function useCreateAddendum() {
 }
 
 // ─── Clinical reports ────────────────────────────────────────────────
+// Retorna todo report relacionado à consulta:
+//   1. consultation_id = id          (consulta clássica com template)
+//   2. id ∈ source_consultation_ids  (doc gerado de N notas que inclui esta)
 export function useClinicalReports(consultationId: string | undefined) {
   return useQuery({
     queryKey: ["clinical_reports", consultationId],
@@ -171,8 +174,8 @@ export function useClinicalReports(consultationId: string | undefined) {
       const { data, error } = await supabase
         .from("clinical_reports")
         .select("*")
-        .eq("consultation_id", consultationId!)
-        .order("version", { ascending: false });
+        .or(`consultation_id.eq.${consultationId},source_consultation_ids.cs.{${consultationId}}`)
+        .order("generated_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },

@@ -12,13 +12,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Mic, ClipboardList, History, Lock,
-  FileText, FileSignature,
+  FileText, FileSignature, ArrowRightLeft,
 } from "lucide-react";
 
 function truncate(s: string | null | undefined, max = 140): string {
   if (!s) return "";
   const trimmed = s.trim();
   return trimmed.length > max ? trimmed.slice(0, max) + "…" : trimmed;
+}
+
+function formatTimelineDate(d: Date): string {
+  const now = new Date();
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (diffDays === 0) return "Hoje";
+  if (diffDays === 1) return "Ontem";
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString("pt-BR", {
+    day: "numeric",
+    month: "short",
+    year: sameYear ? undefined : "numeric",
+  }).replace(".", "");
 }
 
 export default function PatientHistory() {
@@ -179,69 +193,94 @@ export default function PatientHistory() {
 
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-primary" />
+            <History className="w-5 h-5 text-primary" />
             <CardTitle className="heading-section">Linha do tempo</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent>
             {(timeline ?? []).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
                 Nada registrado ainda. Comece com uma gravação.
               </p>
             ) : (
-              (timeline ?? []).map((item) => {
-                const p = item.payload;
-                const Icon =
-                  item.kind === "note" ? Mic
-                  : item.kind === "consultation" ? ClipboardList
-                  : FileText;
-                const targetUrl =
-                  item.kind === "document"
-                    ? `/documents/${p.id}`
-                    : `/consultations/${p.id}/report`;
-                const kindLabel =
-                  item.kind === "note" ? "Gravação"
-                  : item.kind === "consultation" ? `Gravação com documento — ${p.template?.name ?? "—"}`
-                  : `Documento — ${p.template?.name ?? "—"}`;
-                const preview =
-                  item.kind === "note"
-                    ? truncate(p.edited_transcription ?? p.raw_transcription)
-                    : item.kind === "document"
-                    ? `Gerado a partir de ${p.source_consultation_ids?.length ?? 0} gravaç${(p.source_consultation_ids?.length ?? 0) === 1 ? "ão" : "ões"}`
-                    : (p.ward?.name ?? "");
+              <div className="relative">
+                <div
+                  className="absolute left-3 top-3 bottom-3 w-px bg-border"
+                  aria-hidden
+                />
+                <ol className="space-y-5">
+                  {(timeline ?? []).map((item) => {
+                    const p = item.payload;
+                    const Icon =
+                      item.kind === "note" ? Mic
+                      : item.kind === "consultation" ? ClipboardList
+                      : FileText;
+                    const targetUrl =
+                      item.kind === "document"
+                        ? `/documents/${p.id}`
+                        : `/consultations/${p.id}/report`;
+                    const kindLabel =
+                      item.kind === "note" ? "Gravação"
+                      : item.kind === "consultation" ? `Gravação com documento — ${p.template?.name ?? "—"}`
+                      : `Documento — ${p.template?.name ?? "—"}`;
+                    const preview =
+                      item.kind === "note"
+                        ? truncate(p.edited_transcription ?? p.raw_transcription)
+                        : item.kind === "document"
+                        ? `Gerado a partir de ${p.source_consultation_ids?.length ?? 0} gravaç${(p.source_consultation_ids?.length ?? 0) === 1 ? "ão" : "ões"}`
+                        : (p.ward?.name ?? "");
 
-                return (
-                  <div
-                    key={`${item.kind}-${item.id}`}
-                    className="flex items-start gap-3 p-3 border rounded-md hover:bg-accent/30 cursor-pointer transition-colors"
-                    onClick={() => navigate(targetUrl)}
-                  >
-                    <div className="mt-0.5 flex-shrink-0">
-                      <Icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium">{kindLabel}</span>
-                        {p.locked_at && <Badge variant="secondary" className="text-xs">bloqueada</Badge>}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {new Date(item.createdAt).toLocaleString("pt-BR")}
-                      </div>
-                      {preview && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {preview}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+                    const date = new Date(item.createdAt);
+                    const dateStr = formatTimelineDate(date);
+                    const timeStr = date.toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+
+                    return (
+                      <li
+                        key={`${item.kind}-${item.id}`}
+                        className="relative pl-10 cursor-pointer group"
+                        onClick={() => navigate(targetUrl)}
+                      >
+                        <div className="absolute left-0 top-1 w-6 h-6 rounded-full bg-primary ring-4 ring-card flex items-center justify-center">
+                          <Icon className="w-3.5 h-3.5 text-primary-foreground" />
+                        </div>
+
+                        <div className="flex items-baseline gap-2 mb-1.5">
+                          <span className="text-base font-semibold text-foreground">
+                            {dateStr}
+                          </span>
+                          <span className="text-foreground/30">·</span>
+                          <span className="text-base font-semibold text-foreground tabular-nums">
+                            {timeStr}
+                          </span>
+                        </div>
+
+                        <div className="p-3 border rounded-md group-hover:bg-accent/30 transition-colors">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium">{kindLabel}</span>
+                            {p.locked_at && (
+                              <Badge variant="secondary" className="text-xs">bloqueada</Badge>
+                            )}
+                          </div>
+                          {preview && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                              {preview}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center gap-2">
-            <History className="w-5 h-5 text-primary" />
+            <ArrowRightLeft className="w-5 h-5 text-primary" />
             <CardTitle className="heading-section">Trajetória entre setores</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
