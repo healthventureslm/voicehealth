@@ -336,8 +336,7 @@ export default function SuperAdminTemplates() {
                       )}
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    v{t.version ?? 1} · atualizado{" "}
-                    {new Date(t.updated_at).toLocaleDateString("pt-BR")}
+                    Atualizado em {new Date(t.updated_at).toLocaleDateString("pt-BR")}
                   </div>
                 </CardContent>
               </Card>

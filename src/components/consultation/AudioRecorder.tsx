@@ -130,7 +130,26 @@ export function AudioRecorder({ onComplete, disabled }: AudioRecorderProps) {
       </div>
 
       {previewUrl && state === "stopped" && (
-        <audio controls src={previewUrl} className="w-full" />
+        <audio
+          controls
+          src={previewUrl}
+          className="w-full"
+          onLoadedMetadata={(e) => {
+            // MediaRecorder em webm não escreve duration no header; o browser
+            // só descobre o tamanho real após escanear o arquivo. Forçamos um
+            // seek pra um ponto além do fim — isso dispara o scan.
+            const a = e.currentTarget;
+            if (!Number.isFinite(a.duration)) {
+              a.currentTime = 1e9;
+            }
+          }}
+          onDurationChange={(e) => {
+            const a = e.currentTarget;
+            if (Number.isFinite(a.duration) && a.currentTime > 0) {
+              a.currentTime = 0;
+            }
+          }}
+        />
       )}
 
       {error && (

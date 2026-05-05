@@ -5,7 +5,6 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Mic, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -97,7 +96,7 @@ export default function DocumentView() {
         hospitalName: patient?.hospital?.name ?? undefined,
         hospitalLogoUrl: patient?.hospital?.logo_url ?? undefined,
         documentTitle: templateName,
-        reportTitle: `${templateName} (v${doc.version})`,
+        reportTitle: templateName,
         filenamePrefix: "documento",
       });
       toast.success("PDF gerado");
@@ -111,12 +110,7 @@ export default function DocumentView() {
       <PageContainer width="narrow">
         <PageHeader
           back
-          title={
-            <span className="flex items-center gap-2 flex-wrap">
-              {doc.template?.name ?? "Documento"}
-              <Badge variant="outline" className="text-xs">v{doc.version}</Badge>
-            </span>
-          }
+          title={doc.template?.name ?? "Documento"}
           subtitle={
             <span className="flex flex-wrap items-center gap-2 text-sm">
               <span>Paciente: <strong>{patient?.full_name ?? "—"}</strong></span>

@@ -137,7 +137,7 @@ export default function ConsultationEdit() {
         if (error || data?.error) {
           throw new Error(data?.error ?? error?.message ?? "Falha ao gerar documento");
         }
-        toast.success(`Transcrição salva e documento gerado (v${data.version})`);
+        toast.success("Transcrição salva e documento gerado");
         setReport(data.content ?? "");
         qc.invalidateQueries({ queryKey: ["clinical_reports", id] });
       } else {
@@ -169,7 +169,7 @@ export default function ConsultationEdit() {
         generated_by: user?.id ?? null,
       });
       if (error) throw error;
-      toast.success(`Relatório salvo (v${nextVersion})`);
+      toast.success("Relatório salvo");
       qc.invalidateQueries({ queryKey: ["clinical_reports", id] });
     } catch (e: any) {
       toast.error(`Erro ao salvar relatório: ${e?.message ?? e}`);
@@ -200,7 +200,7 @@ export default function ConsultationEdit() {
       if (error || data?.error) {
         throw new Error(data?.error ?? error?.message ?? "Falha desconhecida");
       }
-      toast.success(`Nova versão do relatório gerada (v${data.version})`);
+      toast.success("Relatório atualizado");
       setReport(data.content ?? "");
       qc.invalidateQueries({ queryKey: ["clinical_reports", id] });
     } catch (e: any) {
@@ -248,11 +248,11 @@ export default function ConsultationEdit() {
           <CardHeader>
             <CardTitle className="heading-section flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              Relatório clínico {reportVersion > 0 && <span className="text-muted-foreground text-sm font-normal">(v{reportVersion})</span>}
+              Relatório clínico
             </CardTitle>
             <CardDescription>
-              Documento estruturado em markdown. Editar aqui cria automaticamente
-              uma nova versão (versões antigas ficam preservadas no histórico).
+              Documento estruturado em markdown. As edições ficam salvas como
+              versão atual.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -283,7 +283,7 @@ export default function ConsultationEdit() {
             )}
             <div className="flex justify-end">
               <Button onClick={saveReport} disabled={savingReport}>
-                {savingReport ? "Salvando…" : `Salvar relatório (v${reportVersion + 1})`}
+                {savingReport ? "Salvando…" : "Salvar relatório"}
               </Button>
             </div>
           </CardContent>
