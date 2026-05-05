@@ -114,6 +114,7 @@ export default function Dashboard() {
                       <div className="min-w-0">
                         <div className="text-sm font-medium truncate">{p.full_name}</div>
                         <div className="text-xs text-muted-foreground truncate">
+                          {p.medical_record && `Prontuário ${p.medical_record} · `}
                           {p.bed && `Leito ${p.bed} · `}
                           {p.current_ward?.name ?? "—"}
                         </div>
