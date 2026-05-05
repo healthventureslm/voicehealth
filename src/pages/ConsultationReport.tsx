@@ -48,6 +48,8 @@ export default function ConsultationReport() {
         professionalName: profile?.full_name ?? undefined,
         hospitalName: c.hospital?.name ?? undefined,
         hospitalLogoUrl: c.hospital?.logo_url ?? undefined,
+        documentTitle: c.template?.name ?? "Relatório clínico",
+        reportTitle: c.template?.name ?? "Relatório clínico",
       });
       toast.success("PDF gerado");
     } catch (e: any) {
