@@ -178,7 +178,6 @@ export default function PatientHistory() {
                         <span className="text-sm font-medium">
                           {d.template?.name ?? "Documento"}
                         </span>
-                        <Badge variant="outline" className="text-xs">v{d.version}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {new Date(d.generated_at).toLocaleString("pt-BR")} · gerado de {sourceLabel}

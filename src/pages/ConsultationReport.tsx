@@ -137,13 +137,8 @@ export default function ConsultationReport() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="heading-section flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />
-                Relatório clínico (v{latestReport.version})
+                Relatório clínico
               </CardTitle>
-              {(reports ?? []).length > 1 && (
-                <span className="text-xs text-muted-foreground">
-                  {reports!.length} versões
-                </span>
-              )}
             </CardHeader>
             <CardContent>
               <article className="prose prose-sm max-w-none dark:prose-invert">
