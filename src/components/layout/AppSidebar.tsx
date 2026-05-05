@@ -19,9 +19,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const dashboardItem = { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" };
 
 const clinicalNavItems = [
-  { label: "Gerar documento", icon: FileSignature, path: "/documents/new" },
-  { label: "Pacientes", icon: Users, path: "/patients" },
   { label: "Minhas gravações", icon: ClipboardList, path: "/consultations" },
+  { label: "Pacientes", icon: Users, path: "/patients" },
+  { label: "Gerar documento", icon: FileSignature, path: "/documents/new" },
 ];
 
 const adminNavItems = [
@@ -212,7 +212,7 @@ function SidebarContent({
           onClick={() => handleNav(dashboardItem.path)}
         />
 
-        <SectionGroup label="Clinica" collapsed={collapsed}>
+        <SectionGroup label="Clínica" collapsed={collapsed}>
           {clinicalNavItems.map((item) => (
             <NavButton
               key={item.path}
@@ -224,7 +224,7 @@ function SidebarContent({
           ))}
         </SectionGroup>
 
-        <SectionGroup label="Configuracoes" collapsed={collapsed} defaultOpen={false}>
+        <SectionGroup label="Configurações" collapsed={collapsed} defaultOpen={false}>
           {settingsNavItems.map((item) => (
             <NavButton
               key={item.path}
