@@ -12,6 +12,7 @@ import {
 import { AudioRecorder, type RecordingState } from "@/components/consultation/AudioRecorder";
 import { TemplatePicker } from "@/components/consultation/TemplatePicker";
 import { TeleprompterPanel } from "@/components/consultation/TeleprompterPanel";
+import { LiveTranscriptView } from "@/components/consultation/LiveTranscriptView";
 import { useRealtimeTranscription } from "@/hooks/useRealtimeTranscription";
 import { useScriptMatching } from "@/hooks/useScriptMatching";
 import { Button } from "@/components/ui/button";
@@ -395,10 +396,19 @@ export default function NewConsultation() {
                           : ""
                       }
                     >
-                      <AudioRecorder
-                        onComplete={handleAudioComplete}
-                        onStateChange={handleRecordingStateChange}
-                      />
+                      <div className="space-y-3">
+                        <AudioRecorder
+                          onComplete={handleAudioComplete}
+                          onStateChange={handleRecordingStateChange}
+                        />
+                        {speechSupported && activeScript && (
+                          <LiveTranscriptView
+                            transcript={liveTranscript}
+                            interimTranscript={interimTranscript}
+                            isListening={isListening}
+                          />
+                        )}
+                      </div>
                       {activeScript && (
                         <div className="space-y-2">
                           <TeleprompterPanel
