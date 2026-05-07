@@ -65,6 +65,27 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // ═══ v2 brand colors ═══
+        enf: {
+          DEFAULT: "#06B6D4",
+          hover: "#0891B2",
+          deep: "#0E7490",
+          soft: "#ECFEFF",
+        },
+        uti:    { DEFAULT: "#DC2626", soft: "#FEF2F2", text: "#B91C1C" },
+        cc:     { DEFAULT: "#2563EB", soft: "#EFF6FF", text: "#1D4ED8" },
+        ps:     { DEFAULT: "#EA580C", soft: "#FFF7ED", text: "#C2410C" },
+        enfer:  { DEFAULT: "#059669", soft: "#ECFDF5", text: "#047857" },
+        amb:    { DEFAULT: "#7C3AED", soft: "#F5F3FF", text: "#6D28D9" },
+      },
+      boxShadow: {
+        "sm":       "0 1px 2px rgba(15, 23, 42, 0.04)",
+        "md":       "0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04)",
+        "lg":       "0 4px 16px rgba(15, 23, 42, 0.08)",
+        "enf-glow": "0 0 0 4px rgba(6, 182, 212, 0.18)",
+      },
+      backgroundImage: {
+        "gradient-hv": "linear-gradient(90deg, #10E5B5 0%, #06B6D4 35%, #3B82F6 65%, #8B5CF6 100%)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -72,9 +93,17 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ["Fraunces", "Georgia", "serif"],
-        sans:    ["Inter", "system-ui", "sans-serif"],
-        mono:    ["JetBrains Mono", "ui-monospace", "monospace"],
+        // v2: Inter é display + body. Fraunces removida 100% do produto.
+        sans:    ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono:    ["Inter", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      fontWeight: {
+        normal: "400",
+        medium: "500",
+        semibold: "600",
+        bold: "700",
+        extrabold: "800",
       },
       keyframes: {
         "accordion-down": {
@@ -105,10 +134,16 @@ export default {
           "60%": { transform: "scale(0.9)" },
           "100%": { transform: "scale(1)" },
         },
+        voxPulse: {
+          "0%":   { transform: "scale(1)",    opacity: "0.6" },
+          "50%":  { transform: "scale(1.45)", opacity: "0" },
+          "100%": { transform: "scale(1)",    opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "vox-pulse": "voxPulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
     },
   },
