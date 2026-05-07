@@ -20,6 +20,8 @@ import {
 import { Pencil, UserMinus, ShieldAlert, Mail, Copy, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { HospitalUserRow } from "@/hooks/queries";
+import { GradientAvatar } from "@/components/GradientAvatar";
+import { WardChip } from "@/components/WardChip";
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin:    "Super Admin",
@@ -44,6 +46,7 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
 
   const wardName = (id: string) => (wards ?? []).find((w) => w.id === id)?.name ?? id.slice(0, 6);
+  const wardLookup = (id: string) => (wards ?? []).find((w) => w.id === id);
 
   // Filtra equipe por nome / role
   const filteredUsers = (users ?? []).filter((u) => {
@@ -198,20 +201,40 @@ export default function AdminUsers() {
               filteredUsers.map((u) => (
                 <div
                   key={u.user_id}
-                  className="flex items-center justify-between gap-2 p-3 border rounded-md hover:bg-accent/30 transition-colors"
+                  className="flex items-center justify-between gap-3 p-3 border rounded-lg hover:bg-[var(--bg-card-hov)] hover:border-[var(--border-hov)] transition-colors"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">{u.full_name ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
-                      {u.roles.map((r) => (
-                        <Badge key={r} variant="outline">{ROLE_LABEL[r] ?? r}</Badge>
-                      ))}
-                      {u.ward_ids.length > 0 && (
-                        <span>· {u.ward_ids.map((id) => wardName(id)).join(", ")}</span>
-                      )}
-                      {u.ward_ids.length === 0 && (u.roles.includes("doctor") || u.roles.includes("nurse")) && (
-                        <span className="text-yellow-600">⚠ sem setor</span>
-                      )}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <GradientAvatar name={u.full_name ?? ""} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-[14px] truncate">{u.full_name ?? "—"}</div>
+                      <div
+                        className="text-[12px] flex items-center gap-1.5 mt-1 flex-wrap"
+                        style={{ color: "var(--text-soft)" }}
+                      >
+                        {u.roles.map((r) => (
+                          <span
+                            key={r}
+                            className="inline-flex items-center px-2 py-[2px] rounded-md text-[11px] font-semibold"
+                            style={{
+                              background: "var(--bg-card-hov)",
+                              color: "var(--text-soft)",
+                            }}
+                          >
+                            {ROLE_LABEL[r] ?? r}
+                          </span>
+                        ))}
+                        {u.ward_ids.map((id) => {
+                          const w = wardLookup(id);
+                          return w ? (
+                            <WardChip key={id} type={w.ward_type} label={w.name} />
+                          ) : (
+                            <span key={id} className="text-[11px]">{wardName(id)}</span>
+                          );
+                        })}
+                        {u.ward_ids.length === 0 && (u.roles.includes("doctor") || u.roles.includes("nurse")) && (
+                          <span className="text-[11px]" style={{ color: "var(--ps-text)" }}>⚠ sem setor</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">

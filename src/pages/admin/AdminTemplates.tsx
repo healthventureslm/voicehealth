@@ -157,7 +157,7 @@ export default function AdminTemplates() {
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openNew} className="gap-2">
+              <Button onClick={openNew} className="gap-2 bg-enf hover:bg-enf-hover text-white shadow-sm font-semibold">
                 <Plus className="w-4 h-4" /> Novo template
               </Button>
             </DialogTrigger>

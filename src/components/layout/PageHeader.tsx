@@ -4,19 +4,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 /**
- * Header padrão de página.
+ * Header padrão de página (v2 — Inter, sentence case).
  *
- * Estrutura:
- * - Botão "Voltar" opcional (no topo, à esquerda)
- * - Eyebrow opcional (mono uppercase)
- * - h1 com .heading-page (Fraunces Light)
- * - Subtitle opcional (texto secundário)
- * - Slot `actions` à direita (botões/CTAs)
+ * - `variant="greeting"` → 30px (Dashboard).
+ * - `variant="page"` (default) → 24px (telas internas).
+ * - Eyebrow: Inter 12px Medium, sentence case (não mono uppercase).
  *
  * Uso:
  *   <PageHeader title="Pacientes" />
- *   <PageHeader title="Pacientes" subtitle="Nos seus setores" actions={<Button>Novo</Button>} />
- *   <PageHeader title="Atendimento" eyebrow="Em andamento" back />
+ *   <PageHeader variant="greeting" eyebrow="Hoje · Quinta-feira, 7 de maio" title="Olá, Marco" />
  */
 export function PageHeader({
   title,
@@ -26,6 +22,7 @@ export function PageHeader({
   actions,
   back,
   backTo,
+  variant = "page",
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -34,8 +31,10 @@ export function PageHeader({
   actions?: ReactNode;
   back?: boolean;
   backTo?: string;
+  variant?: "page" | "greeting";
 }) {
   const navigate = useNavigate();
+  const titleClass = variant === "greeting" ? "text-greeting" : "heading-page";
 
   return (
     <div className="space-y-4">
@@ -52,13 +51,25 @@ export function PageHeader({
 
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          {eyebrow && <p className="hv-eyebrow mb-2">{eyebrow}</p>}
-          <h1 className="heading-page flex items-center gap-3">
-            {icon && <span className="text-primary">{icon}</span>}
+          {eyebrow && (
+            <p
+              className="text-[12px] font-medium mb-[6px]"
+              style={{ color: "var(--text-muted)" }}
+            >
+              {eyebrow}
+            </p>
+          )}
+          <h1 className={`${titleClass} flex items-center gap-3`}>
+            {icon && <span className="text-enf">{icon}</span>}
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+            <p
+              className="text-sm mt-1"
+              style={{ color: "var(--text-soft)" }}
+            >
+              {subtitle}
+            </p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}

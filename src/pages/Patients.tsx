@@ -7,17 +7,18 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePatients, useCreatePatient, useMyWards, useWards } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { GradientAvatar } from "@/components/GradientAvatar";
+import { WardChip } from "@/components/WardChip";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, UserCircle2 } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Patients() {
@@ -105,7 +106,7 @@ export default function Patients() {
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 bg-enf hover:bg-enf-hover text-white shadow-sm font-semibold">
                 <Plus className="w-4 h-4" /> Novo paciente
               </Button>
             </DialogTrigger>
@@ -225,23 +226,27 @@ export default function Patients() {
               {filtered.map((p) => (
               <Card
                 key={p.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
+                className="cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all"
                 onClick={() => navigate(`/patients/${p.id}/history`)}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="heading-card flex items-center gap-2">
-                    <UserCircle2 className="w-5 h-5 text-primary" />
-                    {p.full_name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-1">
-                  {p.medical_record && <div>Prontuário: {p.medical_record}</div>}
-                  {p.bed && <div>Leito: {p.bed}</div>}
-                  {p.current_ward && (
-                    <Badge variant="outline" className="mt-2">
-                      {p.current_ward.name}
-                    </Badge>
-                  )}
+                <CardContent className="p-4 flex items-start gap-3">
+                  <GradientAvatar name={p.full_name} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-semibold truncate">{p.full_name}</div>
+                    <div
+                      className="text-[12px] mt-1 flex items-center gap-1.5 flex-wrap"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {p.medical_record && <span>PRT {p.medical_record}</span>}
+                      {p.medical_record && p.bed && <span>·</span>}
+                      {p.bed && <span>Leito {p.bed}</span>}
+                    </div>
+                    {p.current_ward?.type && (
+                      <div className="mt-2">
+                        <WardChip type={p.current_ward.type} label={p.current_ward.name ?? undefined} />
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
