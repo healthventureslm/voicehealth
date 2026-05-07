@@ -7,9 +7,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   usePatients, useCreateConsultation, useUpdateConsultation,
+  useConsultationScripts, useTemplates,
 } from "@/hooks/queries";
-import { AudioRecorder } from "@/components/consultation/AudioRecorder";
+import { AudioRecorder, type RecordingState } from "@/components/consultation/AudioRecorder";
 import { TemplatePicker } from "@/components/consultation/TemplatePicker";
+import { TeleprompterPanel } from "@/components/consultation/TeleprompterPanel";
+import { LiveTranscriptView } from "@/components/consultation/LiveTranscriptView";
+import { useRealtimeTranscription } from "@/hooks/useRealtimeTranscription";
+import { useScriptMatching } from "@/hooks/useScriptMatching";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -235,6 +240,51 @@ export default function NewConsultation() {
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
+  // Roteiro/teleprompter — pareia com o template selecionado (por nome)
+  const { data: templates } = useTemplates({ wardType, role });
+  const selectedTemplate = useMemo(
+    () => (templates ?? []).find((t) => t.id === templateId) ?? null,
+    [templates, templateId],
+  );
+  const { data: scripts } = useConsultationScripts({
+    wardType,
+    templateName: selectedTemplate?.name,
+  });
+  const activeScript = useMemo(() => {
+    if (!selectedTemplate || !scripts || scripts.length === 0) return null;
+    // Match exato por nome (pareamento 1:1 com template)
+    return scripts.find((s) => s.name === selectedTemplate.name) ?? null;
+  }, [selectedTemplate, scripts]);
+
+  // Transcrição em tempo real (Web Speech API) — só pra UX, não substitui Whisper
+  const {
+    transcript: liveTranscript,
+    interimTranscript,
+    isListening,
+    isSupported: speechSupported,
+    start: startListening,
+    stop: stopListening,
+    reset: resetTranscript,
+  } = useRealtimeTranscription("pt-BR");
+
+  const matchedFields = useScriptMatching(
+    activeScript?.fields ?? null,
+    `${liveTranscript} ${interimTranscript}`,
+  );
+
+  // Liga/desliga reconhecimento conforme estado da gravação
+  function handleRecordingStateChange(s: RecordingState) {
+    if (!activeScript || !speechSupported) return;
+    if (s === "recording") {
+      if (!isListening) {
+        resetTranscript();
+        startListening();
+      }
+    } else if (s === "paused" || s === "stopped" || s === "idle") {
+      if (isListening) stopListening();
+    }
+  }
+
   return (
     <AppLayout>
       <PageContainer>
@@ -339,7 +389,42 @@ export default function NewConsultation() {
                       </span>
                     </div>
                   ) : (
-                    <AudioRecorder onComplete={handleAudioComplete} />
+                    <div
+                      className={
+                        activeScript
+                          ? "grid gap-4 lg:grid-cols-[1fr_360px]"
+                          : ""
+                      }
+                    >
+                      <div className="space-y-3">
+                        <AudioRecorder
+                          onComplete={handleAudioComplete}
+                          onStateChange={handleRecordingStateChange}
+                        />
+                        {speechSupported && activeScript && (
+                          <LiveTranscriptView
+                            transcript={liveTranscript}
+                            interimTranscript={interimTranscript}
+                            isListening={isListening}
+                          />
+                        )}
+                      </div>
+                      {activeScript && (
+                        <div className="space-y-2">
+                          <TeleprompterPanel
+                            scriptName={activeScript.name}
+                            fields={matchedFields}
+                            isListening={isListening}
+                          />
+                          {!speechSupported && (
+                            <p className="text-xs text-muted-foreground px-1">
+                              Transcrição em tempo real indisponível neste navegador.
+                              Use Chrome ou Edge para ver os pontos sendo riscados conforme você fala.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </TabsContent>
 

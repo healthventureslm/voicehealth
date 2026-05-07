@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, Pause, Play, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export type RecordingState = "idle" | "recording" | "paused" | "stopped";
+
 interface AudioRecorderProps {
   onComplete: (blob: Blob, durationSeconds: number) => void;
+  onStateChange?: (state: RecordingState) => void;
   disabled?: boolean;
 }
-
-type RecordingState = "idle" | "recording" | "paused" | "stopped";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -16,8 +17,12 @@ function formatDuration(seconds: number) {
   return `${m}:${s}`;
 }
 
-export function AudioRecorder({ onComplete, disabled }: AudioRecorderProps) {
+export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioRecorderProps) {
   const [state, setState] = useState<RecordingState>("idle");
+
+  useEffect(() => {
+    onStateChange?.(state);
+  }, [state, onStateChange]);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

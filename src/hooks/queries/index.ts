@@ -21,6 +21,8 @@ export {
   useCreateDocumentFromNotes,
 } from "./useConsultations";
 export { useTemplates } from "./useTemplates";
+export { useConsultationScripts } from "./useConsultationScripts";
+export type { ConsultationScript } from "./useConsultationScripts";
 export {
   useHospitalUsers,
   useSetUserWards,
