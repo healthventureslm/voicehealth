@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" font-family="Inter, -apple-system, system-ui, sans-serif">
+  <!-- VoxFlow master (sem módulo) — produto base. Cor roxa.
+       Provisório — confirmar hex oficial (~#5B5BD6) com Marco. -->
+
+  <!-- Símbolo: quadrado roxo com ícone de waveform -->
+  <rect x="0" y="4" width="72" height="72" rx="14" fill="#6366F1"/>
+  <g stroke="white" stroke-width="5" stroke-linecap="round">
+    <line x1="22" y1="34" x2="22" y2="46"/>
+    <line x1="32" y1="26" x2="32" y2="54"/>
+    <line x1="42" y1="18" x2="42" y2="62"/>
+    <line x1="52" y1="26" x2="52" y2="54"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="86" y="50" font-size="32" font-weight="800" letter-spacing="-0.7" fill="#0F172A">VoxFlow</text>
+</svg>

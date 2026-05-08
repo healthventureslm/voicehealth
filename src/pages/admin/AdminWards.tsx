@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { WardChip } from "@/components/WardChip";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -132,7 +133,7 @@ export default function AdminWards() {
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openNew} className="gap-2">
+              <Button onClick={openNew} className="gap-2 bg-enf hover:bg-enf-hover text-white shadow-sm font-semibold">
                 <Plus className="w-4 h-4" /> Novo setor
               </Button>
             </DialogTrigger>
@@ -217,15 +218,17 @@ export default function AdminWards() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {myWards.map((w) => {
-              const typeLabel = WARD_TYPES.find((t) => t.value === w.ward_type)?.label ?? w.ward_type;
               return (
-                <Card key={w.id}>
+                <Card key={w.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4 flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-medium">{w.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                        <Badge variant="outline">{typeLabel}</Badge>
-                        <span>{w.bed_count} leitos</span>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-[14px]">{w.name}</div>
+                      <div
+                        className="text-[12px] mt-1.5 flex items-center gap-2 flex-wrap"
+                        style={{ color: "var(--text-soft)" }}
+                      >
+                        <WardChip type={w.ward_type} />
+                        <span>{w.bed_count} {w.bed_count === 1 ? "leito" : "leitos"}</span>
                         {!w.is_active && <Badge variant="secondary">inativo</Badge>}
                       </div>
                     </div>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" font-family="Inter, -apple-system, system-ui, sans-serif">
+  <!-- HealthVentures wordmark — pra fundo claro (light mode) -->
+  <defs>
+    <linearGradient id="hvGradLight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#10E5B5"/>
+      <stop offset="35%"  stop-color="#06B6D4"/>
+      <stop offset="65%"  stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+
+  <text x="0" y="115" font-size="120" font-weight="800" letter-spacing="-3" fill="#0F172A">Health</text>
+  <text x="368" y="115" font-size="120" font-weight="800" letter-spacing="-3" fill="url(#hvGradLight)">Ventures</text>
+</svg>

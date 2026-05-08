@@ -3,96 +3,120 @@
 @tailwind utilities;
 
 /* ════════════════════════════════════════════════════════════════════
-   Health Ventures · Brand System V1.2
-   VoiceHealth — produto filho · acento Sage (#A8C5B5)
-   Canvas escuro como padrão. Sem light mode.
+   VoxFlow Enfermagem · Brand Tokens v2 (Light mode)
+   Última atualização: 2026-05-07
+   Aprovador: Marco Torelly
+   Fonte de verdade: Handoff Dev/01-decisoes.md + tokens.css
    ════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* ── HV brand vars (raw hex pra usar em estilos diretos) ── */
-    --hv-bg:             #1A1A1F;
-    --hv-card:           #2A2A33;
-    --hv-text-primary:   #FFFFFF;
-    --hv-text-secondary: #C0C9DF;
-    --hv-text-muted:     #7A8298;
+    /* ──────────────── Brand vars (raw hex) ──────────────── */
+    /* Backgrounds */
+    --bg:             #F7F8FA;
+    --bg-elev:        #FFFFFF;
+    --bg-card-hov:    #F2F4F7;
 
-    --hv-primary:        #4D65FF;
-    --hv-primary-deep:   #1954EC;
-    --hv-cyan:           #46CDFF;
+    /* Texto */
+    --text:           #0F172A;
+    --text-soft:      #475569;
+    --text-muted:     #94A3B8;
 
-    --hv-coral:          #FF6B5B;
-    --hv-sage:           #A8C5B5;
-    --hv-sun:            #FFD060;
+    /* Borders & shadows */
+    --border-color:   #E5E7EB;
+    --border-hov:     #CBD5E1;
+    --shadow-sm:      0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md:      0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-lg:      0 4px 16px rgba(15, 23, 42, 0.08);
 
-    /* Acento do produto VoiceHealth */
-    --hv-accent:         var(--hv-sage);
+    /* Primary — VoxFlow Enfermagem (ciano) — TODO Confirmar hex oficial */
+    --enf:            #06B6D4;
+    --enf-hover:      #0891B2;
+    --enf-deep:       #0E7490;
+    --enf-soft:       #ECFEFF;
+    --enf-glow:       rgba(6, 182, 212, 0.18);
+
+    /* Setores */
+    --uti:    #DC2626;  --uti-soft:   #FEF2F2;  --uti-text:   #B91C1C;
+    --cc:     #2563EB;  --cc-soft:    #EFF6FF;  --cc-text:    #1D4ED8;
+    --ps:     #EA580C;  --ps-soft:    #FFF7ED;  --ps-text:    #C2410C;
+    --enfer:  #059669;  --enfer-soft: #ECFDF5;  --enfer-text: #047857;
+    --amb:    #7C3AED;  --amb-soft:   #F5F3FF;  --amb-text:   #6D28D9;
+
+    /* Gradiente HealthVentures (sublogo only) */
+    --gradient-hv: linear-gradient(90deg,
+      #10E5B5 0%,
+      #06B6D4 35%,
+      #3B82F6 65%,
+      #8B5CF6 100%);
 
     /* Tipografia */
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-body:    'Inter', system-ui, -apple-system, sans-serif;
-    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono:    'Inter', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    /* ── Tokens de shadcn/ui (em HSL p/ Tailwind) ── */
+    /* ──────────────── shadcn/ui tokens em HSL ──────────────── */
 
-    /* Charcoal #1A1A1F  → 240 8% 11% */
-    --background: 240 8% 11%;
-    --foreground: 0 0% 100%;
+    /* #F7F8FA → 220 17% 98% */
+    --background: 220 17% 98%;
+    /* #0F172A → 222 47% 11% */
+    --foreground: 222 47% 11%;
 
-    /* Card  #2A2A33  → 240 9% 18% */
-    --card: 240 9% 18%;
-    --card-foreground: 0 0% 100%;
+    /* Card branco puro */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 240 9% 18%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Sage #A8C5B5  → 144 24% 73% */
-    --primary: 144 24% 73%;
-    --primary-foreground: 240 8% 11%;
+    /* Primary — Ciano #06B6D4 → 189 94% 43% */
+    --primary: 189 94% 43%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary igual à primary, mas vamos manter neutro */
-    --secondary: 240 9% 22%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary — slate suave */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    /* Muted (texto secundário muted) — Muted Gray #7A8298 → 224 11% 54% */
-    --muted: 240 9% 18%;
-    --muted-foreground: 224 11% 54%;
+    /* Muted — texto secundário */
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent — Sage variante para hover/realce */
-    --accent: 240 9% 22%;
-    --accent-foreground: 144 24% 73%;
+    /* Accent — cyan-soft #ECFEFF → 183 100% 96% */
+    --accent: 183 100% 96%;
+    --accent-foreground: 192 91% 25%;
 
-    /* Destructive — coral suave */
-    --destructive: 6 100% 68%;
+    /* Destructive — UTI red #DC2626 → 0 73% 50% */
+    --destructive: 0 73% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Warning — Sun #FFD060 → 45 100% 69% */
-    --warning: 45 100% 69%;
-    --warning-foreground: 240 8% 11%;
+    /* Warning — laranja #EA580C → 21 90% 48% */
+    --warning: 21 90% 48%;
+    --warning-foreground: 0 0% 100%;
 
-    --success: 144 24% 73%;
-    --success-foreground: 240 8% 11%;
+    /* Success — Enfermaria emerald #059669 → 161 94% 30% */
+    --success: 161 94% 30%;
+    --success-foreground: 0 0% 100%;
 
-    /* Border bem sutil sobre o card */
-    --border: 240 5% 30%;
-    --input: 240 9% 22%;
-    --ring: 144 24% 73%;
+    /* #E5E7EB → 220 13% 91% */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 189 94% 43%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
-    /* Sidebar — fundo levemente mais escuro que o card */
-    --sidebar-background: 240 8% 11%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 144 24% 73%;
-    --sidebar-primary-foreground: 240 8% 11%;
-    --sidebar-accent: 240 9% 18%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 5% 22%;
-    --sidebar-ring: 144 24% 73%;
+    /* Sidebar — branco como cards */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 189 94% 43%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 183 100% 96%;
+    --sidebar-accent-foreground: 192 91% 25%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 189 94% 43%;
   }
 
-  /* Forçar dark-only — ignoramos qualquer toggle .dark / .light */
-  html { color-scheme: dark; }
+  /* Light mode é o padrão. Sem dark mode condicional nesse sprint. */
+  html { color-scheme: light; }
 }
 
 @layer base {
@@ -103,106 +127,125 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    /* Inter character variants — números mais legíveis */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Headings em Fraunces (display serif) */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-  }
-
-  /* H1 grandes ficam Light pra dar leveza editorial */
-  h1 {
-    font-weight: 300;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
   }
 
   code, pre, kbd {
     font-family: var(--font-mono);
   }
+
+  /* Foco acessível padrão */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  /* prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {
-  /* ── Logo wordmark (compartilhado entre todas as telas) ── */
-  .hv-wordmark {
-    font-family: var(--font-display);
-    font-weight: 300;
-    letter-spacing: -0.01em;
-    color: var(--hv-text-primary);
-  }
-  .hv-wordmark em {
-    font-style: italic;
-    color: var(--hv-accent);
-  }
-  .hv-byline {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--hv-text-muted);
-  }
+  /* ══════════════════════════════════════════════════
+     Tipografia — escala canônica v2
+     ══════════════════════════════════════════════════ */
+  .text-greeting       { font: 700 30px/1.2  var(--font-body); letter-spacing: -0.025em; }
+  .text-h2             { font: 700 24px/1.25 var(--font-body); letter-spacing: -0.02em; }
+  .text-section        { font: 600 16px/1.3  var(--font-body); letter-spacing: -0.015em; }
+  .text-kpi-value      { font: 700 32px/1    var(--font-body); letter-spacing: -0.03em; }
+  .text-kpi-label      { font: 500 12px/1.4  var(--font-body); }
+  .text-body-md        { font: 500 14px/1.4  var(--font-body); }
+  .text-meta           { font: 400 12px/1.4  var(--font-body); color: var(--text-muted); }
+  .text-eyebrow        { font: 500 12px/1.4  var(--font-body); color: var(--text-muted); }
+  .text-label-section  { font: 600 11px/1.4  var(--font-body); color: var(--text-muted); }
 
-  /* ── Eyebrow label (seções, metadados, KPIs) ── */
-  .hv-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--hv-text-muted);
-    font-weight: 500;
-  }
+  /* ══════════════════════════════════════════════════
+     Headings de página (compat com componentes existentes)
+     ══════════════════════════════════════════════════ */
+  .heading-page    { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; line-height: 1.25; }
+  .heading-section { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: -0.015em; }
+  .heading-card    { font-family: var(--font-body); font-weight: 600; font-size: 16px; letter-spacing: -0.015em; }
+  .heading-label   { font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--text-muted); }
 
-  /* ── Card padrão HV ── */
-  .hv-card {
-    background: var(--hv-card);
-    border: 1px solid rgb(255 255 255 / 0.06);
-    border-radius: 12px;
-  }
-
-  /* ── Glass card mais sutil (depth, não cor) ── */
-  .glass-card {
-    background: rgb(42 42 51 / 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgb(255 255 255 / 0.06);
-  }
-
-  /* ── Headings de página ── */
-  .heading-page {
-    font-family: var(--font-display);
-    font-weight: 300;
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
-    letter-spacing: -0.015em;
-    line-height: 1.1;
-  }
-  .heading-section {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: 1.25rem;
-    letter-spacing: -0.01em;
-  }
-  .heading-card {
-    font-family: var(--font-body);
-    font-weight: 600;
-    font-size: 1rem;
-  }
-  .heading-label {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--hv-text-muted);
-  }
-
-  /* ── Number / data style (KPIs grandes) ── */
   .hv-stat {
-    font-family: var(--font-display);
-    font-weight: 300;
-    font-size: 2.5rem;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 32px;
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
+
+  /* ══════════════════════════════════════════════════
+     Pulse de gravação (botão Nova gravação)
+     ══════════════════════════════════════════════════ */
+  .pulse-dot {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+  }
+  .pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1.5px solid white;
+    opacity: 0.6;
+    animation: vox-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes vox-pulse {
+    0%   { transform: scale(1);    opacity: 0.6; }
+    50%  { transform: scale(1.45); opacity: 0;   }
+    100% { transform: scale(1);    opacity: 0;   }
+  }
+
+  /* ══════════════════════════════════════════════════
+     Sublogo HealthVentures (gradiente em "Ventures")
+     ══════════════════════════════════════════════════ */
+  .hv-ventures-gradient {
+    background: var(--gradient-hv);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  @supports not (background-clip: text) {
+    .hv-ventures-gradient {
+      color: var(--enf);
+      background: none;
+      -webkit-text-fill-color: currentColor;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════
+     Avatares — gradientes rotativos pelo nome
+     ══════════════════════════════════════════════════ */
+  .av-1  { background: linear-gradient(135deg, #F87171 0%, #DC2626 100%); }
+  .av-2  { background: linear-gradient(135deg, #60A5FA 0%, #2563EB 100%); }
+  .av-3  { background: linear-gradient(135deg, #FB923C 0%, #EA580C 100%); }
+  .av-4  { background: linear-gradient(135deg, #34D399 0%, #059669 100%); }
+  .av-5  { background: linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%); }
+  .av-6  { background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%); }
+  .av-me { background: linear-gradient(135deg, #6366F1 0%, #06B6D4 100%); }
 }
