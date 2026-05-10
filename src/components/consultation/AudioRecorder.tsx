@@ -1,15 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Pause, Play, Trash2 } from "lucide-react";
+import { Mic, Square, Pause, Play, Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type RecordingState = "idle" | "recording" | "paused" | "stopped";
+export type RecordingState =
+  | "idle"
+  | "recording"
+  | "paused"      // pausa rápida — sem preview, só resume
+  | "reviewing"   // pausa pra revisar — preview + 3 ações (continuar/usar/descartar)
+  | "stopped";    // mantido só pra retrocompatibilidade externa (não usado internamente)
 
 interface AudioRecorderProps {
   onComplete: (blob: Blob, durationSeconds: number) => void;
   onStateChange?: (state: RecordingState) => void;
   disabled?: boolean;
 }
+
+type StopIntent = "none" | "confirm" | "discard";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -19,37 +26,55 @@ function formatDuration(seconds: number) {
 
 export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioRecorderProps) {
   const [state, setState] = useState<RecordingState>("idle");
-
-  useEffect(() => {
-    onStateChange?.(state);
-  }, [state, onStateChange]);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // Notifica consumidor a cada mudança de estado
+  useEffect(() => {
+    onStateChange?.(state);
+  }, [state, onStateChange]);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const blobRef = useRef<Blob | null>(null);
+  const durationRef = useRef(0); // sincronizado com state.duration; usado em closures
+  const previewUrlRef = useRef<string | null>(null); // idem, pra usar em onstop
+  const intentRef = useRef<StopIntent>("none");
 
   // Cleanup ao desmontar
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop());
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+    timerRef.current = setInterval(() => {
+      durationRef.current += 1;
+      setDuration(durationRef.current);
+    }, 1000);
   };
   const stopTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
   };
+
+  function setPreview(url: string | null) {
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
+  }
+
+  function buildPreviewFromChunks() {
+    if (chunksRef.current.length === 0) return;
+    const mimeType = chunksRef.current[0].type || "audio/webm";
+    const blob = new Blob(chunksRef.current, { type: mimeType });
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    setPreview(URL.createObjectURL(blob));
+  }
 
   async function start() {
     setError(null);
@@ -63,18 +88,30 @@ export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioReco
 
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       chunksRef.current = [];
+      durationRef.current = 0;
 
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType || "audio/webm" });
-        blobRef.current = blob;
-        setPreviewUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return URL.createObjectURL(blob);
-        });
+        // Tracks só são liberadas em finalize/discard — não no review
         stream.getTracks().forEach((t) => t.stop());
+
+        const intent = intentRef.current;
+        intentRef.current = "none";
+
+        if (intent === "confirm") {
+          const blob = new Blob(chunksRef.current, { type: mimeType || "audio/webm" });
+          onComplete(blob, durationRef.current);
+        } else if (intent === "discard") {
+          if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+          setPreview(null);
+          chunksRef.current = [];
+          durationRef.current = 0;
+          setDuration(0);
+          setState("idle");
+        }
+        // intent "none" — nunca acontece com o fluxo novo (review usa pause, não stop)
       };
 
       mr.start(250);
@@ -97,21 +134,66 @@ export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioReco
     startTimer();
     setState("recording");
   }
-  function stop() {
-    mediaRecorderRef.current?.stop();
+
+  /**
+   * "Parar" / "Finalizar" → vai pra estado de revisão sem encerrar o stream.
+   * O usuário pode continuar gravando (resumeFromReview), usar (finalize) ou descartar.
+   * Usa `requestData()` pra forçar flush dos chunks bufferados antes de montar o preview.
+   */
+  async function review() {
+    const mr = mediaRecorderRef.current;
+    if (!mr) return;
+    if (mr.state === "recording") mr.pause();
     stopTimer();
-    setState("stopped");
+    try {
+      // Flush — garante que chunks recentes apareçam no preview
+      mr.requestData();
+      await new Promise<void>((r) => setTimeout(r, 80));
+    } catch {
+      // Em alguns browsers requestData lança se já estiver inactive — ignora
+    }
+    buildPreviewFromChunks();
+    setState("reviewing");
   }
+
+  function resumeFromReview() {
+    const mr = mediaRecorderRef.current;
+    if (!mr) return;
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    setPreview(null);
+    if (mr.state === "paused") mr.resume();
+    setState("recording");
+    startTimer();
+  }
+
+  function finalize() {
+    const mr = mediaRecorderRef.current;
+    if (!mr) {
+      // Sem recorder ativo — usa preview já existente (não deve ocorrer)
+      return;
+    }
+    intentRef.current = "confirm";
+    if (mr.state !== "inactive") {
+      mr.stop(); // dispara onstop, que chama onComplete com blob completo
+    }
+    stopTimer();
+  }
+
   function discard() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    blobRef.current = null;
-    chunksRef.current = [];
-    setDuration(0);
-    setState("idle");
-  }
-  function confirm() {
-    if (blobRef.current) onComplete(blobRef.current, duration);
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") {
+      intentRef.current = "discard";
+      mr.stop(); // onstop limpa tudo
+    } else {
+      // Recorder já parou ou nunca existiu — limpa direto
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      setPreview(null);
+      chunksRef.current = [];
+      durationRef.current = 0;
+      setDuration(0);
+      setState("idle");
+    }
+    stopTimer();
   }
 
   return (
@@ -130,11 +212,11 @@ export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioReco
           {state === "idle" && "Pronto pra gravar"}
           {state === "recording" && "Gravando…"}
           {state === "paused" && "Pausado"}
-          {state === "stopped" && "Gravação finalizada"}
+          {state === "reviewing" && "Revisando — você pode continuar gravando"}
         </span>
       </div>
 
-      {previewUrl && state === "stopped" && (
+      {previewUrl && state === "reviewing" && (
         <audio
           controls
           src={previewUrl}
@@ -172,7 +254,7 @@ export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioReco
             <Button onClick={pause} variant="outline" className="gap-2">
               <Pause className="w-4 h-4" /> Pausar
             </Button>
-            <Button onClick={stop} variant="destructive" className="gap-2">
+            <Button onClick={review} variant="destructive" className="gap-2">
               <Square className="w-4 h-4" /> Parar
             </Button>
           </>
@@ -182,15 +264,18 @@ export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioReco
             <Button onClick={resume} className="gap-2">
               <Play className="w-4 h-4" /> Continuar
             </Button>
-            <Button onClick={stop} variant="destructive" className="gap-2">
-              <Square className="w-4 h-4" /> Finalizar
+            <Button onClick={review} variant="destructive" className="gap-2">
+              <Square className="w-4 h-4" /> Parar
             </Button>
           </>
         )}
-        {state === "stopped" && (
+        {state === "reviewing" && (
           <>
-            <Button onClick={confirm} className="gap-2">
-              Usar esta gravação
+            <Button onClick={resumeFromReview} variant="outline" className="gap-2">
+              <Mic className="w-4 h-4" /> Continuar gravando
+            </Button>
+            <Button onClick={finalize} className="gap-2">
+              <Check className="w-4 h-4" /> Usar esta gravação
             </Button>
             <Button onClick={discard} variant="ghost" className="gap-2">
               <Trash2 className="w-4 h-4" /> Descartar

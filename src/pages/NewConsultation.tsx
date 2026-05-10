@@ -280,7 +280,7 @@ export default function NewConsultation() {
         resetTranscript();
         startListening();
       }
-    } else if (s === "paused" || s === "stopped" || s === "idle") {
+    } else if (s === "paused" || s === "stopped" || s === "reviewing" || s === "idle") {
       if (isListening) stopListening();
     }
   }
