@@ -23,8 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { FileText, Loader2, ChevronDown, FileSignature } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Enums } from "@/integrations/supabase/types";
 
@@ -238,7 +237,6 @@ export default function NewConsultation() {
     }
   }
 
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Roteiro/teleprompter — pareia com o template selecionado (por nome)
   const { data: templates } = useTemplates({ wardType, role });
@@ -290,12 +288,8 @@ export default function NewConsultation() {
       <PageContainer>
         <PageHeader
           back
-          title={templateId ? "Nova gravação com documento" : "Nova gravação"}
-          subtitle={
-            templateId
-              ? "Gravação vinculada a um template — gera documento estruturado ao final."
-              : "Grave o que está acontecendo com o paciente. Depois você pode gerar qualquer documento a partir das gravações."
-          }
+          title="Nova gravação"
+          subtitle="Selecione o paciente e o template do documento que vai gerar — o teleprompter mostra o que precisa ser falado."
         />
 
         <Card>
@@ -325,28 +319,16 @@ export default function NewConsultation() {
               )}
             </div>
 
-            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-              <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${advancedOpen ? "rotate-0" : "-rotate-90"}`}
-                />
-                <FileSignature className="w-4 h-4" />
-                Gerar documento estruturado agora (opcional)
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3">
-                <p className="text-xs text-muted-foreground mb-3">
-                  Por padrão, gravar salva uma <strong>gravação livre</strong> na linha do tempo
-                  do paciente. Selecione um template aqui se quiser gerar um documento
-                  imediatamente desta gravação específica.
-                </p>
-                <TemplatePicker
-                  value={templateId}
-                  onChange={setTemplateId}
-                  wardType={wardType}
-                  role={role}
-                />
-              </CollapsibleContent>
-            </Collapsible>
+            <TemplatePicker
+              value={templateId}
+              onChange={setTemplateId}
+              wardType={wardType}
+              role={role}
+              required
+            />
+            <p className="text-xs text-muted-foreground -mt-1">
+              Define o documento que vai ser gerado a partir desta gravação.
+            </p>
           </CardContent>
         </Card>
 
@@ -364,11 +346,20 @@ export default function NewConsultation() {
           </Card>
         )}
 
-        {selectedPatient && canAttendPatient && (
+        {selectedPatient && canAttendPatient && !templateId && (
+          <Card className="border-dashed">
+            <CardContent className="py-6 text-sm text-muted-foreground text-center">
+              Selecione um <strong>template</strong> acima pra começar a gravação.
+              O roteiro do teleprompter aparece de acordo com o template escolhido.
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedPatient && canAttendPatient && templateId && (
           <Card>
             <CardHeader>
               <CardTitle className="heading-card">
-                {templateId ? "Conteúdo da gravação" : "Gravação"}
+                Conteúdo da gravação
               </CardTitle>
             </CardHeader>
             <CardContent>
