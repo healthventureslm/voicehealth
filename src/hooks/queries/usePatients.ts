@@ -5,9 +5,9 @@ import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase
 type Patient = Tables<"patients">;
 
 /**
- * Lista pacientes visíveis ao usuário.
- * RLS já filtra automaticamente: ward-scoped pra doctor/nurse,
- * hospital inteiro pra hospital_admin/auditor.
+ * Lista pacientes visíveis ao usuário com dados completos (prontuário, leito,
+ * etc). RLS de `patients` restringe: doctor/nurse só vê pacientes em setor
+ * onde tem ward_assignment ativo; admin/auditor vê o hospital inteiro.
  */
 export function usePatients() {
   return useQuery({
@@ -20,6 +20,35 @@ export function usePatients() {
         .order("full_name", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Array<Patient & { current_ward: { id: string; name: string; ward_type: string } | null }>;
+    },
+  });
+}
+
+/**
+ * Diretório leve de pacientes do hospital inteiro — só nome + setor + status.
+ * Usado pra mostrar a listagem completa de pacientes do hospital pra qualquer
+ * membro, sem expor dados clínicos sensíveis (prontuário, leito, DOB).
+ *
+ * Pacientes "fora do meu setor" só aparecem aqui — pra dados completos é
+ * preciso estar no setor (RLS de `patients`).
+ */
+export type PatientDirectoryEntry = {
+  id: string;
+  hospital_id: string;
+  full_name: string;
+  current_ward_id: string | null;
+  admission_status: "admitted" | "discharged" | "transferred";
+  ward_name: string | null;
+  ward_type: string | null;
+};
+
+export function usePatientsDirectory() {
+  return useQuery({
+    queryKey: ["patients_directory"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_hospital_patients");
+      if (error) throw error;
+      return (data ?? []) as PatientDirectoryEntry[];
     },
   });
 }
@@ -54,6 +83,7 @@ export function useCreatePatient() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
     },
   });
 }
@@ -73,6 +103,7 @@ export function useUpdatePatient() {
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
       qc.invalidateQueries({ queryKey: ["patient", vars.id] });
     },
   });
@@ -97,6 +128,7 @@ export function useTransferPatient() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
       qc.invalidateQueries({ queryKey: ["consultations"] });
     },
   });

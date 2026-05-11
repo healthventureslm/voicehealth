@@ -723,6 +723,18 @@ export type Database = {
         Returns: boolean;
       };
       can_edit_consultation: { Args: { uid: string; c_id: string }; Returns: boolean };
+      list_hospital_patients: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          hospital_id: string;
+          full_name: string;
+          current_ward_id: string | null;
+          admission_status: Database["public"]["Enums"]["patient_admission_status"];
+          ward_name: string | null;
+          ward_type: Database["public"]["Enums"]["ward_type"] | null;
+        }>;
+      };
     };
 
     Enums: {

@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePatients, useCreatePatient, useMyWards, useWards } from "@/hooks/queries";
+import {
+  usePatients,
+  usePatientsDirectory,
+  useCreatePatient,
+  useMyWards,
+  useWards,
+} from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,20 +24,40 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Plus, Search, Lock } from "lucide-react";
 import { toast } from "sonner";
+
+// Persiste filtros entre navegações (sidebar, voltar de um paciente, refresh).
+// Reset só quando o usuário muda explicitamente.
+function usePersistedState<T extends string>(key: string, initial: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored !== null ? (stored as T) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, value); } catch { /* ignore */ }
+  }, [key, value]);
+  return [value, setValue];
+}
 
 export default function Patients() {
   const navigate = useNavigate();
-  const { user, hospitalIds, wardIds, roles, isSuperAdmin } = useAuth();
-  const { data: patients, isLoading } = usePatients();
+  const { user, hospitalIds, wardIds } = useAuth();
+  const { data: fullPatients } = usePatients();
+  const { data: directory, isLoading } = usePatientsDirectory();
   const { data: myWards } = useMyWards(user?.id);
   const { data: allWards } = useWards();
   const createPatient = useCreatePatient();
 
-  const [search, setSearch] = useState("");
-  const [wardFilter, setWardFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [search, setSearch] = usePersistedState("patients.filter.search", "");
+  // Default: meus setores. "mine" = só onde tenho ward_assignment ativo.
+  const [wardFilter, setWardFilter] = usePersistedState<string>("patients.filter.ward", "mine");
+  const [statusFilter, setStatusFilter] = usePersistedState<string>("patients.filter.status", "all");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     full_name: "",
@@ -41,28 +67,38 @@ export default function Patients() {
     current_ward_id: "",
   });
 
-  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
+  // Indexa os pacientes com dados completos por id, pra mesclar com o diretório.
+  const fullById = useMemo(() => {
+    const m = new Map<string, NonNullable<typeof fullPatients>[number]>();
+    for (const p of fullPatients ?? []) m.set(p.id, p);
+    return m;
+  }, [fullPatients]);
 
-  // Apenas pacientes nos setores ATUAIS do usuário (pra doctor/nurse).
-  // Pacientes que ele atendeu antes mas foram transferidos pra fora ficam
-  // disponíveis em /gravacoes — esta listagem é "operacional do dia".
-  const inMyScope = (patients ?? []).filter((p) => {
-    if (isSuperAdmin || isHospitalAdmin) return true;
-    return !!p.current_ward_id && wardIds.includes(p.current_ward_id);
-  });
+  const wardIdSet = useMemo(() => new Set(wardIds), [wardIds]);
 
-  const filtered = inMyScope.filter((p) => {
-    const matchesSearch =
-      !search ||
-      [p.full_name, p.medical_record, p.bed]
-        .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(search.toLowerCase()));
-    const matchesWard = wardFilter === "all" || p.current_ward_id === wardFilter;
-    const matchesStatus = statusFilter === "all" || p.admission_status === statusFilter;
-    return matchesSearch && matchesWard && matchesStatus;
-  });
+  // Aplica filtros sobre o diretório (lista completa do hospital).
+  const filtered = useMemo(() => {
+    return (directory ?? []).filter((p) => {
+      const inMyWards = !!p.current_ward_id && wardIdSet.has(p.current_ward_id);
+      if (wardFilter === "mine" && !inMyWards) return false;
+      if (wardFilter !== "mine" && wardFilter !== "all" && p.current_ward_id !== wardFilter) {
+        return false;
+      }
+      if (statusFilter !== "all" && p.admission_status !== statusFilter) return false;
+      if (search) {
+        const needle = search.toLowerCase();
+        const full = fullById.get(p.id);
+        const matches =
+          p.full_name.toLowerCase().includes(needle)
+          || (full?.medical_record?.toLowerCase().includes(needle) ?? false)
+          || (full?.bed?.toLowerCase().includes(needle) ?? false);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [directory, wardFilter, statusFilter, search, wardIdSet, fullById]);
 
-  // Wards visíveis pra filtrar (do hospital do usuário)
+  // Setores visíveis no filtro: só os do(s) hospital(is) do usuário.
   const visibleWards = (allWards ?? []).filter((w) =>
     hospitalIds.includes(w.hospital_id),
   );
@@ -191,6 +227,7 @@ export default function Patients() {
               <SelectValue placeholder="Setor" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="mine">Meus setores</SelectItem>
               <SelectItem value="all">Todos os setores</SelectItem>
               {visibleWards.map((w) => (
                 <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
@@ -214,8 +251,14 @@ export default function Patients() {
           <EmptyState loading />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title={search ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
-            description={search ? "Tente ajustar os filtros." : "Cadastre o primeiro paciente nos seus setores."}
+            title={search ? "Nenhum paciente encontrado" : "Nenhum paciente nesta visualização"}
+            description={
+              search
+                ? "Tente ajustar os filtros."
+                : wardFilter === "mine"
+                  ? 'Não há pacientes nos seus setores. Mude o filtro para "Todos os setores" pra ver os outros.'
+                  : "Cadastre o primeiro paciente."
+            }
           />
         ) : (
           <div className="space-y-2">
@@ -223,33 +266,76 @@ export default function Patients() {
               {filtered.length} paciente{filtered.length !== 1 && "s"}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filtered.map((p) => (
-              <Card
-                key={p.id}
-                className="cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all"
-                onClick={() => navigate(`/patients/${p.id}/history`)}
-              >
-                <CardContent className="p-4 flex items-start gap-3">
-                  <GradientAvatar name={p.full_name} size="md" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold truncate">{p.full_name}</div>
-                    <div
-                      className="text-[12px] mt-1 flex items-center gap-1.5 flex-wrap"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      {p.medical_record && <span>PRT {p.medical_record}</span>}
-                      {p.medical_record && p.bed && <span>·</span>}
-                      {p.bed && <span>Leito {p.bed}</span>}
-                    </div>
-                    {p.current_ward?.type && (
-                      <div className="mt-2">
-                        <WardChip type={p.current_ward.type} label={p.current_ward.name ?? undefined} />
+              {filtered.map((p) => {
+                const full = fullById.get(p.id);
+                const inMyWards = !!p.current_ward_id && wardIdSet.has(p.current_ward_id);
+                const hasClinicalAccess = !!full || inMyWards;
+
+                if (!hasClinicalAccess) {
+                  return (
+                    <Tooltip key={p.id} delayDuration={150}>
+                      <TooltipTrigger asChild>
+                        <Card
+                          className="cursor-not-allowed opacity-70 border-dashed"
+                          aria-disabled
+                        >
+                          <CardContent className="p-4 flex items-start gap-3">
+                            <GradientAvatar name={p.full_name} size="md" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[14px] font-semibold truncate flex items-center gap-2">
+                                {p.full_name}
+                                <Lock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                              </div>
+                              {p.ward_type && (
+                                <div className="mt-2">
+                                  <WardChip
+                                    type={p.ward_type as any}
+                                    label={p.ward_name ?? undefined}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Fora dos seus setores — sem acesso ao prontuário.
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return (
+                  <Card
+                    key={p.id}
+                    className="cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all"
+                    onClick={() => navigate(`/patients/${p.id}/history`)}
+                  >
+                    <CardContent className="p-4 flex items-start gap-3">
+                      <GradientAvatar name={p.full_name} size="md" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[14px] font-semibold truncate">{p.full_name}</div>
+                        <div
+                          className="text-[12px] mt-1 flex items-center gap-1.5 flex-wrap"
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          {full?.medical_record && <span>PRT {full.medical_record}</span>}
+                          {full?.medical_record && full?.bed && <span>·</span>}
+                          {full?.bed && <span>Leito {full.bed}</span>}
+                        </div>
+                        {p.ward_type && (
+                          <div className="mt-2">
+                            <WardChip
+                              type={p.ward_type as any}
+                              label={p.ward_name ?? undefined}
+                            />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
