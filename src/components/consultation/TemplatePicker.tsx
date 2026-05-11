@@ -10,14 +10,15 @@ interface Props {
   onChange: (id: string | null) => void;
   wardType?: Enums<"ward_type">;
   role?: Enums<"app_role">;
+  required?: boolean;
 }
 
-export function TemplatePicker({ value, onChange, wardType, role }: Props) {
+export function TemplatePicker({ value, onChange, wardType, role, required }: Props) {
   const { data: templates, isLoading } = useTemplates({ wardType, role });
 
   return (
     <div className="space-y-2">
-      <Label>Template do relatório</Label>
+      <Label>Template do relatório{required && " *"}</Label>
       <Select value={value ?? ""} onValueChange={(v) => onChange(v || null)}>
         <SelectTrigger>
           <SelectValue placeholder={isLoading ? "Carregando…" : "Selecione um template"} />
