@@ -36,6 +36,7 @@ import Profile from "./pages/Profile";
 
 // Lazy: páginas raras (admin/superadmin/legal) — code-split mantém bundle enxuto.
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates"));
+const AdminScripts = lazy(() => import("./pages/admin/AdminScripts"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminWards = lazy(() => import("./pages/admin/AdminWards"));
 const AdminSpecialties = lazy(() => import("./pages/admin/AdminSpecialties"));
@@ -166,6 +167,7 @@ function AppRoutes() {
 
         {/* Admin do hospital */}
         <Route path="/admin/templates" element={<HospitalAdminRoute><AdminTemplates /></HospitalAdminRoute>} />
+        <Route path="/admin/scripts" element={<HospitalAdminRoute><AdminScripts /></HospitalAdminRoute>} />
         <Route path="/admin/users" element={<HospitalAdminRoute><AdminUsers /></HospitalAdminRoute>} />
         <Route path="/admin/wards" element={<HospitalAdminRoute><AdminWards /></HospitalAdminRoute>} />
         <Route path="/admin/specialties" element={<HospitalAdminRoute><AdminSpecialties /></HospitalAdminRoute>} />

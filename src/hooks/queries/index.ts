@@ -24,6 +24,13 @@ export { useTemplates } from "./useTemplates";
 export { useConsultationScripts } from "./useConsultationScripts";
 export type { ConsultationScript } from "./useConsultationScripts";
 export {
+  useAdminScripts,
+  useCreateScript,
+  useUpdateScript,
+  useDeleteScript,
+} from "./useAdminScripts";
+export type { AdminScript, CreateScriptInput, UpdateScriptInput } from "./useAdminScripts";
+export {
   useHospitalUsers,
   useSetUserWards,
   useSetUserRole,
