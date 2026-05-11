@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Circle, Mic, MicOff } from "lucide-react";
+import { CheckCircle2, Circle, Mic, MicOff, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScriptFieldWithStatus } from "@/hooks/useScriptMatching";
 
@@ -7,16 +7,23 @@ interface TeleprompterPanelProps {
   scriptName: string;
   fields: ScriptFieldWithStatus[];
   isListening: boolean;
+  /** Nº de consultas anteriores do paciente que foram lidas pra pré-marcar. */
+  historyConsultationCount?: number;
+  /** Quantos campos já estavam cobertos APENAS pelo histórico (antes desta fala). */
+  historyCoveredCount?: number;
 }
 
 export function TeleprompterPanel({
   scriptName,
   fields,
   isListening,
+  historyConsultationCount = 0,
+  historyCoveredCount = 0,
 }: TeleprompterPanelProps) {
   const total = fields.length;
   const coveredCount = fields.filter((f) => f.covered).length;
   const allCovered = total > 0 && coveredCount === total;
+  const hasHistoryPrefill = historyConsultationCount > 0 && historyCoveredCount > 0;
 
   return (
     <Card className="h-full">
@@ -41,6 +48,21 @@ export function TeleprompterPanel({
             </span>
           )}
         </div>
+        {hasHistoryPrefill && (
+          <div
+            className="flex items-start gap-2 mt-3 px-2 py-2 rounded-md"
+            style={{ background: "var(--enf-soft)", color: "var(--enf-deep)" }}
+          >
+            <History className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <p className="text-xs leading-snug">
+              <strong>{historyCoveredCount}</strong>{" "}
+              {historyCoveredCount === 1 ? "ponto pré-marcado" : "pontos pré-marcados"} do
+              histórico do paciente ({historyConsultationCount}{" "}
+              {historyConsultationCount === 1 ? "gravação anterior" : "gravações anteriores"}).
+              Foque no que sobrou.
+            </p>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {fields.map((f) => (

@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   usePatients, useCreateConsultation, useUpdateConsultation,
-  useConsultationScripts, useTemplates,
+  useConsultationScripts, useTemplates, usePatientTranscriptHistory,
 } from "@/hooks/queries";
 import { AudioRecorder, type RecordingState } from "@/components/consultation/AudioRecorder";
 import { TemplatePicker } from "@/components/consultation/TemplatePicker";
@@ -23,7 +23,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Loader2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { FileText, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Enums } from "@/integrations/supabase/types";
 
@@ -265,10 +269,50 @@ export default function NewConsultation() {
     reset: resetTranscript,
   } = useRealtimeTranscription("pt-BR");
 
+  // Histórico de transcrições do paciente — pré-marca pontos já cobertos
+  // em gravações anteriores, evitando que o profissional repita info.
+  const { data: history } = usePatientTranscriptHistory(selectedPatient || null);
+  const historyTranscript = history?.combined ?? "";
+  const historyCount = history?.consultationCount ?? 0;
+
   const matchedFields = useScriptMatching(
     activeScript?.fields ?? null,
-    `${liveTranscript} ${interimTranscript}`,
+    `${historyTranscript} ${liveTranscript} ${interimTranscript}`,
   );
+
+  // Conta quantos pontos JÁ estavam cobertos só pelo histórico (sem fala atual).
+  // Usado pra mostrar pré-marcação como hint no teleprompter.
+  const historyOnlyCovered = useScriptMatching(
+    activeScript?.fields ?? null,
+    historyTranscript,
+  );
+  const historyCoveredCount = historyOnlyCovered.filter((f) => f.covered).length;
+
+  // Diálogo de pontos obrigatórios faltando — bloqueia "Usar esta gravação"
+  // quando há requireds não cobertos. Promise resolve true = finalizar mesmo
+  // assim, false = voltar e continuar gravando.
+  const [missingPoints, setMissingPoints] = useState<string[]>([]);
+  const [missingDialogOpen, setMissingDialogOpen] = useState(false);
+  const [resolveMissing, setResolveMissing] = useState<((v: boolean) => void) | null>(null);
+
+  function validateBeforeFinalize(): boolean | Promise<boolean> {
+    if (!activeScript) return true;
+    const missing = matchedFields
+      .filter((f) => f.required && !f.covered)
+      .map((f) => f.label);
+    if (missing.length === 0) return true;
+    return new Promise<boolean>((resolve) => {
+      setMissingPoints(missing);
+      setResolveMissing(() => resolve);
+      setMissingDialogOpen(true);
+    });
+  }
+
+  function answerMissingDialog(proceed: boolean) {
+    setMissingDialogOpen(false);
+    resolveMissing?.(proceed);
+    setResolveMissing(null);
+  }
 
   // Liga/desliga reconhecimento conforme estado da gravação
   function handleRecordingStateChange(s: RecordingState) {
@@ -391,6 +435,7 @@ export default function NewConsultation() {
                         <AudioRecorder
                           onComplete={handleAudioComplete}
                           onStateChange={handleRecordingStateChange}
+                          validateBeforeFinalize={validateBeforeFinalize}
                         />
                         {speechSupported && activeScript && (
                           <LiveTranscriptView
@@ -406,6 +451,8 @@ export default function NewConsultation() {
                             scriptName={activeScript.name}
                             fields={matchedFields}
                             isListening={isListening}
+                            historyConsultationCount={historyCount}
+                            historyCoveredCount={historyCoveredCount}
                           />
                           {!speechSupported && (
                             <p className="text-xs text-muted-foreground px-1">
@@ -443,6 +490,47 @@ export default function NewConsultation() {
             </CardContent>
           </Card>
         )}
+
+        <AlertDialog
+          open={missingDialogOpen}
+          onOpenChange={(o) => {
+            if (!o) answerMissingDialog(false);
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-warning" />
+                Pontos obrigatórios não cobertos
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    {missingPoints.length === 1
+                      ? "Um ponto obrigatório do roteiro ainda precisa ser mencionado antes de finalizar:"
+                      : `${missingPoints.length} pontos obrigatórios do roteiro ainda precisam ser mencionados antes de finalizar:`}
+                  </p>
+                  <ul className="space-y-1 text-sm border-l-2 border-warning pl-3">
+                    {missingPoints.map((label) => (
+                      <li key={label} className="text-foreground">
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    Volte para a gravação e cubra esses pontos. O teleprompter
+                    marca cada um conforme você fala.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => answerMissingDialog(false)}>
+                Voltar e gravar mais
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </PageContainer>
     </AppLayout>
   );

@@ -13,6 +13,12 @@ export type RecordingState =
 interface AudioRecorderProps {
   onComplete: (blob: Blob, durationSeconds: number) => void;
   onStateChange?: (state: RecordingState) => void;
+  /**
+   * Chamado quando o usuário clica "Usar esta gravação". Se retornar
+   * `false`, a finalização é cancelada e o recorder permanece em "reviewing"
+   * (o pai pode mostrar um diálogo de confirmação, por exemplo).
+   */
+  validateBeforeFinalize?: () => boolean | Promise<boolean>;
   disabled?: boolean;
 }
 
@@ -24,7 +30,7 @@ function formatDuration(seconds: number) {
   return `${m}:${s}`;
 }
 
-export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioRecorderProps) {
+export function AudioRecorder({ onComplete, onStateChange, validateBeforeFinalize, disabled }: AudioRecorderProps) {
   const [state, setState] = useState<RecordingState>("idle");
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -166,12 +172,19 @@ export function AudioRecorder({ onComplete, onStateChange, disabled }: AudioReco
     startTimer();
   }
 
-  function finalize() {
+  async function finalize() {
     const mr = mediaRecorderRef.current;
     if (!mr) {
       // Sem recorder ativo — usa preview já existente (não deve ocorrer)
       return;
     }
+
+    // Pai pode bloquear (ex: ponto obrigatório do roteiro não coberto)
+    if (validateBeforeFinalize) {
+      const ok = await validateBeforeFinalize();
+      if (!ok) return; // permanece em "reviewing"
+    }
+
     intentRef.current = "confirm";
     if (mr.state !== "inactive") {
       mr.stop(); // dispara onstop, que chama onComplete com blob completo
