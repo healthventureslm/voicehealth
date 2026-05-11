@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   FileText, Sparkles, UploadCloud, Loader2, ArrowLeft, Pencil,
-  CheckCircle2, AlertCircle,
+  CheckCircle2, AlertCircle, MessageSquare, Camera, Brain, Users,
 } from "lucide-react";
+import { PromptWizardChat } from "./PromptWizardChat";
 import { toast } from "sonner";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
@@ -53,7 +54,7 @@ const EMPTY_FORM: FormState = {
   is_active: true,
 };
 
-type Step = "choice" | "upload" | "form";
+type Step = "choice" | "upload" | "chat-welcome" | "chat" | "form";
 
 interface Props {
   open: boolean;
@@ -242,18 +243,24 @@ export function TemplateWizardDialog({ open, onOpenChange, editing }: Props) {
                 ? "Novo template"
                 : step === "upload"
                   ? "Importar de documento"
-                  : "Revisar template"}
+                  : step === "chat-welcome"
+                    ? "Wizard de prompt"
+                    : step === "chat"
+                      ? "Wizard de prompt"
+                      : "Revisar template"}
           </DialogTitle>
           <DialogDescription>
-            {step === "choice" && "Crie do zero ou importe um documento existente para a IA extrair a estrutura."}
+            {step === "choice" && "Crie do zero, importe um documento ou converse com a IA pra montar o prompt."}
             {step === "upload" && "Envie um PDF ou foto do formulário. A IA vai gerar o prompt seguindo o padrão Clínica São Vicente."}
+            {step === "chat-welcome" && "Um assistente vai te guiar com perguntas (ou ler suas imagens) pra construir o prompt do template."}
+            {step === "chat" && "Responda às perguntas ou envie imagens de documentos modelo. O prompt é construído conforme a conversa."}
             {step === "form" && "Cada save cria uma nova versão. O prompt é o 'como gerar o relatório' passado pra IA, com a transcrição da gravação como insumo."}
           </DialogDescription>
         </DialogHeader>
 
         {/* ─── Step: choice ─── */}
         {step === "choice" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-2">
             <ChoiceCard
               icon={<Pencil className="w-5 h-5" />}
               title="Criar do zero"
@@ -263,9 +270,75 @@ export function TemplateWizardDialog({ open, onOpenChange, editing }: Props) {
             <ChoiceCard
               icon={<Sparkles className="w-5 h-5" />}
               title="Importar de documento"
-              description="Enviar PDF ou foto e deixar a IA gerar o prompt."
+              description="PDF ou foto e a IA gera o prompt direto."
               onClick={() => setStep("upload")}
+            />
+            <ChoiceCard
+              icon={<MessageSquare className="w-5 h-5" />}
+              title="Conversar com IA"
+              description="Responda perguntas (ou envie fotos) — a IA monta o prompt no chat."
+              onClick={() => setStep("chat-welcome")}
               highlighted
+            />
+          </div>
+        )}
+
+        {/* ─── Step: chat-welcome ─── */}
+        {step === "chat-welcome" && (
+          <div className="space-y-4 py-1">
+            <div className="flex flex-col items-center text-center gap-2 py-2">
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center"
+                style={{ background: "var(--enf-soft)", color: "var(--enf-deep)" }}
+              >
+                <Sparkles className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-semibold mt-1">
+                Como funciona o Wizard de Prompt
+              </h3>
+              <p
+                className="text-sm max-w-md leading-relaxed"
+                style={{ color: "var(--text-soft)" }}
+              >
+                O assistente vai te guiar pra criar prompts que geram documentos
+                clínicos a partir de gravações de áudio.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <StepCard
+                icon={<MessageSquare className="w-4 h-4" />}
+                title="1. Responda perguntas"
+                description="O assistente faz perguntas pra entender o documento."
+              />
+              <StepCard
+                icon={<Camera className="w-4 h-4" />}
+                title="2. Envie fotos de modelos"
+                description="Fotografe fichas, laudos ou formulários — a IA lê e gera o prompt."
+              />
+              <StepCard
+                icon={<Brain className="w-4 h-4" />}
+                title="3. IA analisa e interpreta"
+                description="Identifica campos, seções e estrutura do documento."
+              />
+              <StepCard
+                icon={<Users className="w-4 h-4" />}
+                title="4. Atribua a profissionais"
+                description="Você escolhe quais profissionais geram este documento na hora de salvar."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ─── Step: chat ─── */}
+        {step === "chat" && (
+          <div className="-mx-6 -mb-6 border-t">
+            <PromptWizardChat
+              kickoff="Vamos começar a montar o prompt do meu template."
+              onFinalPrompt={(promptText) => {
+                setForm((p) => ({ ...p, prompt: promptText }));
+                toast.success("Prompt gerado pelo chat. Revise antes de salvar.");
+                setStep("form");
+              }}
             />
           </div>
         )}
@@ -493,6 +566,32 @@ export function TemplateWizardDialog({ open, onOpenChange, editing }: Props) {
               </Button>
             </>
           )}
+          {step === "chat-welcome" && (
+            <>
+              <Button variant="ghost" onClick={() => setStep("choice")} className="gap-2 sm:mr-auto">
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </Button>
+              <Button variant="ghost" onClick={() => setStep("form")}>
+                Pular
+              </Button>
+              <Button
+                onClick={() => setStep("chat")}
+                className="gap-2 bg-enf hover:bg-enf-hover text-white shadow-sm font-semibold"
+              >
+                <Sparkles className="w-4 h-4" /> Começar
+              </Button>
+            </>
+          )}
+          {step === "chat" && (
+            <>
+              <Button variant="ghost" onClick={() => setStep("chat-welcome")} className="gap-2 sm:mr-auto">
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </Button>
+              <Button variant="ghost" onClick={() => setStep("form")}>
+                Ir pro formulário
+              </Button>
+            </>
+          )}
           {step === "form" && (
             <>
               {!editing && (
@@ -563,5 +662,36 @@ function ChoiceCard({
         {description}
       </div>
     </button>
+  );
+}
+
+function StepCard({
+  icon, title, description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      className="flex items-start gap-3 p-3 rounded-lg border"
+      style={{ background: "var(--bg-card-hov)" }}
+    >
+      <div
+        className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+        style={{ background: "var(--enf-soft)", color: "var(--enf-deep)" }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-[13px] font-semibold">{title}</div>
+        <div
+          className="text-[12px] leading-relaxed mt-0.5"
+          style={{ color: "var(--text-soft)" }}
+        >
+          {description}
+        </div>
+      </div>
+    </div>
   );
 }
