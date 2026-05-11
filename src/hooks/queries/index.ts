@@ -1,11 +1,13 @@
 export {
   usePatients,
+  usePatientsDirectory,
   usePatient,
   useCreatePatient,
   useUpdatePatient,
   useTransferPatient,
   usePatientWardHistory,
 } from "./usePatients";
+export type { PatientDirectoryEntry } from "./usePatients";
 export { useWards, useMyWards } from "./useWards";
 export {
   useConsultations,
