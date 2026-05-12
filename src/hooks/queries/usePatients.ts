@@ -17,7 +17,7 @@ export function usePatients() {
         .from("patients")
         .select("*, current_ward:wards!patients_current_ward_id_fkey(id, name, ward_type)")
         .is("deleted_at", null)
-        .order("full_name", { ascending: true });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Array<Patient & { current_ward: { id: string; name: string; ward_type: string } | null }>;
     },
@@ -40,6 +40,7 @@ export type PatientDirectoryEntry = {
   admission_status: "admitted" | "discharged" | "transferred";
   ward_name: string | null;
   ward_type: string | null;
+  created_at: string;
 };
 
 export function usePatientsDirectory() {

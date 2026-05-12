@@ -244,18 +244,23 @@ function StatCard({
 }) {
   return (
     <Card className="transition-all hover:shadow-md hover:border-[var(--border-hov)]">
-      <CardContent className="p-5">
+      <CardContent className="p-3 sm:p-5">
         <div
-          className="flex items-center gap-1.5 mb-3.5 text-[12px] font-medium"
+          className="flex items-start gap-1.5 mb-3 sm:mb-3.5 text-[12px] font-medium leading-snug"
           style={{ color: "var(--text-soft)" }}
         >
-          <span style={{ color: "var(--text-soft)" }}>{icon}</span>
-          {label}
+          <span
+            className="mt-0.5 flex-shrink-0"
+            style={{ color: "var(--text-soft)" }}
+          >
+            {icon}
+          </span>
+          <span className="min-w-0 break-words">{label}</span>
         </div>
-        <div className="text-kpi-value">{value}</div>
+        <div className="text-kpi-value leading-none">{value}</div>
         {hint && (
           <p
-            className="text-[12px] mt-1.5"
+            className="text-[12px] mt-1.5 leading-snug break-words"
             style={{ color: "var(--text-muted)" }}
           >
             {hint}

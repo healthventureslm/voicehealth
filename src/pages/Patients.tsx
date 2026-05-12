@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -47,7 +47,10 @@ function usePersistedState<T extends string>(key: string, initial: T): [T, (v: T
 
 export default function Patients() {
   const navigate = useNavigate();
-  const { user, hospitalIds, wardIds } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, hospitalIds, wardIds, roles, isSuperAdmin } = useAuth();
+  const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
+  const canPickAnyWard = isSuperAdmin || isHospitalAdmin;
   const { data: fullPatients } = usePatients();
   const { data: directory, isLoading } = usePatientsDirectory();
   const { data: myWards } = useMyWards(user?.id);
@@ -59,6 +62,18 @@ export default function Patients() {
   const [wardFilter, setWardFilter] = usePersistedState<string>("patients.filter.ward", "mine");
   const [statusFilter, setStatusFilter] = usePersistedState<string>("patients.filter.status", "all");
   const [open, setOpen] = useState(false);
+
+  // Quando chega via /patients?new=1 (do hub "Novo atendimento"), abre o dialog
+  // automaticamente e remove o param da URL pra não reabrir em refresh.
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("new");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const [form, setForm] = useState({
     full_name: "",
     medical_record: "",
@@ -192,7 +207,7 @@ export default function Patients() {
                       <SelectValue placeholder="Selecione um setor" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(myWards ?? []).map((w: any) => (
+                      {(canPickAnyWard ? visibleWards : (myWards ?? [])).map((w: any) => (
                         <SelectItem key={w.id} value={w.id}>
                           {w.name}
                         </SelectItem>

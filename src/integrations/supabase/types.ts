@@ -733,6 +733,7 @@ export type Database = {
           admission_status: Database["public"]["Enums"]["patient_admission_status"];
           ward_name: string | null;
           ward_type: Database["public"]["Enums"]["ward_type"] | null;
+          created_at: string;
         }>;
       };
     };
