@@ -356,6 +356,13 @@ export default function NewConsultation() {
                   ))}
                 </SelectContent>
               </Select>
+              <button
+                type="button"
+                onClick={() => navigate("/patients?new=1")}
+                className="text-xs mt-1.5 inline-flex items-center gap-1 text-enf hover:text-enf-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-enf rounded"
+              >
+                <span aria-hidden>+</span> Cadastrar novo paciente
+              </button>
               {patient?.current_ward && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Setor atual: {patient.current_ward.name}

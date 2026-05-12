@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -22,13 +22,29 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Concluída",
 };
 
+// Persiste filtros entre navegações (voltar de uma gravação, refresh, sidebar).
+// Reset só quando o usuário muda explicitamente.
+function usePersistedState<T extends string>(key: string, initial: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored !== null ? (stored as T) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, value); } catch { /* ignore */ }
+  }, [key, value]);
+  return [value, setValue];
+}
+
 export default function Consultations() {
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [periodFilter, setPeriodFilter] = useState<string>("all");
-  const [scope, setScope] = useState<"mine" | "all">("mine");
+  const [search, setSearch] = usePersistedState("consultations.filter.search", "");
+  const [periodFilter, setPeriodFilter] = usePersistedState<string>("consultations.filter.period", "all");
+  const [scope, setScope] = usePersistedState<"mine" | "all">("consultations.filter.scope", "mine");
 
   const { data: consultations, isLoading } = useConsultations({
     mineOnly: scope === "mine",
@@ -52,18 +68,17 @@ export default function Consultations() {
         [c.patient?.full_name, c.patient?.medical_record, c.ward?.name]
           .filter(Boolean)
           .some((v: string) => v.toLowerCase().includes(search.toLowerCase()));
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
       const matchesPeriod =
         cutoff === null || new Date(c.created_at).getTime() >= cutoff;
-      return matchesSearch && matchesStatus && matchesPeriod;
+      return matchesSearch && matchesPeriod;
     });
-  }, [consultations, search, statusFilter, periodFilter]);
+  }, [consultations, search, periodFilter]);
 
   return (
     <AppLayout>
       <PageContainer>
         <PageHeader
-          title={scope === "mine" ? "Minhas gravações" : "Gravações do setor"}
+          title="Gravações"
           actions={
             <Button onClick={() => navigate("/consultations/new")} className="gap-2">
               <Mic className="w-4 h-4" /> Nova gravação
@@ -72,7 +87,7 @@ export default function Consultations() {
         />
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_160px_160px_160px] gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(180px,1fr)_240px_180px] gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -87,19 +102,8 @@ export default function Consultations() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="mine">Minhas</SelectItem>
-              <SelectItem value="all">Todas do setor</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              {Object.entries(STATUS_LABELS).map(([k, label]) => (
-                <SelectItem key={k} value={k}>{label}</SelectItem>
-              ))}
+              <SelectItem value="mine">Minhas gravações</SelectItem>
+              <SelectItem value="all">Todas as gravações do setor</SelectItem>
             </SelectContent>
           </Select>
           <Select value={periodFilter} onValueChange={setPeriodFilter}>

@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 // Total ~100KB extra no bundle inicial; ganho de UX no dia-a-dia compensa.
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
+import NewAttendance from "./pages/NewAttendance";
 import NewConsultation from "./pages/NewConsultation";
 import Consultations from "./pages/Consultations";
 import ConsultationEdit from "./pages/ConsultationEdit";
@@ -155,6 +156,7 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Fluxo clínico */}
+        <Route path="/atendimentos/new" element={<NewAttendance />} />
         <Route path="/patients" element={<Patients />} />
         <Route path="/patients/:id/history" element={<PatientHistory />} />
         <Route path="/consultations" element={<Consultations />} />
