@@ -10,6 +10,7 @@ import {
 import { AddendumDialog } from "@/components/consultation/AddendumDialog";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
 import type { TemplateSchema } from "@/templates/types";
+import { deriveMarkdown } from "@/templates/derive-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,11 +104,18 @@ export default function ConsultationReport() {
   }, [latestReport?.id, latestReport?.filled_data, isStructured]);
 
   async function handleSaveStructured() {
-    if (!latestReport) return;
+    if (!latestReport || !templateSchema) return;
     try {
+      // Rederiva o markdown a partir do JSON editado, pra PDF/visualização
+      // legacy refletirem as mudanças do médico. JSON segue como
+      // source-of-truth; content é apenas representação derivada.
+      const newContent = deriveMarkdown(templateSchema, structuredDraft);
       await updateReport.mutateAsync({
         id: latestReport.id,
-        patch: { filled_data: structuredDraft as never },
+        patch: {
+          filled_data: structuredDraft as never,
+          content: newContent,
+        },
       });
       setIsDirty(false);
       toast.success("Alterações salvas");

@@ -23,6 +23,7 @@ import {
   type TemplateSchema,
 } from "../_shared/template-to-response-schema.ts";
 import { structuredToMarkdown } from "../_shared/structured-to-markdown.ts";
+import { buildStructuredSystemPrompt } from "../_shared/structured-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,13 +134,15 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "Você é um assistente clínico em português do Brasil. " +
-              "Extraia das notas do paciente (em ordem cronológica) os dados que se " +
-              "aplicam ao template abaixo e devolva APENAS um JSON conformando ao " +
-              "schema fornecido. Quando informações conflitam entre notas, prefira a " +
-              "mais recente. Use null para campos sem informação nas notas — " +
-              "NUNCA invente. Para enums, use exatamente os valores listados.\n\n" +
-              schemaSummary,
+              buildStructuredSystemPrompt(
+                schemaSummary,
+                "das notas do paciente (em ordem cronológica) os",
+              ) +
+              "\n\n═══ REGRA EXTRA: CONFLITOS ENTRE NOTAS ═══\n\n" +
+              "Quando informações conflitam entre notas, prefira a MAIS RECENTE. " +
+              "Se a nota anterior dizia uma coisa e a nota seguinte mudou, use o " +
+              "valor da nota seguinte e mencione a evolução na _narrative " +
+              "(ex: \"BRADEN evoluiu de 14 (12/05) para 12 (13/05)\").",
           },
           { role: "user", content: `Notas do paciente (em ordem cronológica):\n${dossier}` },
         ],

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUpdateClinicalReport } from "@/hooks/queries";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
 import type { TemplateSchema } from "@/templates/types";
+import { deriveMarkdown } from "@/templates/derive-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Mic, Download, Save } from "lucide-react";
@@ -98,11 +99,15 @@ export default function DocumentView() {
   const templateName = doc.template?.name ?? "Documento clínico";
 
   async function handleSaveStructured() {
-    if (!doc) return;
+    if (!doc || !templateSchema) return;
     try {
+      const newContent = deriveMarkdown(templateSchema, structuredDraft);
       await updateReport.mutateAsync({
         id: doc.id,
-        patch: { filled_data: structuredDraft as never },
+        patch: {
+          filled_data: structuredDraft as never,
+          content: newContent,
+        },
       });
       setIsDirty(false);
       toast.success("Alterações salvas");

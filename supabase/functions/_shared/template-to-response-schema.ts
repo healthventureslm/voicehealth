@@ -63,6 +63,8 @@ type Field =
   | (FieldBase & { type: "time_window_multi"; windows: { id: string; label: string }[] })
   | (FieldBase & { type: "block_ref"; ref: string });
 
+type SectionNarrative = { enabled: true; hint?: string };
+
 type Section = {
   id: string;
   title: string;
@@ -70,7 +72,10 @@ type Section = {
   sbarRole?: string;
   visibleWhen?: VisibilityRule;
   fields: Field[];
+  narrative?: SectionNarrative;
 };
+
+const NARRATIVE_KEY = "_narrative";
 
 export type TemplateSchema = {
   id: string;
@@ -258,6 +263,22 @@ export function templateToResponseSchema(template: TemplateSchema): SchemaProper
       if (field.required && !field.visibleWhen) required.push(field.id);
     }
 
+    // Narrative: textarea livre por seção (escape hatch). Sempre nullable.
+    if (section.narrative?.enabled) {
+      const hint = section.narrative.hint
+        ? ` ${section.narrative.hint}`
+        : "";
+      fieldProps[NARRATIVE_KEY] = {
+        type: "STRING",
+        description:
+          "Observações em texto livre desta seção. " +
+          "Use pra preencher contexto que não cabe nos campos tipados acima: " +
+          "doses exatas, valores fora dos padrões, raciocínio clínico, descrições " +
+          "detalhadas. Use null se nada a acrescentar." + hint,
+        nullable: true,
+      };
+    }
+
     sectionProps[section.id] = {
       type: "OBJECT",
       description: section.description ?? section.title,
@@ -286,6 +307,12 @@ export function describeSchemaForPrompt(template: TemplateSchema): string {
     lines.push(`## ${section.title}`);
     for (const field of section.fields) {
       lines.push(describeFieldLine(field));
+    }
+    if (section.narrative?.enabled) {
+      lines.push(
+        `- ${NARRATIVE_KEY} (textarea livre): observações da seção que não cabem nos campos acima` +
+          (section.narrative.hint ? ` — ${section.narrative.hint}` : ""),
+      );
     }
     lines.push("");
   }

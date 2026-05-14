@@ -23,6 +23,7 @@ import {
   type TemplateSchema,
 } from "../_shared/template-to-response-schema.ts";
 import { structuredToMarkdown } from "../_shared/structured-to-markdown.ts";
+import { buildStructuredSystemPrompt } from "../_shared/structured-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -100,15 +101,12 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content:
-              "Você é um assistente clínico em português do Brasil. " +
-              "Extraia da transcrição os dados que se aplicam ao template abaixo e " +
-              "devolva APENAS um JSON conformando ao schema fornecido. " +
-              "Use null para campos sem informação na transcrição — NUNCA invente. " +
-              "Para enums, use exatamente os valores listados.\n\n" +
+            content: buildStructuredSystemPrompt(
               schemaSummary,
+              "da transcrição os",
+            ),
           },
-          { role: "user", content: `Transcrição:\n${transcription}` },
+          { role: "user", content: `Transcrição da gravação:\n${transcription}` },
         ],
       });
 

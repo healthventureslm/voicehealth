@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TemplateSchema, Section, Field } from "@/templates/types";
+import { NARRATIVE_KEY } from "@/templates/types";
 import { evaluateVisibility } from "@/templates/runtime";
 import { FieldRenderer } from "./FieldRenderer";
 
@@ -106,6 +110,25 @@ function SectionCard({
             />
           );
         })}
+        {section.narrative?.enabled && (
+          <div className="pt-2 border-t border-dashed space-y-1.5">
+            <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
+              <MessageSquareQuote className="w-3.5 h-3.5" />
+              Observações da seção
+              {section.narrative.hint && (
+                <span className="font-normal italic">— {section.narrative.hint}</span>
+              )}
+            </Label>
+            <Textarea
+              value={(values[NARRATIVE_KEY] as string) ?? ""}
+              onChange={(e) => onFieldChange(NARRATIVE_KEY, e.target.value || null)}
+              placeholder="Contexto adicional, doses exatas, observações clínicas livres..."
+              rows={2}
+              disabled={readOnly}
+              className="text-sm bg-muted/20"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
