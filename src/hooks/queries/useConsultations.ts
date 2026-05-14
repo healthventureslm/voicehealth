@@ -45,7 +45,7 @@ export function useConsultation(id: string | undefined) {
           *,
           patient:patients(id, full_name, medical_record, current_ward_id, bed),
           ward:wards(id, name, ward_type),
-          template:report_templates(id, name),
+          template:report_templates(id, name, schema),
           hospital:hospitals(id, name, logo_url)
         `)
         .eq("id", id!)
@@ -163,6 +163,27 @@ export function useCreateAddendum() {
 }
 
 // ─── Clinical reports ────────────────────────────────────────────────
+// Atualiza um clinical_report — usado no fluxo estruturado pra persistir
+// edições do médico nos campos preenchidos pela IA.
+export function useUpdateClinicalReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: TablesUpdate<"clinical_reports"> }) => {
+      const { data, error } = await supabase
+        .from("clinical_reports")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["clinical_reports", data.consultation_id] });
+    },
+  });
+}
+
 // Retorna todo report relacionado à consulta:
 //   1. consultation_id = id          (consulta clássica com template)
 //   2. id ∈ source_consultation_ids  (doc gerado de N notas que inclui esta)
