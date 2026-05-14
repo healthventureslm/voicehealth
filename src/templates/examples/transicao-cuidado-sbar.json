@@ -1,0 +1,459 @@
+{
+  "id": "transicao_cuidado_sbar_v1",
+  "name": "Transição de Cuidado SBAR (Enfermagem)",
+  "description": "Passagem de plantão estruturada no formato SBAR — Situação / Background / Atualidade / Recomendações.",
+  "version": 1,
+  "layout": "sbar",
+  "metadata": {
+    "captureMode": "voice",
+    "applicableRoles": ["nurse"],
+    "applicableWardTypes": ["uti", "enfermaria", "emergencia"]
+  },
+  "sections": [
+    {
+      "id": "situacao",
+      "sbarRole": "S",
+      "title": "Situação atual",
+      "fields": [
+        {
+          "id": "diagnostico_principal",
+          "type": "text",
+          "label": "Diagnóstico principal",
+          "required": true
+        },
+        {
+          "id": "fugulin",
+          "type": "radio",
+          "label": "Fugulin — grau de dependência",
+          "options": [
+            { "value": "MINIMOS", "label": "Cuidados mínimos" },
+            { "value": "INTERMEDIARIOS", "label": "Cuidados intermediários" },
+            { "value": "ALTA_DEPENDENCIA", "label": "Alta dependência" },
+            { "value": "SEMI_INTENSIVO", "label": "Semi-intensivo" },
+            { "value": "INTENSIVO", "label": "Intensivo" }
+          ]
+        },
+        {
+          "id": "nas_pontuacao",
+          "type": "radio",
+          "label": "NAS — pontuação",
+          "options": [
+            { "value": "ABAIXO_50", "label": "< 50 pontos" },
+            { "value": "ACIMA_50", "label": ">= 50 pontos" }
+          ]
+        },
+        {
+          "id": "cuidado_paliativo",
+          "type": "boolean",
+          "label": "Cuidado paliativo?"
+        },
+        {
+          "id": "pulseira_identificacao_legivel",
+          "type": "boolean",
+          "label": "Pulseira de identificação legível?"
+        },
+        {
+          "id": "precaucao",
+          "type": "multi_checkbox",
+          "label": "Precauções",
+          "options": [
+            { "value": "NA", "label": "N/A" },
+            { "value": "CONTATO", "label": "Contato" },
+            { "value": "GOTICULAS", "label": "Gotículas" },
+            { "value": "AEROSSOIS", "label": "Aerossóis" }
+          ]
+        },
+        {
+          "id": "protocolos",
+          "type": "multi_checkbox",
+          "label": "Protocolos ativos",
+          "options": [
+            { "value": "RASTREAMENTO", "label": "Rastreamento" },
+            { "value": "SEPSE", "label": "Sepse" },
+            { "value": "DOR_TORACICA", "label": "Dor torácica" },
+            { "value": "AVC", "label": "AVC" }
+          ]
+        },
+        {
+          "id": "riscos_clinicos",
+          "type": "multi_checkbox",
+          "label": "Riscos clínicos",
+          "options": [
+            { "value": "QUEDA", "label": "Queda" },
+            { "value": "LP", "label": "LP (lesão por pressão)" },
+            { "value": "HEMORRAGIA", "label": "Hemorragia" },
+            { "value": "BRONCOASPIRACAO", "label": "Broncoaspiração" },
+            { "value": "RISCO_VENTILATORIO", "label": "Risco ventilatório" },
+            { "value": "DELIRIUM", "label": "Delirium" },
+            { "value": "RISCO_DOR", "label": "Risco de dor" },
+            { "value": "IRAS", "label": "IRAS" },
+            { "value": "DOR_TORACICA", "label": "Dor torácica" },
+            { "value": "FA", "label": "FA" },
+            { "value": "SEPSE", "label": "Sepse" },
+            { "value": "PNM", "label": "PNM" },
+            { "value": "IC", "label": "Insuficiência cardíaca" },
+            { "value": "TEV", "label": "TEV" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "background",
+      "sbarRole": "B",
+      "title": "Background",
+      "fields": [
+        {
+          "id": "hpp",
+          "type": "textarea",
+          "label": "HPP (história patológica pregressa)",
+          "rows": 3
+        },
+        {
+          "id": "alergia",
+          "type": "text",
+          "label": "Alergia (medicamentos, alimentos, látex)"
+        }
+      ]
+    },
+    {
+      "id": "atualidade",
+      "sbarRole": "A",
+      "title": "Atualidade",
+      "fields": [
+        {
+          "id": "nivel_consciencia",
+          "type": "radio",
+          "label": "Nível de consciência",
+          "options": [
+            { "value": "ACORDADO", "label": "Acordado" },
+            { "value": "SONOLENTO", "label": "Sonolento" },
+            { "value": "TORPOROSO", "label": "Torporoso" },
+            { "value": "SEDADO", "label": "Sedado" },
+            { "value": "COMATOSO", "label": "Comatoso" },
+            { "value": "ORIENTADO", "label": "Orientado" },
+            { "value": "DESORIENTADO", "label": "Desorientado" }
+          ]
+        },
+        {
+          "id": "cam_icu",
+          "type": "radio",
+          "label": "CAM-ICU",
+          "visibleWhen": { "field": "nivel_consciencia", "in": ["SEDADO", "COMATOSO", "TORPOROSO"] },
+          "options": [
+            { "value": "SD", "label": "SD" },
+            { "value": "SN", "label": "SN" }
+          ]
+        },
+        {
+          "id": "flutuacao_consciencia_24h",
+          "type": "radio",
+          "label": "Houve flutuação do nível de consciência nas últimas 24h?",
+          "options": [
+            { "value": "S", "label": "Sim" },
+            { "value": "N", "label": "Não" },
+            { "value": "NA", "label": "N/A" }
+          ]
+        },
+        {
+          "id": "protocolo_contencao",
+          "type": "radio",
+          "label": "Protocolo de contenção mecânica",
+          "options": [
+            { "value": "S", "label": "Sim" },
+            { "value": "N", "label": "Não" },
+            { "value": "NA", "label": "N/A" }
+          ]
+        },
+        {
+          "id": "ventilatorio",
+          "type": "select",
+          "label": "Ventilatório",
+          "options": [
+            { "value": "AR_AMBIENTE", "label": "Ar ambiente" },
+            { "value": "MACRO_CAT_NASAL", "label": "Macro / cateter nasal" },
+            { "value": "VNI", "label": "VNI" },
+            { "value": "TOT_TQT", "label": "TOT / TQT" }
+          ]
+        },
+        {
+          "id": "tot_tqt_numero",
+          "type": "text",
+          "label": "TOT / TQT — Nº",
+          "visibleWhen": { "field": "ventilatorio", "equals": "TOT_TQT" }
+        },
+        {
+          "id": "modo_vent",
+          "type": "text",
+          "label": "Modo ventilatório",
+          "visibleWhen": { "field": "ventilatorio", "in": ["TOT_TQT", "VNI"] }
+        },
+        {
+          "id": "peep_atual",
+          "type": "number_with_unit",
+          "label": "PEEP",
+          "unit": "cmH2O",
+          "visibleWhen": { "field": "ventilatorio", "in": ["TOT_TQT", "VNI"] }
+        },
+        {
+          "id": "aspiracao_subglotica",
+          "type": "radio",
+          "label": "Aspiração subglótica",
+          "visibleWhen": { "field": "ventilatorio", "equals": "TOT_TQT" },
+          "options": [
+            { "value": "CONTINUA", "label": "Contínua" },
+            { "value": "INTERMITENTE", "label": "Intermitente" },
+            { "value": "NA", "label": "N/A" }
+          ]
+        },
+        {
+          "id": "comissura_labial",
+          "type": "text",
+          "label": "Comissura labial — secreção"
+        },
+        {
+          "id": "dieta",
+          "type": "multi_checkbox",
+          "label": "Dieta",
+          "options": [
+            { "value": "ORAL", "label": "Oral" },
+            { "value": "ZERO", "label": "Dieta ZERO" },
+            { "value": "ENTERAL", "label": "Enteral" },
+            { "value": "PARENTERAL", "label": "Parenteral" }
+          ]
+        },
+        {
+          "id": "motivo_dieta_zero",
+          "type": "text",
+          "label": "Motivo da dieta ZERO",
+          "visibleWhen": { "field": "dieta", "contains": "ZERO" }
+        },
+        {
+          "id": "vazao_enteral",
+          "type": "number_with_unit",
+          "label": "Vazão enteral",
+          "unit": "ml/h",
+          "visibleWhen": { "field": "dieta", "contains": "ENTERAL" }
+        },
+        {
+          "id": "aceitacao",
+          "type": "text",
+          "label": "Aceitação",
+          "visibleWhen": {
+            "any": [
+              { "field": "dieta", "contains": "ORAL" },
+              { "field": "dieta", "contains": "ENTERAL" }
+            ]
+          }
+        },
+        {
+          "id": "dispositivos_vasculares",
+          "type": "table",
+          "label": "Dispositivos vasculares",
+          "columns": [
+            {
+              "id": "tipo",
+              "type": "select",
+              "label": "Tipo",
+              "options": [
+                { "value": "PERIFERICA", "label": "Periférica" },
+                { "value": "PROFUNDA", "label": "Profunda" },
+                { "value": "PICC", "label": "PICC" }
+              ]
+            },
+            { "id": "dias", "type": "number", "label": "Dias" },
+            { "id": "local", "type": "text", "label": "Local" },
+            { "id": "bundle_ipcs", "type": "boolean", "label": "Bundle IPCS aplicado" }
+          ]
+        },
+        {
+          "id": "curativo_sem_pelicula",
+          "type": "radio",
+          "label": "Algum curativo sem película CHG?",
+          "options": [
+            { "value": "S", "label": "Sim" },
+            { "value": "N", "label": "Não" }
+          ]
+        },
+        {
+          "id": "motivo_sem_pelicula",
+          "type": "text",
+          "label": "Motivo",
+          "visibleWhen": { "field": "curativo_sem_pelicula", "equals": "S" }
+        },
+        {
+          "id": "drenos",
+          "type": "table",
+          "label": "Drenos",
+          "columns": [
+            { "id": "tipo", "type": "text", "label": "Tipo / local" },
+            {
+              "id": "estado",
+              "type": "radio",
+              "label": "Estado",
+              "options": [
+                { "value": "SEM_DRENO", "label": "Sem dreno" },
+                { "value": "ABERTO", "label": "Dreno aberto" },
+                { "value": "FECHADO", "label": "Dreno fechado" }
+              ]
+            },
+            { "id": "aspecto", "type": "text", "label": "Aspecto" }
+          ]
+        },
+        {
+          "id": "solucoes",
+          "type": "table",
+          "label": "Soluções em curso",
+          "columns": [
+            { "id": "nome", "type": "text", "label": "Solução" },
+            { "id": "vazao", "type": "number_with_unit", "label": "Vazão", "unit": "ml/h" }
+          ]
+        },
+        {
+          "id": "atb_em_uso",
+          "type": "boolean",
+          "label": "ATB em uso?"
+        },
+        {
+          "id": "atb_lista",
+          "type": "table",
+          "label": "Antibioticoterapia",
+          "visibleWhen": { "field": "atb_em_uso", "equals": true },
+          "columns": [
+            { "id": "nome", "type": "text", "label": "ATB" },
+            { "id": "dia", "type": "number", "label": "D (dia de uso)" }
+          ]
+        },
+        {
+          "id": "lesoes_cutaneas",
+          "type": "boolean",
+          "label": "Há lesões cutâneas?"
+        },
+        {
+          "id": "ficha_integridade_admissao",
+          "type": "boolean",
+          "label": "Realizada ficha de integridade cutânea na admissão",
+          "visibleWhen": { "field": "lesoes_cutaneas", "equals": true }
+        },
+        {
+          "id": "braden_classificacao",
+          "type": "radio",
+          "label": "Escala de BRADEN (classificação)",
+          "options": [
+            { "value": "MUITO_ALTO", "label": "Muito alto" },
+            { "value": "ALTO", "label": "Alto" },
+            { "value": "MODERADO", "label": "Moderado" },
+            { "value": "LEVE", "label": "Leve" }
+          ]
+        },
+        {
+          "id": "lesao_localizacao",
+          "type": "text",
+          "label": "Localização / estágio",
+          "visibleWhen": { "field": "lesoes_cutaneas", "equals": true }
+        },
+        {
+          "id": "dor_periodo",
+          "type": "radio",
+          "label": "Dor no período",
+          "options": [
+            { "value": "SEM_DOR", "label": "Sem dor" },
+            { "value": "LEVE", "label": "Leve" },
+            { "value": "MODERADA", "label": "Moderada" },
+            { "value": "INTENSA", "label": "Intensa" }
+          ]
+        },
+        {
+          "id": "dor_escala",
+          "type": "scale",
+          "label": "Escala de dor (0–10)",
+          "min": 0,
+          "max": 10,
+          "step": 1,
+          "labels": {
+            "0": "Sem dor",
+            "5": "Moderada",
+            "10": "Máxima"
+          },
+          "visibleWhen": { "field": "dor_periodo", "notEquals": "SEM_DOR" }
+        },
+        {
+          "id": "dor_conduta",
+          "type": "textarea",
+          "label": "Conduta: medicação e cuidados para aliviar a dor",
+          "visibleWhen": { "field": "dor_periodo", "notEquals": "SEM_DOR" },
+          "rows": 2
+        },
+        {
+          "id": "duvidas_medicamentos",
+          "type": "textarea",
+          "label": "Esclarecimento de dúvidas sobre medicamentos em uso",
+          "rows": 2
+        },
+        {
+          "id": "ronda_qualidade",
+          "type": "time_window_multi",
+          "label": "Ronda da qualidade percebida — horários realizados",
+          "windows": [
+            { "id": "09", "label": "09:00" },
+            { "id": "12", "label": "12:00" },
+            { "id": "15", "label": "15:00" },
+            { "id": "18", "label": "18:00" },
+            { "id": "21", "label": "21:00" },
+            { "id": "00", "label": "00:00" },
+            { "id": "03", "label": "03:00" },
+            { "id": "06", "label": "06:00" }
+          ]
+        },
+        {
+          "id": "banho",
+          "type": "radio",
+          "label": "Banho",
+          "options": [
+            { "value": "MANHA", "label": "Manhã" },
+            { "value": "TARDE", "label": "Tarde" },
+            { "value": "NOITE", "label": "Noite" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recomendacoes",
+      "sbarRole": "R",
+      "title": "Recomendações",
+      "fields": [
+        {
+          "id": "exames_realizados",
+          "type": "textarea",
+          "label": "Exames e procedimentos realizados",
+          "rows": 2
+        },
+        {
+          "id": "exames_programados",
+          "type": "table",
+          "label": "Programado / agendado",
+          "columns": [
+            { "id": "exame", "type": "text", "label": "Exame / procedimento" },
+            { "id": "data", "type": "datetime", "label": "Agendado para" }
+          ]
+        },
+        {
+          "id": "outras_programacoes",
+          "type": "textarea",
+          "label": "Outras programações",
+          "rows": 2
+        },
+        {
+          "id": "alta_prevista",
+          "type": "boolean",
+          "label": "Alta prevista?"
+        },
+        {
+          "id": "data_alta_prevista",
+          "type": "date",
+          "label": "Data prevista da alta",
+          "visibleWhen": { "field": "alta_prevista", "equals": true }
+        }
+      ]
+    }
+  ]
+}

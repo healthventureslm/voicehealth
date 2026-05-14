@@ -20,6 +20,12 @@ interface AiRequestOptions {
   stream?: boolean;
   /** If true, includes audio content — only Gemini supports this */
   hasAudio?: boolean;
+  /**
+   * Optional response schema (Gemini OpenAPI-subset).
+   * When set, only Gemini is used (skip OpenAI) and the model is forced
+   * to return application/json conforming to the schema.
+   */
+  responseSchema?: unknown;
 }
 
 interface AiResponse {
@@ -129,6 +135,13 @@ async function callGoogleDirect(opts: AiRequestOptions): Promise<Response> {
           }),
     }));
 
+  const generationConfig = opts.responseSchema
+    ? {
+        responseMimeType: "application/json",
+        responseSchema: opts.responseSchema,
+      }
+    : undefined;
+
   return fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -141,6 +154,7 @@ async function callGoogleDirect(opts: AiRequestOptions): Promise<Response> {
             },
           }
         : {}),
+      ...(generationConfig ? { generationConfig } : {}),
     }),
   });
 }
@@ -183,9 +197,11 @@ async function callOpenAI(opts: AiRequestOptions): Promise<Response> {
 type Provider = { name: string; call: (opts: AiRequestOptions) => Promise<Response> };
 
 export async function aiComplete(opts: AiRequestOptions): Promise<Response> {
-  // Build provider chain — audio requests can't go to OpenAI
+  // Build provider chain — audio and structured-output requests are Gemini-only.
+  // (OpenAI structured outputs use a different shape; we deliberately do not
+  // try to convert across providers to avoid silent schema drift.)
   const providers: Provider[] = [];
-  if (!opts.hasAudio) {
+  if (!opts.hasAudio && !opts.responseSchema) {
     providers.push({ name: "openai", call: callOpenAI });
   }
   providers.push({ name: "google", call: callGoogleDirect });
