@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogContent,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { FileText, Loader2, AlertTriangle } from "lucide-react";
@@ -314,12 +314,18 @@ export default function NewConsultation() {
     setResolveMissing(null);
   }
 
-  // Liga/desliga reconhecimento conforme estado da gravação
+  // Liga/desliga reconhecimento conforme estado da gravação.
+  // Reseta o transcript SÓ quando começa uma gravação nova (idle → recording).
+  // Em pause/reviewing → recording é retomada: preserva o texto pra que
+  // os pontos já marcados no teleprompter continuem marcados.
+  const prevRecorderStateRef = useRef<RecordingState>("idle");
   function handleRecordingStateChange(s: RecordingState) {
+    const prev = prevRecorderStateRef.current;
+    prevRecorderStateRef.current = s;
     if (!activeScript || !speechSupported) return;
     if (s === "recording") {
       if (!isListening) {
-        resetTranscript();
+        if (prev === "idle") resetTranscript();
         startListening();
       }
     } else if (s === "paused" || s === "stopped" || s === "reviewing" || s === "idle") {
@@ -438,7 +444,7 @@ export default function NewConsultation() {
                           : ""
                       }
                     >
-                      <div className="space-y-3">
+                      <div className="flex flex-col gap-3 min-h-0">
                         <AudioRecorder
                           onComplete={handleAudioComplete}
                           onStateChange={handleRecordingStateChange}
@@ -525,13 +531,20 @@ export default function NewConsultation() {
                     ))}
                   </ul>
                   <p className="text-xs text-muted-foreground">
-                    Volte para a gravação e cubra esses pontos. O teleprompter
-                    marca cada um conforme você fala.
+                    O recomendado é voltar e cobrir esses pontos — o teleprompter
+                    marca cada um conforme você fala. Você também pode finalizar
+                    assim mesmo, se for o caso.
                   </p>
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="sm:justify-between gap-2">
+              <AlertDialogCancel
+                onClick={() => answerMissingDialog(true)}
+                className="mt-0"
+              >
+                Finalizar mesmo assim
+              </AlertDialogCancel>
               <AlertDialogAction onClick={() => answerMissingDialog(false)}>
                 Voltar e gravar mais
               </AlertDialogAction>

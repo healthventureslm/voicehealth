@@ -193,6 +193,8 @@ export default function Patients() {
                   <Label>Data de nascimento</Label>
                   <Input
                     type="date"
+                    min="1900-01-01"
+                    max={new Date().toISOString().slice(0, 10)}
                     value={form.date_of_birth}
                     onChange={(e) => setForm((p) => ({ ...p, date_of_birth: e.target.value }))}
                   />

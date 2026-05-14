@@ -24,8 +24,8 @@ export function LiveTranscriptView({
   const hasContent = transcript.length > 0 || interimTranscript.length > 0;
 
   return (
-    <div className="border rounded-lg bg-muted/30">
-      <div className="flex items-center gap-2 px-4 py-2 border-b text-xs text-muted-foreground">
+    <div className="border rounded-lg bg-muted/30 flex flex-col flex-1 min-h-[320px]">
+      <div className="flex items-center gap-2 px-4 py-2 border-b text-xs text-muted-foreground shrink-0">
         <Mic
           className={cn(
             "w-3.5 h-3.5",
@@ -39,7 +39,7 @@ export function LiveTranscriptView({
       </div>
       <div
         ref={scrollRef}
-        className="px-4 py-3 max-h-40 overflow-y-auto text-sm leading-relaxed"
+        className="px-4 py-3 flex-1 overflow-y-auto text-sm leading-relaxed"
       >
         {hasContent ? (
           <p className="whitespace-pre-wrap">
