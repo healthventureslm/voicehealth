@@ -1,15 +1,28 @@
 // Edge function: generate-report
-// Adaptada para o schema v2:
-//   - report_templates.prompt_template → report_templates.prompt
-//   - clinical_reports.template_type   → clinical_reports.template_id (FK)
-//   - clinical_reports é versionado: cada nova chamada cria nova versão
+//
+// Dual-mode geração de relatório clínico:
+//
+//  • Modo ESTRUTURADO (novo, Fase 2): se report_templates.schema estiver
+//    populado, a IA recebe um responseSchema (subset OpenAPI do Gemini) e
+//    devolve um JSON validado. Salvamos em clinical_reports.filled_data e
+//    derivamos um markdown legível em `content` (compatível com a UI atual
+//    de visualização e o exportador PDF).
+//
+//  • Modo MARKDOWN (legado): se schema for NULL, usa o prompt_template
+//    antigo com placeholder {{transcription}} e devolve markdown livre.
 //
 // Recebe: { consultation_id, template_id, transcription }
-// Retorna: { success, content, version }
+// Retorna: { success, content, filled_data?, version, report_id }
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { aiCompleteJson } from "../_shared/ai-gateway.ts";
+import {
+  templateToResponseSchema,
+  describeSchemaForPrompt,
+  type TemplateSchema,
+} from "../_shared/template-to-response-schema.ts";
+import { structuredToMarkdown } from "../_shared/structured-to-markdown.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,17 +64,17 @@ serve(async (req) => {
       userId = user?.id ?? null;
     }
 
-    // Busca template
+    // Busca template (já trazendo schema pra decidir o modo)
     const { data: template, error: templateError } = await supabase
       .from("report_templates")
-      .select("id, name, prompt")
+      .select("id, name, prompt, schema")
       .eq("id", template_id)
       .single();
     if (templateError || !template) {
       return json({ error: "Template não encontrado" }, 404);
     }
 
-    // patient_id da consulta (clinical_reports.patient_id é NOT NULL agora)
+    // patient_id da consulta (clinical_reports.patient_id é NOT NULL)
     const { data: consultation, error: cErr } = await supabase
       .from("consultations")
       .select("patient_id")
@@ -71,25 +84,63 @@ serve(async (req) => {
       return json({ error: "Consulta não encontrada" }, 404);
     }
 
-    // O prompt do template pode ter placeholder {{transcription}} ou esperar
-    // o texto via mensagem de usuário separada — suportamos os dois.
-    const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
-    const userPrompt = promptHasPlaceholder
-      ? template.prompt.replace(/\{\{transcription\}\}/g, transcription)
-      : `${template.prompt}\n\nTranscrição:\n${transcription}`;
+    let reportContent: string;
+    let filledData: Record<string, unknown> | null = null;
+    let reportFormat = "markdown";
 
-    // Chama LLM
-    const { content: reportContent } = await aiCompleteJson({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um assistente clínico em português do Brasil. Gere relatórios profissionais, estruturados, em markdown. Não invente dados que não estejam na transcrição.",
-        },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    if (template.schema) {
+      // ── Modo ESTRUTURADO ──
+      const tmpl = template.schema as TemplateSchema;
+      const responseSchema = templateToResponseSchema(tmpl);
+      const schemaSummary = describeSchemaForPrompt(tmpl);
+
+      const { content: rawJson } = await aiCompleteJson({
+        model: "google/gemini-2.5-flash",
+        responseSchema,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um assistente clínico em português do Brasil. " +
+              "Extraia da transcrição os dados que se aplicam ao template abaixo e " +
+              "devolva APENAS um JSON conformando ao schema fornecido. " +
+              "Use null para campos sem informação na transcrição — NUNCA invente. " +
+              "Para enums, use exatamente os valores listados.\n\n" +
+              schemaSummary,
+          },
+          { role: "user", content: `Transcrição:\n${transcription}` },
+        ],
+      });
+
+      try {
+        filledData = JSON.parse(rawJson) as Record<string, unknown>;
+      } catch (parseErr) {
+        console.error("[generate-report] JSON inválido da IA:", rawJson.slice(0, 500));
+        throw new Error("IA retornou JSON malformado: " + (parseErr as Error).message);
+      }
+
+      reportContent = structuredToMarkdown(tmpl, filledData);
+      reportFormat = "structured";
+    } else {
+      // ── Modo MARKDOWN (legado) ──
+      const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
+      const userPrompt = promptHasPlaceholder
+        ? template.prompt.replace(/\{\{transcription\}\}/g, transcription)
+        : `${template.prompt}\n\nTranscrição:\n${transcription}`;
+
+      const { content } = await aiCompleteJson({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um assistente clínico em português do Brasil. Gere relatórios profissionais, estruturados, em markdown. Não invente dados que não estejam na transcrição.",
+          },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      reportContent = content;
+    }
 
     // Próxima versão (1, 2, 3, ...) — cada chamada gera nova versão
     const { data: existing } = await supabase
@@ -108,7 +159,8 @@ serve(async (req) => {
         template_id,
         version: nextVersion,
         content: reportContent,
-        format: "markdown",
+        format: reportFormat,
+        filled_data: filledData,
         generated_by: userId,
       })
       .select()
@@ -120,6 +172,7 @@ serve(async (req) => {
     return json({
       success: true,
       content: reportContent,
+      filled_data: filledData,
       version: nextVersion,
       report_id: inserted.id,
     });

@@ -348,6 +348,7 @@ export type Database = {
           version: number;
           content: string;
           format: string;
+          filled_data: Json | null;
           generated_by: string | null;
           generated_at: string;
         };
@@ -360,6 +361,7 @@ export type Database = {
           version?: number;
           content: string;
           format?: string;
+          filled_data?: Json | null;
           generated_by?: string | null;
           generated_at?: string;
         };
@@ -378,6 +380,7 @@ export type Database = {
           name: string;
           description: string | null;
           prompt: string;
+          schema: Json | null;
           applicable_ward_types: Database["public"]["Enums"]["ward_type"][];
           applicable_specialties: string[];
           applicable_roles: Database["public"]["Enums"]["app_role"][];
@@ -393,6 +396,7 @@ export type Database = {
           name: string;
           description?: string | null;
           prompt: string;
+          schema?: Json | null;
           applicable_ward_types?: Database["public"]["Enums"]["ward_type"][];
           applicable_specialties?: string[];
           applicable_roles?: Database["public"]["Enums"]["app_role"][];

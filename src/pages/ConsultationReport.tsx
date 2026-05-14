@@ -1,16 +1,19 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  useConsultation, useClinicalReports, useAddenda,
+  useConsultation, useClinicalReports, useAddenda, useUpdateClinicalReport,
 } from "@/hooks/queries";
 import { AddendumDialog } from "@/components/consultation/AddendumDialog";
+import { StructuredReportView } from "@/components/templates/StructuredReportView";
+import type { TemplateSchema } from "@/templates/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Lock, Mic, History, Download } from "lucide-react";
+import { FileText, Lock, Mic, History, Download, Save } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { exportReportPdf } from "@/lib/exportReportPdf";
 import { toast } from "sonner";
@@ -30,6 +33,12 @@ export default function ConsultationReport() {
   const { data: consultation, isLoading } = useConsultation(id);
   const { data: reports } = useClinicalReports(id);
   const { data: addenda } = useAddenda(id);
+  const updateReport = useUpdateClinicalReport();
+
+  // Buffer local de edição do relatório estruturado. Sincroniza quando o
+  // report carregado muda; persiste no banco só quando o médico clica "Salvar".
+  const [structuredDraft, setStructuredDraft] = useState<Record<string, Record<string, unknown>>>({});
+  const [isDirty, setIsDirty] = useState(false);
 
   async function handleExportPdf() {
     if (!consultation) return;
@@ -76,7 +85,36 @@ export default function ConsultationReport() {
   }
 
   const c: any = consultation;
-  const latestReport = (reports ?? [])[0];
+  const latestReport = (reports ?? [])[0] as any;
+  const templateSchema = c?.template?.schema as TemplateSchema | null | undefined;
+  const isStructured =
+    !!templateSchema &&
+    !!latestReport &&
+    !!latestReport.filled_data &&
+    latestReport.format === "structured";
+
+  // Sincroniza buffer local quando o relatório do servidor muda. Não usamos
+  // useState inicializador porque latestReport pode chegar depois do mount.
+  useEffect(() => {
+    if (isStructured && latestReport.filled_data) {
+      setStructuredDraft(latestReport.filled_data as Record<string, Record<string, unknown>>);
+      setIsDirty(false);
+    }
+  }, [latestReport?.id, latestReport?.filled_data, isStructured]);
+
+  async function handleSaveStructured() {
+    if (!latestReport) return;
+    try {
+      await updateReport.mutateAsync({
+        id: latestReport.id,
+        patch: { filled_data: structuredDraft as never },
+      });
+      setIsDirty(false);
+      toast.success("Alterações salvas");
+    } catch (e: any) {
+      toast.error(`Falha ao salvar: ${e?.message ?? e}`);
+    }
+  }
 
   return (
     <AppLayout>
@@ -133,8 +171,37 @@ export default function ConsultationReport() {
           </Card>
         )}
 
-        {/* Relatório clínico */}
-        {latestReport ? (
+        {/* Relatório clínico — dual mode: estruturado (editável) ou markdown */}
+        {isStructured && templateSchema ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="heading-section flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                {templateSchema.name}
+              </h2>
+              {!c.locked_at && (
+                <Button
+                  onClick={handleSaveStructured}
+                  disabled={!isDirty || updateReport.isPending}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {isDirty ? "Salvar alterações" : "Salvo"}
+                </Button>
+              )}
+            </div>
+            <StructuredReportView
+              schema={templateSchema}
+              value={structuredDraft}
+              onChange={(next) => {
+                setStructuredDraft(next);
+                setIsDirty(true);
+              }}
+              readOnly={!!c.locked_at}
+            />
+          </div>
+        ) : latestReport ? (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="heading-section flex items-center gap-2">

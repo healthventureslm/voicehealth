@@ -17,6 +17,7 @@ export {
   useAddenda,
   useCreateAddendum,
   useClinicalReports,
+  useUpdateClinicalReport,
   usePatientTimeline,
   usePatientNotes,
   usePatientDocuments,

@@ -2,16 +2,27 @@
 // Gera um documento estruturado (clinical_report) a partir de N notas
 // (consultations sem template_id) de um paciente, usando 1 template.
 //
-// Recebe: { patient_id, template_id, source_consultation_ids: string[] }
-// Retorna: { success, content, report_id }
+// Dual-mode (Fase 2+):
+//   - Se template.schema preenchido → IA devolve JSON validado em
+//     filled_data + content markdown derivado.
+//   - Caso contrário → fluxo markdown legado.
 //
 // Diferença vs generate-report:
-//  - Não tem consultation_id; o report fica vinculado direto ao patient_id.
-//  - Concatena transcrições das notas (com data) num "dossiê" e manda pro LLM.
+//   - Não tem consultation_id; o report fica vinculado direto ao patient_id.
+//   - Concatena transcrições das N notas num "dossiê" com timestamps.
+//
+// Recebe: { patient_id, template_id, source_consultation_ids: string[] }
+// Retorna: { success, content, filled_data?, report_id }
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { aiCompleteJson } from "../_shared/ai-gateway.ts";
+import {
+  templateToResponseSchema,
+  describeSchemaForPrompt,
+  type TemplateSchema,
+} from "../_shared/template-to-response-schema.ts";
+import { structuredToMarkdown } from "../_shared/structured-to-markdown.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,10 +76,10 @@ serve(async (req) => {
       userId = user?.id ?? null;
     }
 
-    // Template
+    // Template (com schema pra decidir o modo)
     const { data: template, error: templateError } = await supabase
       .from("report_templates")
-      .select("id, name, prompt")
+      .select("id, name, prompt, schema")
       .eq("id", template_id)
       .single();
     if (templateError || !template) {
@@ -105,22 +116,64 @@ serve(async (req) => {
       return json({ error: "Notas selecionadas não têm transcrição" }, 400);
     }
 
-    const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
-    const userPrompt = promptHasPlaceholder
-      ? template.prompt.replace(/\{\{transcription\}\}/g, dossier)
-      : `${template.prompt}\n\nNotas do paciente (em ordem cronológica):\n${dossier}`;
+    let reportContent: string;
+    let filledData: Record<string, unknown> | null = null;
+    let reportFormat = "markdown";
 
-    const { content: reportContent } = await aiCompleteJson({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um assistente clínico em português do Brasil. Gere documentos profissionais, estruturados, em markdown, baseados nas notas do paciente. Quando informações conflitam entre notas, prefira a mais recente. Não invente dados que não estejam nas notas.",
-        },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    if (template.schema) {
+      // ── Modo ESTRUTURADO ──
+      const tmpl = template.schema as TemplateSchema;
+      const responseSchema = templateToResponseSchema(tmpl);
+      const schemaSummary = describeSchemaForPrompt(tmpl);
+
+      const { content: rawJson } = await aiCompleteJson({
+        model: "google/gemini-2.5-flash",
+        responseSchema,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um assistente clínico em português do Brasil. " +
+              "Extraia das notas do paciente (em ordem cronológica) os dados que se " +
+              "aplicam ao template abaixo e devolva APENAS um JSON conformando ao " +
+              "schema fornecido. Quando informações conflitam entre notas, prefira a " +
+              "mais recente. Use null para campos sem informação nas notas — " +
+              "NUNCA invente. Para enums, use exatamente os valores listados.\n\n" +
+              schemaSummary,
+          },
+          { role: "user", content: `Notas do paciente (em ordem cronológica):\n${dossier}` },
+        ],
+      });
+
+      try {
+        filledData = JSON.parse(rawJson) as Record<string, unknown>;
+      } catch (parseErr) {
+        console.error("[generate-document] JSON inválido da IA:", rawJson.slice(0, 500));
+        throw new Error("IA retornou JSON malformado: " + (parseErr as Error).message);
+      }
+
+      reportContent = structuredToMarkdown(tmpl, filledData);
+      reportFormat = "structured";
+    } else {
+      // ── Modo MARKDOWN (legado) ──
+      const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
+      const userPrompt = promptHasPlaceholder
+        ? template.prompt.replace(/\{\{transcription\}\}/g, dossier)
+        : `${template.prompt}\n\nNotas do paciente (em ordem cronológica):\n${dossier}`;
+
+      const { content } = await aiCompleteJson({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você é um assistente clínico em português do Brasil. Gere documentos profissionais, estruturados, em markdown, baseados nas notas do paciente. Quando informações conflitam entre notas, prefira a mais recente. Não invente dados que não estejam nas notas.",
+          },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      reportContent = content;
+    }
 
     const { data: inserted, error: insertError } = await supabase
       .from("clinical_reports")
@@ -131,7 +184,8 @@ serve(async (req) => {
         source_consultation_ids,
         version: 1,
         content: reportContent,
-        format: "markdown",
+        format: reportFormat,
+        filled_data: filledData,
         generated_by: userId,
       })
       .select()
@@ -143,6 +197,7 @@ serve(async (req) => {
     return json({
       success: true,
       content: reportContent,
+      filled_data: filledData,
       report_id: inserted.id,
     });
   } catch (e: any) {
