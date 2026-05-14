@@ -1,12 +1,16 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { useUpdateClinicalReport } from "@/hooks/queries";
+import { StructuredReportView } from "@/components/templates/StructuredReportView";
+import type { TemplateSchema } from "@/templates/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Mic, Download } from "lucide-react";
+import { FileText, Mic, Download, Save } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { exportReportPdf } from "@/lib/exportReportPdf";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,9 +33,9 @@ export default function DocumentView() {
         .from("clinical_reports")
         .select(`
           id, patient_id, consultation_id, source_consultation_ids,
-          template_id, version, content, format, generated_at, generated_by,
+          template_id, version, content, format, filled_data, generated_at, generated_by,
           patient:patients(id, full_name, medical_record, bed, hospital_id, hospital:hospitals(id, name, logo_url)),
-          template:report_templates(id, name)
+          template:report_templates(id, name, schema)
         `)
         .eq("id", id!)
         .maybeSingle();
@@ -39,6 +43,24 @@ export default function DocumentView() {
       return data;
     },
   });
+
+  const updateReport = useUpdateClinicalReport();
+  const [structuredDraft, setStructuredDraft] = useState<Record<string, Record<string, unknown>>>({});
+  const [isDirty, setIsDirty] = useState(false);
+
+  const templateSchema = (doc?.template as any)?.schema as TemplateSchema | null | undefined;
+  const isStructured =
+    !!templateSchema &&
+    !!doc?.filled_data &&
+    doc?.format === "structured";
+
+  // Sincroniza buffer ao trocar de documento ou após salvar.
+  useEffect(() => {
+    if (isStructured && doc?.filled_data) {
+      setStructuredDraft(doc.filled_data as Record<string, Record<string, unknown>>);
+      setIsDirty(false);
+    }
+  }, [doc?.id, doc?.filled_data, isStructured]);
 
   const { data: sourceNotes } = useQuery({
     queryKey: ["document_sources", id],
@@ -74,6 +96,20 @@ export default function DocumentView() {
 
   const patient: any = doc.patient;
   const templateName = doc.template?.name ?? "Documento clínico";
+
+  async function handleSaveStructured() {
+    if (!doc) return;
+    try {
+      await updateReport.mutateAsync({
+        id: doc.id,
+        patch: { filled_data: structuredDraft as never },
+      });
+      setIsDirty(false);
+      toast.success("Alterações salvas");
+    } catch (e: any) {
+      toast.error(`Falha ao salvar: ${e?.message ?? e}`);
+    }
+  }
 
   async function handleExportPdf() {
     if (!doc) return;
@@ -125,19 +161,47 @@ export default function DocumentView() {
           }
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="heading-section flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              Documento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <article className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown>{doc.content}</ReactMarkdown>
-            </article>
-          </CardContent>
-        </Card>
+        {isStructured && templateSchema ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="heading-section flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                {templateSchema.name}
+              </h2>
+              <Button
+                onClick={handleSaveStructured}
+                disabled={!isDirty || updateReport.isPending}
+                size="sm"
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {isDirty ? "Salvar alterações" : "Salvo"}
+              </Button>
+            </div>
+            <StructuredReportView
+              schema={templateSchema}
+              value={structuredDraft}
+              onChange={(next) => {
+                setStructuredDraft(next);
+                setIsDirty(true);
+              }}
+            />
+          </div>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="heading-section flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                Documento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <article className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{doc.content}</ReactMarkdown>
+              </article>
+            </CardContent>
+          </Card>
+        )}
 
         {(sourceNotes ?? []).length > 0 && (
           <Card>
