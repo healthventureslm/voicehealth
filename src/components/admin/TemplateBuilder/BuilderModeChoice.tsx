@@ -29,12 +29,10 @@ export function BuilderModeChoice({ onPick }: BuilderModeChoiceProps) {
         <ChoiceCard
           icon={<MessageCircle className="w-8 h-8" />}
           title="Conversar com IA"
-          subtitle="Descreve o que precisa, IA monta"
-          description="Diga em texto livre quais seções e campos quer. A IA vai construindo o schema enquanto você refina por turnos de conversa."
-          highlight="Bom pra criar do zero"
+          subtitle="Descreve, anexa, refina"
+          description="Diga em texto livre o que quer ou anexe documento de referência. A IA monta o schema iterativamente — você refina por turnos de conversa com preview ao vivo."
+          highlight="Bom pra criar do zero ou misturar com documento"
           onClick={() => onPick("chat")}
-          disabled={true}
-          disabledReason="Em construção — disponível em breve"
         />
       </div>
     </div>

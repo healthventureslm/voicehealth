@@ -15,7 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Save, AlertCircle, Eye, Code2 } from "lucide-react";
+import { Save, AlertCircle, Eye, Code2, Sparkles } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import { SchemaChat } from "./SchemaChat";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +63,7 @@ export function TemplateReviewStep({ initialSchema, onBack }: TemplateReviewStep
     initialSchema.metadata?.applicableRoles ?? ["nurse"],
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [refineOpen, setRefineOpen] = useState(false);
 
   // Parse o JSON pra usar no preview. Se inválido, mostra erro mas não quebra.
   const parsed = useMemo(() => {
@@ -124,12 +129,22 @@ export function TemplateReviewStep({ initialSchema, onBack }: TemplateReviewStep
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold mb-1">Revise e ajuste</h2>
-        <p className="text-sm text-muted-foreground">
-          A IA extraiu o template. Confira os campos, ajuste o que precisar e veja
-          o resultado ao vivo na direita antes de salvar.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Revise e ajuste</h2>
+          <p className="text-sm text-muted-foreground">
+            A IA extraiu o template. Confira os campos, ajuste o que precisar e veja
+            o resultado ao vivo na direita antes de salvar.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setRefineOpen(true)}
+          className="gap-2 shrink-0"
+        >
+          <Sparkles className="w-4 h-4 text-enf" />
+          Refinar com IA
+        </Button>
       </div>
 
       <Card>
@@ -242,6 +257,42 @@ export function TemplateReviewStep({ initialSchema, onBack }: TemplateReviewStep
           {isSaving ? "Salvando..." : "Salvar template"}
         </Button>
       </div>
+
+      {/* Sheet lateral pra refinar o schema com IA — reaproveita SchemaChat
+          com o schema atual. Quando IA atualiza, sincroniza no JSON editor. */}
+      <Sheet open={refineOpen} onOpenChange={setRefineOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-enf" />
+              Refinar com IA
+            </SheetTitle>
+            <SheetDescription>
+              Peça ajustes ou anexe outro documento de referência. Mudanças aplicadas
+              ao schema atualizam o preview automaticamente.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 p-3">
+            <SchemaChat
+              schema={parsed.schema}
+              onSchemaUpdate={(next) => {
+                setJsonText(JSON.stringify(next, null, 2));
+                if (next.name) setName(next.name);
+                if (next.description) setDescription(next.description);
+                const meta = (next.metadata ?? {}) as Record<string, unknown>;
+                if (Array.isArray(meta.applicableRoles)) {
+                  setRoles(meta.applicableRoles as string[]);
+                }
+                if (Array.isArray(meta.applicableWardTypes)) {
+                  setWardTypes(meta.applicableWardTypes as string[]);
+                }
+              }}
+              greeting="Como posso ajustar este template?"
+              placeholder="Ex: 'Adicione seção de sinais vitais' ou 'Tira a escala BRADEN'"
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

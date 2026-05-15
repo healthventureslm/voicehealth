@@ -11,6 +11,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { BuilderModeChoice } from "@/components/admin/TemplateBuilder/BuilderModeChoice";
 import { ImportDocumentStep } from "@/components/admin/TemplateBuilder/ImportDocumentStep";
+import { ChatBuilderStep } from "@/components/admin/TemplateBuilder/ChatBuilderStep";
 import { TemplateReviewStep } from "@/components/admin/TemplateBuilder/TemplateReviewStep";
 import type { TemplateSchema } from "@/templates/types";
 
@@ -50,9 +51,13 @@ export default function AdminTemplateBuilder() {
         )}
 
         {step === "chat" && (
-          <div className="max-w-2xl mx-auto py-8 text-center text-muted-foreground">
-            <p>Modo "Conversar com IA" em construção.</p>
-          </div>
+          <ChatBuilderStep
+            onBack={() => setStep("choice")}
+            onProceed={(schema) => {
+              setDraftSchema(schema);
+              setStep("review");
+            }}
+          />
         )}
 
         {step === "review" && draftSchema && (
