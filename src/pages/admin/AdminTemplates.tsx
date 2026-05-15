@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -35,17 +36,18 @@ const ROLES: Array<{ value: Enums<"app_role">; label: string }> = [
 export default function AdminTemplates() {
   const { hospitalIds } = useAuth();
   const hospitalId = hospitalIds[0];
+  const navigate = useNavigate();
 
   const { data: templates, isLoading } = useAdminTemplates(hospitalId);
   const deleteTpl = useDeleteTemplate();
 
-  // Wizard state
+  // Wizard legacy (markdown) — usado só pra EDITAR templates antigos sem schema.
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editing, setEditing] = useState<Tables<"report_templates"> | null>(null);
 
   function openNew() {
-    setEditing(null);
-    setWizardOpen(true);
+    // Novo template SEMPRE vai pela nova builder page (escolha + IA).
+    navigate("/admin/templates/new");
   }
   function openEdit(t: Tables<"report_templates">) {
     setEditing(t);
