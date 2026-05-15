@@ -94,6 +94,11 @@ serve(async (req) => {
       const tmpl = template.schema as TemplateSchema;
       const responseSchema = templateToResponseSchema(tmpl);
       const schemaSummary = describeSchemaForPrompt(tmpl);
+      const schemaJson = JSON.stringify(responseSchema);
+      console.log(
+        `[generate-report] template=${tmpl.name} sections=${tmpl.sections.length} ` +
+          `schema_bytes=${schemaJson.length} transcription_chars=${transcription.length}`,
+      );
 
       const { content: rawJson } = await aiCompleteJson({
         model: "google/gemini-2.5-flash",

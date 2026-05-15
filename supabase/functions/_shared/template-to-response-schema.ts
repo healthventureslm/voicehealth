@@ -99,11 +99,20 @@ type SchemaProperty = {
   format?: string;
 };
 
+// Cap em ~200 chars por description. Gemini fica chato com strings longas
+// em metadados de schema (rejeita com INVALID_ARGUMENT genérico). A
+// description é semântica pra IA, mas o LABEL já está no field; encurtar
+// não perde sinal forte.
+const DESC_CAP = 200;
+
 function describe(field: Field): string {
-  // Descrição rica ajuda a IA a decidir. Inclui label + dica de tipo.
   const base = field.label;
-  if (field.description) return `${base}. ${field.description}`;
-  return base;
+  const full = field.description ? `${base}. ${field.description}` : base;
+  return full.length > DESC_CAP ? full.slice(0, DESC_CAP - 1) + "…" : full;
+}
+
+function cap(s: string): string {
+  return s.length > DESC_CAP ? s.slice(0, DESC_CAP - 1) + "…" : s;
 }
 
 function optionEnumValues(options: Option[]): string[] {
@@ -269,29 +278,23 @@ export function templateToResponseSchema(template: TemplateSchema): SchemaProper
       if (field.required && !field.visibleWhen) required.push(field.id);
     }
 
-    // Narrative: textarea livre por seção (escape hatch). Sempre nullable.
     if (section.narrative?.enabled) {
       const hint = section.narrative.hint
-        ? ` ${section.narrative.hint}`
+        ? ` Foco: ${section.narrative.hint}`
         : "";
       fieldProps[NARRATIVE_KEY] = {
         type: "STRING",
-        description:
-          "Observações em texto livre desta seção. " +
-          "Use pra preencher contexto que não cabe nos campos tipados acima: " +
-          "doses exatas, valores fora dos padrões, raciocínio clínico, descrições " +
-          "detalhadas. Use null se nada a acrescentar." + hint,
+        description: cap(
+          "Texto livre: contexto/doses/raciocínio que não cabem nos campos. Null se vazio." +
+            hint,
+        ),
         nullable: true,
       };
     }
 
-    // Não usamos `nullable: true` em OBJECT de seção — alguns providers
-    // (incluindo Gemini em modos específicos) rejeitam. Visibilidade de
-    // seção é avaliada no front; a IA preenche o objeto vazio se não
-    // aplicar.
     sectionProps[section.id] = {
       type: "OBJECT",
-      description: section.description ?? section.title,
+      description: cap(section.description ?? section.title),
       properties: fieldProps,
       ...(required.length > 0 ? { required } : {}),
     };
@@ -299,7 +302,7 @@ export function templateToResponseSchema(template: TemplateSchema): SchemaProper
 
   return {
     type: "OBJECT",
-    description: template.description,
+    description: cap(template.description),
     properties: sectionProps,
   };
 }
