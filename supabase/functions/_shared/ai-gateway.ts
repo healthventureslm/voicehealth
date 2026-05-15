@@ -79,9 +79,11 @@ function recordSuccess(provider: string): void {
 
 const MODEL_MAP: Record<string, Record<string, string>> = {
   google: {
-    // Pro é necessário pra schemas grandes — flash fica preguiçoso e
-    // preenche poucos campos quando recebe responseSchema complexo.
-    "google/gemini-2.5-pro":        "gemini-2.5-pro",
+    // Todos os Gemini variants → gemini-flash-latest. Decisão do user em
+    // 2026-05-15 pra padronizar (custo/latência). Se schemas grandes
+    // voltarem a sair pouco preenchidos, considerar voltar gemini-2.5-pro
+    // pros generate-report / generate-document.
+    "google/gemini-2.5-pro":        "gemini-flash-latest",
     "google/gemini-2.5-flash":      "gemini-flash-latest",
     "google/gemini-2.5-flash-lite": "gemini-flash-latest",
   },
