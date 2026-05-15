@@ -1,8 +1,8 @@
 {
-  "id": "transicao_cuidado_sbar_v1",
+  "id": "transicao_cuidado_sbar_v2",
   "name": "Transição de Cuidado SBAR (Enfermagem)",
   "description": "Passagem de plantão estruturada no formato SBAR — Situação / Background / Atualidade / Recomendações.",
-  "version": 1,
+  "version": 2,
   "layout": "sbar",
   "metadata": {
     "captureMode": "voice",
@@ -14,6 +14,7 @@
       "id": "situacao",
       "sbarRole": "S",
       "title": "Situação atual",
+      "narrative": { "enabled": true, "hint": "Apresentação resumida do paciente, contexto crítico do momento" },
       "fields": [
         {
           "id": "diagnostico_principal",
@@ -101,6 +102,7 @@
       "id": "background",
       "sbarRole": "B",
       "title": "Background",
+      "narrative": { "enabled": true, "hint": "Antecedentes relevantes, evolução até o momento atual" },
       "fields": [
         {
           "id": "hpp",
@@ -119,6 +121,7 @@
       "id": "atualidade",
       "sbarRole": "A",
       "title": "Atualidade",
+      "narrative": { "enabled": true, "hint": "Estado clínico atual detalhado, observações por sistema, terapêutica em curso" },
       "fields": [
         {
           "id": "nivel_consciencia",
@@ -420,6 +423,7 @@
       "id": "recomendacoes",
       "sbarRole": "R",
       "title": "Recomendações",
+      "narrative": { "enabled": true, "hint": "Cuidados a serem mantidos pelo turno seguinte, pendências, sinais de alerta" },
       "fields": [
         {
           "id": "exames_realizados",

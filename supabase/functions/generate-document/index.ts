@@ -23,6 +23,7 @@ import {
   type TemplateSchema,
 } from "../_shared/template-to-response-schema.ts";
 import { structuredToMarkdown } from "../_shared/structured-to-markdown.ts";
+import { buildStructuredSystemPrompt } from "../_shared/structured-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,13 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+// IA sem responseSchema às vezes envolve em ```json ... ```. Descasca.
+function stripJsonFence(s: string): string {
+  const trimmed = s.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  return fenced ? fenced[1].trim() : trimmed;
 }
 
 serve(async (req) => {
@@ -125,25 +133,70 @@ serve(async (req) => {
       const tmpl = template.schema as TemplateSchema;
       const responseSchema = templateToResponseSchema(tmpl);
       const schemaSummary = describeSchemaForPrompt(tmpl);
+      const schemaJson = JSON.stringify(responseSchema);
+      console.log(
+        `[generate-document] template=${tmpl.name} sections=${tmpl.sections.length} ` +
+          `schema_bytes=${schemaJson.length} dossier_chars=${dossier.length}`,
+      );
 
-      const { content: rawJson } = await aiCompleteJson({
-        model: "google/gemini-2.5-flash",
-        responseSchema,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um assistente clínico em português do Brasil. " +
-              "Extraia das notas do paciente (em ordem cronológica) os dados que se " +
-              "aplicam ao template abaixo e devolva APENAS um JSON conformando ao " +
-              "schema fornecido. Quando informações conflitam entre notas, prefira a " +
-              "mais recente. Use null para campos sem informação nas notas — " +
-              "NUNCA invente. Para enums, use exatamente os valores listados.\n\n" +
+      const messages = [
+        {
+          role: "system",
+          content:
+            buildStructuredSystemPrompt(
               schemaSummary,
-          },
-          { role: "user", content: `Notas do paciente (em ordem cronológica):\n${dossier}` },
-        ],
-      });
+              "das notas do paciente (em ordem cronológica) os",
+            ) +
+            "\n\n═══ REGRA EXTRA: CONFLITOS ENTRE NOTAS ═══\n\n" +
+            "Quando informações conflitam entre notas, prefira a MAIS RECENTE. " +
+            "Se a nota anterior dizia uma coisa e a nota seguinte mudou, use o " +
+            "valor da nota seguinte e mencione a evolução na _narrative " +
+            "(ex: \"BRADEN evoluiu de 14 (12/05) para 12 (13/05)\").",
+        },
+        { role: "user", content: `Notas do paciente (em ordem cronológica):\n${dossier}` },
+      ];
+
+      // Tenta com responseSchema (enforcement estrito). Se Gemini rejeitar
+      // (schema grande/complexo demais → INVALID_ARGUMENT), faz fallback
+      // pra JSON livre guiado só por prompt. Output ainda é JSON parseável;
+      // só perde o enforcement de enum exato (mitigado por prompt v2).
+      let rawJson: string;
+      let usedMode = "schema";
+      try {
+        const result = await aiCompleteJson({
+          model: "google/gemini-2.5-pro",
+          responseSchema,
+          messages,
+        });
+        rawJson = result.content;
+        console.log(
+          `[generate-document] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+            `tamanho=${rawJson.length} chars. Primeiros 400:`,
+          rawJson.slice(0, 400),
+        );
+      } catch (schemaErr: any) {
+        usedMode = "fallback-no-schema";
+        const msg = String(schemaErr?.message ?? schemaErr);
+        if (msg.includes("INVALID_ARGUMENT") || msg.includes("400")) {
+          console.warn(
+            "[generate-document] responseSchema rejeitado pelo Gemini, " +
+              "tentando fallback sem schema. erro:",
+            msg.slice(0, 200),
+          );
+          const result = await aiCompleteJson({
+            model: "google/gemini-2.5-pro",
+            messages,
+          });
+          rawJson = stripJsonFence(result.content);
+          console.log(
+            `[generate-document] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+              `tamanho=${rawJson.length} chars. Primeiros 400:`,
+            rawJson.slice(0, 400),
+          );
+        } else {
+          throw schemaErr;
+        }
+      }
 
       try {
         filledData = JSON.parse(rawJson) as Record<string, unknown>;

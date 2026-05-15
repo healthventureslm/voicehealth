@@ -63,6 +63,8 @@ type Field =
   | (FieldBase & { type: "time_window_multi"; windows: { id: string; label: string }[] })
   | (FieldBase & { type: "block_ref"; ref: string });
 
+type SectionNarrative = { enabled: true; hint?: string };
+
 type Section = {
   id: string;
   title: string;
@@ -70,7 +72,10 @@ type Section = {
   sbarRole?: string;
   visibleWhen?: VisibilityRule;
   fields: Field[];
+  narrative?: SectionNarrative;
 };
+
+const NARRATIVE_KEY = "_narrative";
 
 export type TemplateSchema = {
   id: string;
@@ -94,11 +99,20 @@ type SchemaProperty = {
   format?: string;
 };
 
+// Cap em ~200 chars por description. Gemini fica chato com strings longas
+// em metadados de schema (rejeita com INVALID_ARGUMENT genérico). A
+// description é semântica pra IA, mas o LABEL já está no field; encurtar
+// não perde sinal forte.
+const DESC_CAP = 200;
+
 function describe(field: Field): string {
-  // Descrição rica ajuda a IA a decidir. Inclui label + dica de tipo.
   const base = field.label;
-  if (field.description) return `${base}. ${field.description}`;
-  return base;
+  const full = field.description ? `${base}. ${field.description}` : base;
+  return full.length > DESC_CAP ? full.slice(0, DESC_CAP - 1) + "…" : full;
+}
+
+function cap(s: string): string {
+  return s.length > DESC_CAP ? s.slice(0, DESC_CAP - 1) + "…" : s;
 }
 
 function optionEnumValues(options: Option[]): string[] {
@@ -122,7 +136,13 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
       return { type: "NUMBER", description: describe(field), nullable };
 
     case "date":
-      return { type: "STRING", format: "date", description: describe(field), nullable };
+      // Gemini só aceita "date-time" em format. Usamos STRING simples
+      // e instruímos via description que é uma data ISO (YYYY-MM-DD).
+      return {
+        type: "STRING",
+        description: `${describe(field)} — formato YYYY-MM-DD`,
+        nullable,
+      };
 
     case "datetime":
       return { type: "STRING", format: "date-time", description: describe(field), nullable };
@@ -132,8 +152,10 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
 
     case "radio":
     case "select":
+      // Gemini exige format="enum" em STRING com enum.
       return {
         type: "STRING",
+        format: "enum",
         enum: optionEnumValues(field.options),
         description: describe(field),
         nullable,
@@ -142,7 +164,11 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
     case "multi_checkbox":
       return {
         type: "ARRAY",
-        items: { type: "STRING", enum: optionEnumValues(field.options) },
+        items: {
+          type: "STRING",
+          format: "enum",
+          enum: optionEnumValues(field.options),
+        },
         description: describe(field),
         nullable,
       };
@@ -193,8 +219,9 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
       for (const item of field.items) {
         properties[item.id] = {
           type: "STRING",
+          format: "enum",
           enum: ["SIM", "NAO", "NA"],
-          description: item.label,
+          description: cap(item.label),
           nullable: true,
         };
       }
@@ -228,6 +255,7 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
         type: "ARRAY",
         items: {
           type: "STRING",
+          format: "enum",
           enum: field.windows.map((w) => w.id),
         },
         description: describe(field),
@@ -258,19 +286,43 @@ export function templateToResponseSchema(template: TemplateSchema): SchemaProper
       if (field.required && !field.visibleWhen) required.push(field.id);
     }
 
+    if (section.narrative?.enabled) {
+      const hint = section.narrative.hint
+        ? ` Foco: ${section.narrative.hint}`
+        : "";
+      fieldProps[NARRATIVE_KEY] = {
+        type: "STRING",
+        description: cap(
+          "Texto livre: contexto/doses/raciocínio que não cabem nos campos. Null se vazio." +
+            hint,
+        ),
+        nullable: true,
+      };
+    }
+
+    // Força TODAS as properties do schema interno como required — IA deve
+    // devolver cada chave, com null quando não tiver info. Sem isso ela
+    // omite campos. (Validação semântica continua sendo no front.)
+    const allFieldKeys = Object.keys(fieldProps);
+
     sectionProps[section.id] = {
       type: "OBJECT",
-      description: section.description ?? section.title,
+      description: cap(section.description ?? section.title),
       properties: fieldProps,
-      ...(required.length > 0 ? { required } : {}),
-      nullable: !!section.visibleWhen,
+      ...(allFieldKeys.length > 0 ? { required: allFieldKeys } : {}),
     };
   }
 
+  // Força TODAS as seções como required no schema raiz. Sem isso o Gemini
+  // omite seções inteiras quando o schema é grande, por "economia". Com
+  // todas required, ele tem que devolver pelo menos a chave (com objeto
+  // vazio ou null nas properties internas se não tiver info).
+  const sectionIds = Object.keys(sectionProps);
   return {
     type: "OBJECT",
-    description: template.description,
+    description: cap(template.description),
     properties: sectionProps,
+    ...(sectionIds.length > 0 ? { required: sectionIds } : {}),
   };
 }
 
@@ -286,6 +338,12 @@ export function describeSchemaForPrompt(template: TemplateSchema): string {
     lines.push(`## ${section.title}`);
     for (const field of section.fields) {
       lines.push(describeFieldLine(field));
+    }
+    if (section.narrative?.enabled) {
+      lines.push(
+        `- ${NARRATIVE_KEY} (textarea livre): observações da seção que não cabem nos campos acima` +
+          (section.narrative.hint ? ` — ${section.narrative.hint}` : ""),
+      );
     }
     lines.push("");
   }

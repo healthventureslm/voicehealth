@@ -62,6 +62,14 @@ export interface FieldBase {
   description?: string;
   required?: boolean;
   visibleWhen?: VisibilityRule;
+  /**
+   * Marca este field como observation clínica extraível pra dashboards/auditoria.
+   * Não tem efeito no v1 (JSON segue como source-of-truth). Quando a tabela
+   * `patient_observations` chegar (branch futura), o trigger/job de extração
+   * vai ler essa anotação pra promover o valor pra coluna própria.
+   * Convenção: snake_case + escopo (ex: "vital_pa_sistolica", "scale_braden_score").
+   */
+  extractAs?: string;
 }
 
 export interface TextField extends FieldBase {
@@ -219,6 +227,22 @@ export type Field =
 
 export type SbarRole = "S" | "B" | "A" | "R";
 
+/**
+ * Narrative é um escape hatch da seção: um textarea livre onde a IA (e
+ * depois o médico) coloca contexto que não cabe nos campos tipados —
+ * doses exatas, raciocínio clínico, observações, valores fora do padrão.
+ * É um conceito separado de Field porque tem render distinto (italic,
+ * embaixo dos campos, marcado como "Obs:") e instrução da IA própria.
+ *
+ * No filled_data, vive como `_narrative` dentro do objeto da seção:
+ *   filled_data["neurologica"] = { nivel_consciencia: "SEDADO", ..., _narrative: "..." }
+ */
+export interface SectionNarrative {
+  enabled: true;
+  /** Instrução opcional pra IA sobre o que tipicamente cabe aqui. */
+  hint?: string;
+}
+
 export interface Section {
   id: string;
   title: string;
@@ -226,7 +250,11 @@ export interface Section {
   sbarRole?: SbarRole;
   visibleWhen?: VisibilityRule;
   fields: Field[];
+  narrative?: SectionNarrative;
 }
+
+/** Chave reservada pro texto da narrative dentro de filled_data[section.id]. */
+export const NARRATIVE_KEY = "_narrative" as const;
 
 export type TemplateLayout = "free" | "sbar";
 

@@ -23,6 +23,7 @@ import {
   type TemplateSchema,
 } from "../_shared/template-to-response-schema.ts";
 import { structuredToMarkdown } from "../_shared/structured-to-markdown.ts";
+import { buildStructuredSystemPrompt } from "../_shared/structured-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,12 +37,23 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function stripJsonFence(s: string): string {
+  const trimmed = s.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
     const { consultation_id, template_id, transcription } = body;
+    // Opt-in pra incluir gravações anteriores do paciente no contexto da IA.
+    // Default true (compatível com a expectativa de quem grava "só o adicional"
+    // após ver pontos pré-marcados no teleprompter). Front pode passar false
+    // pra gerar documento isolado.
+    const includeHistory: boolean = body.include_history !== false;
 
     if (!consultation_id || !template_id || !transcription) {
       return json({ error: "Missing fields: consultation_id, template_id, transcription" }, 400);
@@ -84,6 +96,33 @@ serve(async (req) => {
       return json({ error: "Consulta não encontrada" }, 404);
     }
 
+    // Histórico de transcrições anteriores do MESMO paciente — só busca se
+    // includeHistory=true (default). Pré-marcadas no teleprompter durante a
+    // gravação. A IA precisa do contexto completo pra preencher template
+    // quando o profissional gravou "só o adicional".
+    let priorTranscripts: string[] = [];
+    if (includeHistory) {
+      const { data: prior } = await supabase
+        .from("consultations")
+        .select("created_at, edited_transcription, raw_transcription")
+        .eq("patient_id", consultation.patient_id)
+        .neq("id", consultation_id)
+        .in("status", ["transcribed", "editing", "completed"])
+        .order("created_at", { ascending: true });
+
+      priorTranscripts = (prior ?? [])
+        .map((c) => (c.edited_transcription || c.raw_transcription || "").trim())
+        .filter(Boolean);
+    }
+
+    const combinedTranscription = priorTranscripts.length > 0
+      ? `═══ HISTÓRICO DE GRAVAÇÕES ANTERIORES DESTE PACIENTE ═══\n\n` +
+        priorTranscripts
+          .map((t, i) => `--- Gravação anterior ${i + 1} ---\n${t}`)
+          .join("\n\n") +
+        `\n\n═══ GRAVAÇÃO ATUAL (mais recente, prevalece em conflito) ═══\n\n${transcription}`
+      : transcription;
+
     let reportContent: string;
     let filledData: Record<string, unknown> | null = null;
     let reportFormat = "markdown";
@@ -93,24 +132,63 @@ serve(async (req) => {
       const tmpl = template.schema as TemplateSchema;
       const responseSchema = templateToResponseSchema(tmpl);
       const schemaSummary = describeSchemaForPrompt(tmpl);
+      const schemaJson = JSON.stringify(responseSchema);
+      console.log(
+        `[generate-report] template=${tmpl.name} sections=${tmpl.sections.length} ` +
+          `schema_bytes=${schemaJson.length} transcription_chars=${transcription.length} ` +
+          `prior_count=${priorTranscripts.length} combined_chars=${combinedTranscription.length}`,
+      );
 
-      const { content: rawJson } = await aiCompleteJson({
-        model: "google/gemini-2.5-flash",
-        responseSchema,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um assistente clínico em português do Brasil. " +
-              "Extraia da transcrição os dados que se aplicam ao template abaixo e " +
-              "devolva APENAS um JSON conformando ao schema fornecido. " +
-              "Use null para campos sem informação na transcrição — NUNCA invente. " +
-              "Para enums, use exatamente os valores listados.\n\n" +
-              schemaSummary,
-          },
-          { role: "user", content: `Transcrição:\n${transcription}` },
-        ],
-      });
+      const messages = [
+        {
+          role: "system",
+          content: buildStructuredSystemPrompt(
+            schemaSummary,
+            priorTranscripts.length > 0
+              ? "do HISTÓRICO + GRAVAÇÃO ATUAL do paciente os"
+              : "da transcrição os",
+          ),
+        },
+        { role: "user", content: combinedTranscription },
+      ];
+
+      let rawJson: string;
+      let usedMode = "schema";
+      try {
+        const result = await aiCompleteJson({
+          model: "google/gemini-2.5-pro",
+          responseSchema,
+          messages,
+        });
+        rawJson = result.content;
+        console.log(
+          `[generate-report] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+            `tamanho=${rawJson.length} chars. Primeiros 400:`,
+          rawJson.slice(0, 400),
+        );
+      } catch (schemaErr: any) {
+        usedMode = "fallback-no-schema";
+        const msg = String(schemaErr?.message ?? schemaErr);
+        if (msg.includes("INVALID_ARGUMENT") || msg.includes("400")) {
+          console.warn(
+            "[generate-report] responseSchema rejeitado pelo Gemini, " +
+              "tentando fallback sem schema. erro:",
+            msg.slice(0, 200),
+          );
+          const result = await aiCompleteJson({
+            model: "google/gemini-2.5-pro",
+            messages,
+          });
+          rawJson = stripJsonFence(result.content);
+          console.log(
+            `[generate-report] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+              `tamanho=${rawJson.length} chars. Primeiros 400:`,
+            rawJson.slice(0, 400),
+          );
+        } else {
+          throw schemaErr;
+        }
+      }
 
       try {
         filledData = JSON.parse(rawJson) as Record<string, unknown>;
@@ -125,8 +203,8 @@ serve(async (req) => {
       // ── Modo MARKDOWN (legado) ──
       const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
       const userPrompt = promptHasPlaceholder
-        ? template.prompt.replace(/\{\{transcription\}\}/g, transcription)
-        : `${template.prompt}\n\nTranscrição:\n${transcription}`;
+        ? template.prompt.replace(/\{\{transcription\}\}/g, combinedTranscription)
+        : `${template.prompt}\n\nTranscrição:\n${combinedTranscription}`;
 
       const { content } = await aiCompleteJson({
         model: "google/gemini-2.5-flash",

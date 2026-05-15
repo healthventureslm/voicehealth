@@ -79,7 +79,9 @@ function recordSuccess(provider: string): void {
 
 const MODEL_MAP: Record<string, Record<string, string>> = {
   google: {
-    "google/gemini-2.5-pro":        "gemini-flash-latest",
+    // Pro é necessário pra schemas grandes — flash fica preguiçoso e
+    // preenche poucos campos quando recebe responseSchema complexo.
+    "google/gemini-2.5-pro":        "gemini-2.5-pro",
     "google/gemini-2.5-flash":      "gemini-flash-latest",
     "google/gemini-2.5-flash-lite": "gemini-flash-latest",
   },
@@ -235,11 +237,16 @@ export async function aiComplete(opts: AiRequestOptions): Promise<Response> {
         continue;
       }
 
-      // For 4xx client errors (except 429/402), don't fallback — it's our bug
+      // For 4xx client errors (except 429/402), don't fallback — é bug nosso.
+      // THROW com a mensagem do provider pra caller ter o motivo real
+      // (antes retornávamos o response já consumido → caller crashava em
+      // "Body already consumed" tentando .json()).
       if (status >= 400 && status < 500) {
         const errorText = await response.text();
         console.error(`[ai-gateway] ${provider.name} client error ${status}:`, errorText);
-        return response;
+        throw new Error(
+          `${provider.name} ${status}: ${errorText.slice(0, 1000)}`,
+        );
       }
 
       // 5xx server error — fallback

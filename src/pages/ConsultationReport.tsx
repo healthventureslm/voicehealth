@@ -10,6 +10,7 @@ import {
 import { AddendumDialog } from "@/components/consultation/AddendumDialog";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
 import type { TemplateSchema } from "@/templates/types";
+import { deriveMarkdown } from "@/templates/derive-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,24 @@ export default function ConsultationReport() {
   // report carregado muda; persiste no banco só quando o médico clica "Salvar".
   const [structuredDraft, setStructuredDraft] = useState<Record<string, Record<string, unknown>>>({});
   const [isDirty, setIsDirty] = useState(false);
+
+  // Derivados — calculados antes do useEffect pra não quebrar regra dos hooks
+  // (todos os hooks têm que rodar em toda renderização, na mesma ordem).
+  const latestReport = (reports ?? [])[0] as any;
+  const templateSchema = (consultation as any)?.template?.schema as TemplateSchema | null | undefined;
+  const isStructured =
+    !!templateSchema &&
+    !!latestReport &&
+    !!latestReport.filled_data &&
+    latestReport.format === "structured";
+
+  // Sincroniza buffer local quando o relatório do servidor muda.
+  useEffect(() => {
+    if (isStructured && latestReport?.filled_data) {
+      setStructuredDraft(latestReport.filled_data as Record<string, Record<string, unknown>>);
+      setIsDirty(false);
+    }
+  }, [latestReport?.id, latestReport?.filled_data, isStructured]);
 
   async function handleExportPdf() {
     if (!consultation) return;
@@ -85,29 +104,20 @@ export default function ConsultationReport() {
   }
 
   const c: any = consultation;
-  const latestReport = (reports ?? [])[0] as any;
-  const templateSchema = c?.template?.schema as TemplateSchema | null | undefined;
-  const isStructured =
-    !!templateSchema &&
-    !!latestReport &&
-    !!latestReport.filled_data &&
-    latestReport.format === "structured";
-
-  // Sincroniza buffer local quando o relatório do servidor muda. Não usamos
-  // useState inicializador porque latestReport pode chegar depois do mount.
-  useEffect(() => {
-    if (isStructured && latestReport.filled_data) {
-      setStructuredDraft(latestReport.filled_data as Record<string, Record<string, unknown>>);
-      setIsDirty(false);
-    }
-  }, [latestReport?.id, latestReport?.filled_data, isStructured]);
 
   async function handleSaveStructured() {
-    if (!latestReport) return;
+    if (!latestReport || !templateSchema) return;
     try {
+      // Rederiva o markdown a partir do JSON editado, pra PDF/visualização
+      // legacy refletirem as mudanças do médico. JSON segue como
+      // source-of-truth; content é apenas representação derivada.
+      const newContent = deriveMarkdown(templateSchema, structuredDraft);
       await updateReport.mutateAsync({
         id: latestReport.id,
-        patch: { filled_data: structuredDraft as never },
+        patch: {
+          filled_data: structuredDraft as never,
+          content: newContent,
+        },
       });
       setIsDirty(false);
       toast.success("Alterações salvas");

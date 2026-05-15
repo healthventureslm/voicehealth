@@ -18,6 +18,7 @@ import { useScriptMatching } from "@/hooks/useScriptMatching";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -46,6 +47,10 @@ export default function NewConsultation() {
   const [manualTranscript, setManualTranscript] = useState("");
   const [step, setStep] = useState<ProcessingStep>("idle");
   const [error, setError] = useState<string | null>(null);
+  // Incluir gravações anteriores no contexto da IA. Default ON — bate com
+  // o teleprompter que já pré-marca pontos baseado no histórico. Profissional
+  // pode desligar pra gerar documento "do zero" só com a gravação atual.
+  const [includeHistory, setIncludeHistory] = useState<boolean>(true);
 
   const role: Enums<"app_role"> = (roles[0]?.role ?? "doctor") as Enums<"app_role">;
 
@@ -162,6 +167,7 @@ export default function NewConsultation() {
             consultation_id: consultation.id,
             template_id: templateId,
             transcription,
+            include_history: includeHistory,
           },
         });
         if (grErr) {
@@ -218,6 +224,7 @@ export default function NewConsultation() {
             consultation_id: consultation.id,
             template_id: templateId,
             transcription: manualTranscript.trim(),
+            include_history: includeHistory,
           },
         });
       }
@@ -420,6 +427,26 @@ export default function NewConsultation() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {historyCount > 0 && (
+                <div className="mb-4 flex items-start gap-2 p-3 rounded-md border bg-muted/30">
+                  <Checkbox
+                    id="include-history"
+                    checked={includeHistory}
+                    onCheckedChange={(v) => setIncludeHistory(v === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="text-sm flex-1">
+                    <Label htmlFor="include-history" className="cursor-pointer font-medium">
+                      Usar histórico de gravações anteriores
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      A IA vai considerar as {historyCount}{" "}
+                      gravação{historyCount === 1 ? "" : "ões"} anterior{historyCount === 1 ? "" : "es"} deste paciente ao
+                      gerar o documento. Útil se você está gravando apenas o adicional ao que já foi falado.
+                    </p>
+                  </div>
+                </div>
+              )}
               <Tabs defaultValue="audio" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="audio">Gravação de áudio</TabsTrigger>
