@@ -46,6 +46,13 @@ Regras:
 - Se ainda não tem nada (schema=null) e usuário pediu pra começar, monte o esqueleto inicial.
 - Se usuário enviou documento anexado, extraia/atualize o schema baseado nele.
 
+⚠️ OBRIGATÓRIO em TODO field e TODA section:
+- "id" (snake_case curto, ex: "plano_saude", "data_nascimento")
+- "label" (texto legível em PT-BR mostrado pro profissional, ex: "Plano de saúde", "Data de nascimento")
+
+Nunca omita o label. Nunca deixe label vazio. Sem label o admin não consegue identificar
+o campo na tela. Use frases curtas, claras, capitalizadas como em formulário clínico.
+
 ═══ ESTRUTURA DO TEMPLATE ═══
 
 {

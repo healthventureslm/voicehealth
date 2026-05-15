@@ -28,7 +28,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
   switch (field.type) {
     case "text":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <Input
             value={(value as string) ?? ""}
             onChange={(e) => onChange(e.target.value)}
@@ -41,7 +41,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "textarea":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <Textarea
             value={(value as string) ?? ""}
             onChange={(e) => onChange(e.target.value)}
@@ -54,7 +54,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "number":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <Input
             type="number"
             value={value === null || value === undefined ? "" : String(value)}
@@ -69,7 +69,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "number_with_unit":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="flex items-center gap-2">
             <Input
               type="number"
@@ -88,7 +88,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "date":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <Input
             type="date"
             value={(value as string) ?? ""}
@@ -102,7 +102,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "datetime":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <Input
             type="datetime-local"
             value={(value as string) ?? ""}
@@ -115,7 +115,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
     case "boolean":
       return (
         <div className="flex items-center justify-between rounded-md border px-3 py-2">
-          <Label className="cursor-pointer">{field.label}</Label>
+          <Label className="cursor-pointer">{field.label?.trim() || humanizeId(field.id)}</Label>
           <Switch
             checked={!!value}
             onCheckedChange={onChange}
@@ -126,7 +126,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "radio":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <RadioGroup
             value={(value as string) ?? ""}
             onValueChange={onChange}
@@ -148,7 +148,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
 
     case "select":
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <Select
             value={(value as string) ?? ""}
             onValueChange={onChange}
@@ -175,7 +175,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
         else onChange([...arr, v]);
       };
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {field.options.map((opt) => {
               const checked = arr.includes(String(opt.value));
@@ -201,7 +201,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
     case "scale": {
       const v = typeof value === "number" ? value : field.min;
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <Slider
@@ -231,7 +231,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
       const obj = (value as Record<string, number> | undefined) ?? {};
       const { total, classification } = computeScoredScale(field, obj);
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="space-y-3 rounded-md border p-3 bg-muted/20">
             {field.items.map((item) => (
               <div key={item.id}>
@@ -295,7 +295,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
         onChange(next);
       };
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="space-y-2">
             {rows.length === 0 && (
               <p className="text-xs text-muted-foreground italic">Nenhum item.</p>
@@ -348,7 +348,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
     case "computed": {
       const computed = computeFieldValue(field, sectionValues);
       return (
-        <Field label={field.label}>
+        <Field label={field.label} fallback={field.id}>
           <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
             {computed !== null ? (
               <>
@@ -374,7 +374,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
         onChange(next);
       };
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="space-y-1.5">
             {field.items.map((item) => (
               <div
@@ -405,7 +405,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
     case "counter_grid": {
       const obj = (value as Record<string, number> | undefined) ?? {};
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {field.categories.map((cat) => (
               <div key={cat.id} className="flex items-center justify-between rounded-md border px-3 py-1.5">
@@ -438,7 +438,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
         else onChange([...arr, id]);
       };
       return (
-        <Field label={field.label} required={field.required}>
+        <Field label={field.label} fallback={field.id} required={field.required}>
           <div className="flex flex-wrap gap-1.5">
             {field.windows.map((w) => {
               const on = arr.includes(w.id);
@@ -468,7 +468,7 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
     case "block_ref":
       // Blocos reutilizáveis ainda não implementados (fase posterior).
       return (
-        <Field label={field.label}>
+        <Field label={field.label} fallback={field.id}>
           <div className="text-xs text-muted-foreground italic">
             Bloco reutilizável: <code>{field.ref}</code> (render pendente)
           </div>
@@ -477,19 +477,30 @@ export function FieldRenderer({ field, value, onChange, sectionValues, readOnly 
   }
 }
 
+// Humaniza um snake_case_id em label legível pra fallback quando IA
+// esquece de preencher field.label.
+function humanizeId(id: string): string {
+  return id
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function Field({
   label,
+  fallback,
   required,
   children,
 }: {
-  label: string;
+  label: string | undefined;
+  fallback?: string;
   required?: boolean;
   children: React.ReactNode;
 }) {
+  const display = label?.trim() || (fallback ? humanizeId(fallback) : "(campo sem nome)");
   return (
     <div className="space-y-1.5">
       <Label className="text-sm">
-        {label}
+        {display}
         {required && <span className="text-destructive ml-0.5">*</span>}
       </Label>
       {children}

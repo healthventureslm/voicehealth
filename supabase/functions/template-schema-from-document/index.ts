@@ -133,6 +133,15 @@ Cada Section:
 - Sinais vitais → seção "sinais_vitais" com number_with_unit cada
 - Campos "Outros:" geralmente são text livre
 
+═══ OBRIGATÓRIO ═══
+
+TODO field e TODA section DEVEM ter:
+- "id" (snake_case curto)
+- "label" / "title" legível em PT-BR
+
+Nunca omita ou deixe vazio. Sem label, o profissional vê só uma caixinha em branco
+no formulário. Use frases curtas e claras como num formulário em papel.
+
 ═══ OUTPUT ═══
 
 Devolva APENAS o JSON do TemplateSchema, sem markdown fences, sem explicação. Garanta que é JSON válido (aspas duplas, sem trailing commas).`;
