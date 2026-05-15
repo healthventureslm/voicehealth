@@ -152,8 +152,10 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
 
     case "radio":
     case "select":
+      // Gemini exige format="enum" em STRING com enum.
       return {
         type: "STRING",
+        format: "enum",
         enum: optionEnumValues(field.options),
         description: describe(field),
         nullable,
@@ -162,7 +164,11 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
     case "multi_checkbox":
       return {
         type: "ARRAY",
-        items: { type: "STRING", enum: optionEnumValues(field.options) },
+        items: {
+          type: "STRING",
+          format: "enum",
+          enum: optionEnumValues(field.options),
+        },
         description: describe(field),
         nullable,
       };
@@ -213,8 +219,9 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
       for (const item of field.items) {
         properties[item.id] = {
           type: "STRING",
+          format: "enum",
           enum: ["SIM", "NAO", "NA"],
-          description: item.label,
+          description: cap(item.label),
           nullable: true,
         };
       }
@@ -248,6 +255,7 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
         type: "ARRAY",
         items: {
           type: "STRING",
+          format: "enum",
           enum: field.windows.map((w) => w.id),
         },
         description: describe(field),

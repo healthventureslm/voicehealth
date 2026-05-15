@@ -37,6 +37,13 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// IA sem responseSchema às vezes envolve em ```json ... ```. Descasca.
+function stripJsonFence(s: string): string {
+  const trimmed = s.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -132,26 +139,57 @@ serve(async (req) => {
           `schema_bytes=${schemaJson.length} dossier_chars=${dossier.length}`,
       );
 
-      const { content: rawJson } = await aiCompleteJson({
-        model: "google/gemini-2.5-flash",
-        responseSchema,
-        messages: [
-          {
-            role: "system",
-            content:
-              buildStructuredSystemPrompt(
-                schemaSummary,
-                "das notas do paciente (em ordem cronológica) os",
-              ) +
-              "\n\n═══ REGRA EXTRA: CONFLITOS ENTRE NOTAS ═══\n\n" +
-              "Quando informações conflitam entre notas, prefira a MAIS RECENTE. " +
-              "Se a nota anterior dizia uma coisa e a nota seguinte mudou, use o " +
-              "valor da nota seguinte e mencione a evolução na _narrative " +
-              "(ex: \"BRADEN evoluiu de 14 (12/05) para 12 (13/05)\").",
-          },
-          { role: "user", content: `Notas do paciente (em ordem cronológica):\n${dossier}` },
-        ],
-      });
+      const messages = [
+        {
+          role: "system",
+          content:
+            buildStructuredSystemPrompt(
+              schemaSummary,
+              "das notas do paciente (em ordem cronológica) os",
+            ) +
+            "\n\n═══ REGRA EXTRA: CONFLITOS ENTRE NOTAS ═══\n\n" +
+            "Quando informações conflitam entre notas, prefira a MAIS RECENTE. " +
+            "Se a nota anterior dizia uma coisa e a nota seguinte mudou, use o " +
+            "valor da nota seguinte e mencione a evolução na _narrative " +
+            "(ex: \"BRADEN evoluiu de 14 (12/05) para 12 (13/05)\").",
+        },
+        { role: "user", content: `Notas do paciente (em ordem cronológica):\n${dossier}` },
+      ];
+
+      // Tenta com responseSchema (enforcement estrito). Se Gemini rejeitar
+      // (schema grande/complexo demais → INVALID_ARGUMENT), faz fallback
+      // pra JSON livre guiado só por prompt. Output ainda é JSON parseável;
+      // só perde o enforcement de enum exato (mitigado por prompt v2).
+      let rawJson: string;
+      try {
+        const result = await aiCompleteJson({
+          model: "google/gemini-2.5-flash",
+          responseSchema,
+          messages,
+        });
+        rawJson = result.content;
+      } catch (schemaErr: any) {
+        const msg = String(schemaErr?.message ?? schemaErr);
+        if (msg.includes("INVALID_ARGUMENT") || msg.includes("400")) {
+          console.warn(
+            "[generate-document] responseSchema rejeitado pelo Gemini, " +
+              "tentando fallback sem schema. erro:",
+            msg.slice(0, 200),
+          );
+          const result = await aiCompleteJson({
+            model: "google/gemini-2.5-flash",
+            // Sem responseSchema. responseMimeType continuaria ajudando se
+            // o gateway o setasse — hoje só ativo junto com schema. O system
+            // prompt v2 instrui IA a devolver JSON puro.
+            messages,
+          });
+          rawJson = result.content;
+          // IA pode envolver em ```json...``` quando não há schema; descasca.
+          rawJson = stripJsonFence(rawJson);
+        } else {
+          throw schemaErr;
+        }
+      }
 
       try {
         filledData = JSON.parse(rawJson) as Record<string, unknown>;

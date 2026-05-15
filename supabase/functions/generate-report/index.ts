@@ -37,6 +37,12 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function stripJsonFence(s: string): string {
+  const trimmed = s.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -100,20 +106,44 @@ serve(async (req) => {
           `schema_bytes=${schemaJson.length} transcription_chars=${transcription.length}`,
       );
 
-      const { content: rawJson } = await aiCompleteJson({
-        model: "google/gemini-2.5-flash",
-        responseSchema,
-        messages: [
-          {
-            role: "system",
-            content: buildStructuredSystemPrompt(
-              schemaSummary,
-              "da transcrição os",
-            ),
-          },
-          { role: "user", content: `Transcrição da gravação:\n${transcription}` },
-        ],
-      });
+      const messages = [
+        {
+          role: "system",
+          content: buildStructuredSystemPrompt(
+            schemaSummary,
+            "da transcrição os",
+          ),
+        },
+        { role: "user", content: `Transcrição da gravação:\n${transcription}` },
+      ];
+
+      // Tenta com responseSchema (estrito); fallback pra JSON livre se
+      // Gemini rejeitar (schema grande demais → INVALID_ARGUMENT).
+      let rawJson: string;
+      try {
+        const result = await aiCompleteJson({
+          model: "google/gemini-2.5-flash",
+          responseSchema,
+          messages,
+        });
+        rawJson = result.content;
+      } catch (schemaErr: any) {
+        const msg = String(schemaErr?.message ?? schemaErr);
+        if (msg.includes("INVALID_ARGUMENT") || msg.includes("400")) {
+          console.warn(
+            "[generate-report] responseSchema rejeitado pelo Gemini, " +
+              "tentando fallback sem schema. erro:",
+            msg.slice(0, 200),
+          );
+          const result = await aiCompleteJson({
+            model: "google/gemini-2.5-flash",
+            messages,
+          });
+          rawJson = stripJsonFence(result.content);
+        } else {
+          throw schemaErr;
+        }
+      }
 
       try {
         filledData = JSON.parse(rawJson) as Record<string, unknown>;
