@@ -64,12 +64,12 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle && (
-            <p
+            <div
               className="text-sm mt-1"
               style={{ color: "var(--text-soft)" }}
             >
               {subtitle}
-            </p>
+            </div>
           )}
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
