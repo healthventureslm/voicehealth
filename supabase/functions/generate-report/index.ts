@@ -122,7 +122,7 @@ serve(async (req) => {
       let rawJson: string;
       try {
         const result = await aiCompleteJson({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           responseSchema,
           messages,
         });
@@ -136,7 +136,7 @@ serve(async (req) => {
             msg.slice(0, 200),
           );
           const result = await aiCompleteJson({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-2.5-pro",
             messages,
           });
           rawJson = stripJsonFence(result.content);
