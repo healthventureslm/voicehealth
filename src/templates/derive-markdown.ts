@@ -53,11 +53,12 @@ export function deriveMarkdown(
 
 function renderFieldMarkdown(field: Field, value: unknown): string {
   const label = field.label;
+  // multi_checkbox: [] = avaliado, nada marcado (renderiza checklist completo
+  // com todos os ☐). null = não avaliado → "Não relatado".
+  const isNull = value === null || value === undefined || value === "";
   const isEmpty =
-    value === null ||
-    value === undefined ||
-    value === "" ||
-    (Array.isArray(value) && value.length === 0) ||
+    isNull ||
+    (Array.isArray(value) && value.length === 0 && field.type !== "multi_checkbox") ||
     (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0);
 
   if (isEmpty) {
@@ -141,13 +142,16 @@ function renderFieldMarkdown(field: Field, value: unknown): string {
     return `- **${label}**: ${formatValue(value)} ${field.unit}`;
   }
 
+  if (field.type === "multi_checkbox" && Array.isArray(value)) {
+    const selected = new Set((value as unknown[]).map(String));
+    const lines = field.options.map((opt) => {
+      const mark = selected.has(String(opt.value)) ? "☑" : "☐";
+      return `    ${mark} ${opt.label}`;
+    });
+    return `- **${label}**:\n${lines.join("\n")}`;
+  }
+
   if (Array.isArray(value)) {
-    if (field.type === "multi_checkbox") {
-      const labels = (value as string[])
-        .map((v) => field.options.find((o) => String(o.value) === String(v))?.label ?? v)
-        .join(", ");
-      return `- **${label}**: ${labels}`;
-    }
     return `- **${label}**: ${(value as unknown[]).join(", ")}`;
   }
 

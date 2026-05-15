@@ -62,13 +62,13 @@ function renderFieldMarkdown(
   const type = field.type as string;
 
   // Caso vazio: mostra "Não relatado" pra preservar estrutura visual.
-  // Exceções: computed (calcula no momento; pode aparecer vazio se inputs ausentes)
-  //          e block_ref (não implementado ainda).
+  // Exceção: multi_checkbox com `[]` ≠ multi_checkbox com `null`. Array
+  // vazio significa "avaliado, nenhum marcado" — renderiza checklist com
+  // todos os ☐. Null = não avaliado → "Não relatado".
+  const isNull = value === null || value === undefined || value === "";
   const isEmpty =
-    value === null ||
-    value === undefined ||
-    value === "" ||
-    (Array.isArray(value) && value.length === 0) ||
+    isNull ||
+    (Array.isArray(value) && value.length === 0 && type !== "multi_checkbox") ||
     (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0);
 
   if (isEmpty) {
@@ -158,14 +158,23 @@ function renderFieldMarkdown(
     return `- **${label}**: ${formatValue(value)} ${field.unit ?? ""}`.trim();
   }
 
-  // Multi-checkbox e arrays simples
+  // Multi-checkbox: renderiza como CHECKLIST com TODAS as opções, marcando
+  // selecionadas com ☑ e não-selecionadas com ☐. Preserva a estrutura
+  // visual dos formulários clínicos (paciente "nega DPOC" tem peso clínico
+  // diferente de "DPOC não foi avaliado").
+  if (type === "multi_checkbox" && Array.isArray(value)) {
+    const options = (field.options as Array<{ value: string; label: string }>) ?? [];
+    const selected = new Set((value as unknown[]).map(String));
+    const lines = options.map((opt) => {
+      const mark = selected.has(String(opt.value)) ? "☑" : "☐";
+      return `    ${mark} ${opt.label}`;
+    });
+    return `- **${label}**:\n${lines.join("\n")}`;
+  }
+
+  // Outros arrays
   if (Array.isArray(value)) {
-    // Resolve labels se houver options
-    const options = field.options as Array<{ value: string; label: string }> | undefined;
-    const display = options
-      ? (value as string[]).map((v) => options.find((o) => String(o.value) === String(v))?.label ?? v).join(", ")
-      : (value as unknown[]).join(", ");
-    return `- **${label}**: ${display}`;
+    return `- **${label}**: ${(value as unknown[]).join(", ")}`;
   }
 
   // Radio/select com options → mostra o label, não o value
