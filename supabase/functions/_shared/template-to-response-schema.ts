@@ -300,18 +300,29 @@ export function templateToResponseSchema(template: TemplateSchema): SchemaProper
       };
     }
 
+    // Força TODAS as properties do schema interno como required — IA deve
+    // devolver cada chave, com null quando não tiver info. Sem isso ela
+    // omite campos. (Validação semântica continua sendo no front.)
+    const allFieldKeys = Object.keys(fieldProps);
+
     sectionProps[section.id] = {
       type: "OBJECT",
       description: cap(section.description ?? section.title),
       properties: fieldProps,
-      ...(required.length > 0 ? { required } : {}),
+      ...(allFieldKeys.length > 0 ? { required: allFieldKeys } : {}),
     };
   }
 
+  // Força TODAS as seções como required no schema raiz. Sem isso o Gemini
+  // omite seções inteiras quando o schema é grande, por "economia". Com
+  // todas required, ele tem que devolver pelo menos a chave (com objeto
+  // vazio ou null nas properties internas se não tiver info).
+  const sectionIds = Object.keys(sectionProps);
   return {
     type: "OBJECT",
     description: cap(template.description),
     properties: sectionProps,
+    ...(sectionIds.length > 0 ? { required: sectionIds } : {}),
   };
 }
 

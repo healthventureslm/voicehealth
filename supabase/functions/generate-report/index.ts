@@ -117,9 +117,8 @@ serve(async (req) => {
         { role: "user", content: `Transcrição da gravação:\n${transcription}` },
       ];
 
-      // Tenta com responseSchema (estrito); fallback pra JSON livre se
-      // Gemini rejeitar (schema grande demais → INVALID_ARGUMENT).
       let rawJson: string;
+      let usedMode = "schema";
       try {
         const result = await aiCompleteJson({
           model: "google/gemini-2.5-pro",
@@ -127,7 +126,13 @@ serve(async (req) => {
           messages,
         });
         rawJson = result.content;
+        console.log(
+          `[generate-report] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+            `tamanho=${rawJson.length} chars. Primeiros 400:`,
+          rawJson.slice(0, 400),
+        );
       } catch (schemaErr: any) {
+        usedMode = "fallback-no-schema";
         const msg = String(schemaErr?.message ?? schemaErr);
         if (msg.includes("INVALID_ARGUMENT") || msg.includes("400")) {
           console.warn(
@@ -140,6 +145,11 @@ serve(async (req) => {
             messages,
           });
           rawJson = stripJsonFence(result.content);
+          console.log(
+            `[generate-report] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+              `tamanho=${rawJson.length} chars. Primeiros 400:`,
+            rawJson.slice(0, 400),
+          );
         } else {
           throw schemaErr;
         }

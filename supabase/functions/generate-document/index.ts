@@ -161,6 +161,7 @@ serve(async (req) => {
       // pra JSON livre guiado só por prompt. Output ainda é JSON parseável;
       // só perde o enforcement de enum exato (mitigado por prompt v2).
       let rawJson: string;
+      let usedMode = "schema";
       try {
         const result = await aiCompleteJson({
           model: "google/gemini-2.5-pro",
@@ -168,7 +169,13 @@ serve(async (req) => {
           messages,
         });
         rawJson = result.content;
+        console.log(
+          `[generate-document] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+            `tamanho=${rawJson.length} chars. Primeiros 400:`,
+          rawJson.slice(0, 400),
+        );
       } catch (schemaErr: any) {
+        usedMode = "fallback-no-schema";
         const msg = String(schemaErr?.message ?? schemaErr);
         if (msg.includes("INVALID_ARGUMENT") || msg.includes("400")) {
           console.warn(
@@ -178,14 +185,14 @@ serve(async (req) => {
           );
           const result = await aiCompleteJson({
             model: "google/gemini-2.5-pro",
-            // Sem responseSchema. responseMimeType continuaria ajudando se
-            // o gateway o setasse — hoje só ativo junto com schema. O system
-            // prompt v2 instrui IA a devolver JSON puro.
             messages,
           });
-          rawJson = result.content;
-          // IA pode envolver em ```json...``` quando não há schema; descasca.
-          rawJson = stripJsonFence(rawJson);
+          rawJson = stripJsonFence(result.content);
+          console.log(
+            `[generate-document] IA respondeu via ${result.provider} (modo=${usedMode}) ` +
+              `tamanho=${rawJson.length} chars. Primeiros 400:`,
+            rawJson.slice(0, 400),
+          );
         } else {
           throw schemaErr;
         }
