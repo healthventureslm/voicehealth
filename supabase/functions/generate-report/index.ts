@@ -91,6 +91,30 @@ serve(async (req) => {
       return json({ error: "Consulta não encontrada" }, 404);
     }
 
+    // Histórico de transcrições anteriores do MESMO paciente — pré-marcadas
+    // no teleprompter durante a gravação. A IA precisa do contexto completo
+    // pra preencher o template (sem isso, gravação "adicional" curta gera
+    // documento vazio, perdendo info da gravação anterior).
+    const { data: prior } = await supabase
+      .from("consultations")
+      .select("created_at, edited_transcription, raw_transcription")
+      .eq("patient_id", consultation.patient_id)
+      .neq("id", consultation_id)
+      .in("status", ["transcribed", "editing", "completed"])
+      .order("created_at", { ascending: true });
+
+    const priorTranscripts = (prior ?? [])
+      .map((c) => (c.edited_transcription || c.raw_transcription || "").trim())
+      .filter(Boolean);
+
+    const combinedTranscription = priorTranscripts.length > 0
+      ? `═══ HISTÓRICO DE GRAVAÇÕES ANTERIORES DESTE PACIENTE ═══\n\n` +
+        priorTranscripts
+          .map((t, i) => `--- Gravação anterior ${i + 1} ---\n${t}`)
+          .join("\n\n") +
+        `\n\n═══ GRAVAÇÃO ATUAL (mais recente, prevalece em conflito) ═══\n\n${transcription}`
+      : transcription;
+
     let reportContent: string;
     let filledData: Record<string, unknown> | null = null;
     let reportFormat = "markdown";
@@ -103,7 +127,8 @@ serve(async (req) => {
       const schemaJson = JSON.stringify(responseSchema);
       console.log(
         `[generate-report] template=${tmpl.name} sections=${tmpl.sections.length} ` +
-          `schema_bytes=${schemaJson.length} transcription_chars=${transcription.length}`,
+          `schema_bytes=${schemaJson.length} transcription_chars=${transcription.length} ` +
+          `prior_count=${priorTranscripts.length} combined_chars=${combinedTranscription.length}`,
       );
 
       const messages = [
@@ -111,10 +136,12 @@ serve(async (req) => {
           role: "system",
           content: buildStructuredSystemPrompt(
             schemaSummary,
-            "da transcrição os",
+            priorTranscripts.length > 0
+              ? "do HISTÓRICO + GRAVAÇÃO ATUAL do paciente os"
+              : "da transcrição os",
           ),
         },
-        { role: "user", content: `Transcrição da gravação:\n${transcription}` },
+        { role: "user", content: combinedTranscription },
       ];
 
       let rawJson: string;
@@ -168,8 +195,8 @@ serve(async (req) => {
       // ── Modo MARKDOWN (legado) ──
       const promptHasPlaceholder = /\{\{transcription\}\}/.test(template.prompt);
       const userPrompt = promptHasPlaceholder
-        ? template.prompt.replace(/\{\{transcription\}\}/g, transcription)
-        : `${template.prompt}\n\nTranscrição:\n${transcription}`;
+        ? template.prompt.replace(/\{\{transcription\}\}/g, combinedTranscription)
+        : `${template.prompt}\n\nTranscrição:\n${combinedTranscription}`;
 
       const { content } = await aiCompleteJson({
         model: "google/gemini-2.5-flash",
