@@ -49,6 +49,11 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { consultation_id, template_id, transcription } = body;
+    // Opt-in pra incluir gravações anteriores do paciente no contexto da IA.
+    // Default true (compatível com a expectativa de quem grava "só o adicional"
+    // após ver pontos pré-marcados no teleprompter). Front pode passar false
+    // pra gerar documento isolado.
+    const includeHistory: boolean = body.include_history !== false;
 
     if (!consultation_id || !template_id || !transcription) {
       return json({ error: "Missing fields: consultation_id, template_id, transcription" }, 400);
@@ -91,21 +96,24 @@ serve(async (req) => {
       return json({ error: "Consulta não encontrada" }, 404);
     }
 
-    // Histórico de transcrições anteriores do MESMO paciente — pré-marcadas
-    // no teleprompter durante a gravação. A IA precisa do contexto completo
-    // pra preencher o template (sem isso, gravação "adicional" curta gera
-    // documento vazio, perdendo info da gravação anterior).
-    const { data: prior } = await supabase
-      .from("consultations")
-      .select("created_at, edited_transcription, raw_transcription")
-      .eq("patient_id", consultation.patient_id)
-      .neq("id", consultation_id)
-      .in("status", ["transcribed", "editing", "completed"])
-      .order("created_at", { ascending: true });
+    // Histórico de transcrições anteriores do MESMO paciente — só busca se
+    // includeHistory=true (default). Pré-marcadas no teleprompter durante a
+    // gravação. A IA precisa do contexto completo pra preencher template
+    // quando o profissional gravou "só o adicional".
+    let priorTranscripts: string[] = [];
+    if (includeHistory) {
+      const { data: prior } = await supabase
+        .from("consultations")
+        .select("created_at, edited_transcription, raw_transcription")
+        .eq("patient_id", consultation.patient_id)
+        .neq("id", consultation_id)
+        .in("status", ["transcribed", "editing", "completed"])
+        .order("created_at", { ascending: true });
 
-    const priorTranscripts = (prior ?? [])
-      .map((c) => (c.edited_transcription || c.raw_transcription || "").trim())
-      .filter(Boolean);
+      priorTranscripts = (prior ?? [])
+        .map((c) => (c.edited_transcription || c.raw_transcription || "").trim())
+        .filter(Boolean);
+    }
 
     const combinedTranscription = priorTranscripts.length > 0
       ? `═══ HISTÓRICO DE GRAVAÇÕES ANTERIORES DESTE PACIENTE ═══\n\n` +
