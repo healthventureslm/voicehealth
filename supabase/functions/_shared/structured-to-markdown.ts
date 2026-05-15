@@ -123,17 +123,24 @@ function renderFieldMarkdown(
     return `- **${label}**: ${summary}\n${itemLines.join("\n")}`;
   }
 
-  // Tri-state: sempre renderiza estrutura completa, com Sim/Não/N/A ou
-  // "Não relatado" se IA não preencheu.
+  // Tri-state: usa task list checkboxes pro Sim/Não/N/A — fica visível no
+  // PDF como checkbox próprio do item. Estado "_Não relatado_" usa list
+  // item sem checkbox.
   if (type === "tri_state_checklist") {
     const items = (field.items as Array<{ id: string; label: string }>) ?? [];
     const obj = (typeof value === "object" && value !== null ? value : {}) as Record<string, string>;
     const lines = items.map((item) => {
       const v = obj[item.id];
-      const display = v === "SIM" ? "Sim" : v === "NAO" ? "Não" : v === "NA" ? "N/A" : "_Não relatado_";
-      return `    - ${item.label}: ${display}`;
+      const display = v === "SIM"
+        ? `[x] **Sim** — ${item.label}`
+        : v === "NAO"
+          ? `[ ] **Não** — ${item.label}`
+          : v === "NA"
+            ? `[—] **N/A** — ${item.label}`
+            : `${item.label}: _Não relatado_`;
+      return `- ${display}`;
     });
-    return `- **${label}**:\n${lines.join("\n")}`;
+    return `**${label}:**\n\n${lines.join("\n")}`;
   }
 
   if (type === "counter_grid" && typeof value === "object" && value !== null) {
@@ -164,18 +171,19 @@ function renderFieldMarkdown(
     return `- **${label}**: ${formatValue(value)} ${field.unit ?? ""}`.trim();
   }
 
-  // Multi-checkbox: renderiza como CHECKLIST com TODAS as opções, marcando
-  // selecionadas com ☑ e não-selecionadas com ☐. Mesmo se value=null,
-  // renderiza a estrutura completa (igual à PDF em papel).
+  // Multi-checkbox: usa GitHub-flavored markdown task list — `- [x]` /
+  // `- [ ]`. Cada opção é um list item top-level. O renderer PDF (jsPDF)
+  // suporta nativamente e fica visualmente perfeito. Renderiza SEMPRE a
+  // estrutura completa, mesmo com value=null (igual ao papel).
   if (type === "multi_checkbox") {
     const options = (field.options as Array<{ value: string; label: string }>) ?? [];
     const arr = Array.isArray(value) ? (value as unknown[]).map(String) : [];
     const selected = new Set(arr);
     const lines = options.map((opt) => {
-      const mark = selected.has(String(opt.value)) ? "☑" : "☐";
-      return `    ${mark} ${opt.label}`;
+      const mark = selected.has(String(opt.value)) ? "[x]" : "[ ]";
+      return `- ${mark} ${opt.label}`;
     });
-    return `- **${label}**:\n${lines.join("\n")}`;
+    return `**${label}:**\n\n${lines.join("\n")}`;
   }
 
   // Outros arrays

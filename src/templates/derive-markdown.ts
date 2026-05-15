@@ -116,10 +116,16 @@ function renderFieldMarkdown(field: Field, value: unknown): string {
     const obj = (typeof value === "object" && value !== null ? value : {}) as Record<string, string>;
     const lines = field.items.map((item) => {
       const v = obj[item.id];
-      const display = v === "SIM" ? "Sim" : v === "NAO" ? "Não" : v === "NA" ? "N/A" : "_Não relatado_";
-      return `    - ${item.label}: ${display}`;
+      const display = v === "SIM"
+        ? `[x] **Sim** — ${item.label}`
+        : v === "NAO"
+          ? `[ ] **Não** — ${item.label}`
+          : v === "NA"
+            ? `[—] **N/A** — ${item.label}`
+            : `${item.label}: _Não relatado_`;
+      return `- ${display}`;
     });
-    return `- **${label}**:\n${lines.join("\n")}`;
+    return `**${label}:**\n\n${lines.join("\n")}`;
   }
 
   if (field.type === "counter_grid" && typeof value === "object" && value !== null) {
@@ -151,10 +157,10 @@ function renderFieldMarkdown(field: Field, value: unknown): string {
     const arr = Array.isArray(value) ? (value as unknown[]).map(String) : [];
     const selected = new Set(arr);
     const lines = field.options.map((opt) => {
-      const mark = selected.has(String(opt.value)) ? "☑" : "☐";
-      return `    ${mark} ${opt.label}`;
+      const mark = selected.has(String(opt.value)) ? "[x]" : "[ ]";
+      return `- ${mark} ${opt.label}`;
     });
-    return `- **${label}**:\n${lines.join("\n")}`;
+    return `**${label}:**\n\n${lines.join("\n")}`;
   }
 
   if (Array.isArray(value)) {
