@@ -127,7 +127,13 @@ function fieldToSchema(field: Field, forceNullable: boolean): SchemaProperty | n
       return { type: "NUMBER", description: describe(field), nullable };
 
     case "date":
-      return { type: "STRING", format: "date", description: describe(field), nullable };
+      // Gemini só aceita "date-time" em format. Usamos STRING simples
+      // e instruímos via description que é uma data ISO (YYYY-MM-DD).
+      return {
+        type: "STRING",
+        description: `${describe(field)} — formato YYYY-MM-DD`,
+        nullable,
+      };
 
     case "datetime":
       return { type: "STRING", format: "date-time", description: describe(field), nullable };
@@ -279,12 +285,15 @@ export function templateToResponseSchema(template: TemplateSchema): SchemaProper
       };
     }
 
+    // Não usamos `nullable: true` em OBJECT de seção — alguns providers
+    // (incluindo Gemini em modos específicos) rejeitam. Visibilidade de
+    // seção é avaliada no front; a IA preenche o objeto vazio se não
+    // aplicar.
     sectionProps[section.id] = {
       type: "OBJECT",
       description: section.description ?? section.title,
       properties: fieldProps,
       ...(required.length > 0 ? { required } : {}),
-      nullable: !!section.visibleWhen,
     };
   }
 

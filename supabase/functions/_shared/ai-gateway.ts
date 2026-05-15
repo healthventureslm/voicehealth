@@ -235,11 +235,16 @@ export async function aiComplete(opts: AiRequestOptions): Promise<Response> {
         continue;
       }
 
-      // For 4xx client errors (except 429/402), don't fallback — it's our bug
+      // For 4xx client errors (except 429/402), don't fallback — é bug nosso.
+      // THROW com a mensagem do provider pra caller ter o motivo real
+      // (antes retornávamos o response já consumido → caller crashava em
+      // "Body already consumed" tentando .json()).
       if (status >= 400 && status < 500) {
         const errorText = await response.text();
         console.error(`[ai-gateway] ${provider.name} client error ${status}:`, errorText);
-        return response;
+        throw new Error(
+          `${provider.name} ${status}: ${errorText.slice(0, 1000)}`,
+        );
       }
 
       // 5xx server error — fallback
