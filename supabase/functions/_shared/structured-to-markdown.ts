@@ -61,15 +61,19 @@ function renderFieldMarkdown(
   const label = field.label as string;
   const type = field.type as string;
 
-  // Caso vazio: mostra "Não relatado" pra preservar estrutura visual.
-  // Exceção: multi_checkbox com `[]` ≠ multi_checkbox com `null`. Array
-  // vazio significa "avaliado, nenhum marcado" — renderiza checklist com
-  // todos os ☐. Null = não avaliado → "Não relatado".
-  const isNull = value === null || value === undefined || value === "";
+  // Fields tipo "lista" sempre renderizam estrutura completa, mesmo vazios.
+  // É o comportamento documental: o formulário clínico em papel mostra os
+  // itens com seus checkboxes regardless de marcação — preserva o "shape"
+  // do template e indica o que foi avaliado vs faltou.
+  const ALWAYS_RENDER_STRUCTURE = new Set(["multi_checkbox", "tri_state_checklist"]);
+
   const isEmpty =
-    isNull ||
-    (Array.isArray(value) && value.length === 0 && type !== "multi_checkbox") ||
-    (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0);
+    !ALWAYS_RENDER_STRUCTURE.has(type) &&
+    (value === null ||
+      value === undefined ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0) ||
+      (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0));
 
   if (isEmpty) {
     if (type === "block_ref" || type === "computed") return "";
@@ -119,9 +123,11 @@ function renderFieldMarkdown(
     return `- **${label}**: ${summary}\n${itemLines.join("\n")}`;
   }
 
-  if (type === "tri_state_checklist" && typeof value === "object" && value !== null) {
+  // Tri-state: sempre renderiza estrutura completa, com Sim/Não/N/A ou
+  // "Não relatado" se IA não preencheu.
+  if (type === "tri_state_checklist") {
     const items = (field.items as Array<{ id: string; label: string }>) ?? [];
-    const obj = value as Record<string, string>;
+    const obj = (typeof value === "object" && value !== null ? value : {}) as Record<string, string>;
     const lines = items.map((item) => {
       const v = obj[item.id];
       const display = v === "SIM" ? "Sim" : v === "NAO" ? "Não" : v === "NA" ? "N/A" : "_Não relatado_";
@@ -159,12 +165,12 @@ function renderFieldMarkdown(
   }
 
   // Multi-checkbox: renderiza como CHECKLIST com TODAS as opções, marcando
-  // selecionadas com ☑ e não-selecionadas com ☐. Preserva a estrutura
-  // visual dos formulários clínicos (paciente "nega DPOC" tem peso clínico
-  // diferente de "DPOC não foi avaliado").
-  if (type === "multi_checkbox" && Array.isArray(value)) {
+  // selecionadas com ☑ e não-selecionadas com ☐. Mesmo se value=null,
+  // renderiza a estrutura completa (igual à PDF em papel).
+  if (type === "multi_checkbox") {
     const options = (field.options as Array<{ value: string; label: string }>) ?? [];
-    const selected = new Set((value as unknown[]).map(String));
+    const arr = Array.isArray(value) ? (value as unknown[]).map(String) : [];
+    const selected = new Set(arr);
     const lines = options.map((opt) => {
       const mark = selected.has(String(opt.value)) ? "☑" : "☐";
       return `    ${mark} ${opt.label}`;

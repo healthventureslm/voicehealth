@@ -53,13 +53,18 @@ export function deriveMarkdown(
 
 function renderFieldMarkdown(field: Field, value: unknown): string {
   const label = field.label;
-  // multi_checkbox: [] = avaliado, nada marcado (renderiza checklist completo
-  // com todos os ☐). null = não avaliado → "Não relatado".
-  const isNull = value === null || value === undefined || value === "";
+  // Fields tipo "lista" sempre renderizam estrutura completa, mesmo vazios,
+  // preservando o "shape" do formulário em papel.
+  const alwaysRenderStructure =
+    field.type === "multi_checkbox" || field.type === "tri_state_checklist";
+
   const isEmpty =
-    isNull ||
-    (Array.isArray(value) && value.length === 0 && field.type !== "multi_checkbox") ||
-    (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0);
+    !alwaysRenderStructure &&
+    (value === null ||
+      value === undefined ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0) ||
+      (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 0));
 
   if (isEmpty) {
     if (field.type === "block_ref" || field.type === "computed") return "";
@@ -107,8 +112,8 @@ function renderFieldMarkdown(field: Field, value: unknown): string {
     return `- **${label}**: ${summary}\n${itemLines.join("\n")}`;
   }
 
-  if (field.type === "tri_state_checklist" && typeof value === "object" && value !== null) {
-    const obj = value as Record<string, string>;
+  if (field.type === "tri_state_checklist") {
+    const obj = (typeof value === "object" && value !== null ? value : {}) as Record<string, string>;
     const lines = field.items.map((item) => {
       const v = obj[item.id];
       const display = v === "SIM" ? "Sim" : v === "NAO" ? "Não" : v === "NA" ? "N/A" : "_Não relatado_";
@@ -142,8 +147,9 @@ function renderFieldMarkdown(field: Field, value: unknown): string {
     return `- **${label}**: ${formatValue(value)} ${field.unit}`;
   }
 
-  if (field.type === "multi_checkbox" && Array.isArray(value)) {
-    const selected = new Set((value as unknown[]).map(String));
+  if (field.type === "multi_checkbox") {
+    const arr = Array.isArray(value) ? (value as unknown[]).map(String) : [];
+    const selected = new Set(arr);
     const lines = field.options.map((opt) => {
       const mark = selected.has(String(opt.value)) ? "☑" : "☐";
       return `    ${mark} ${opt.label}`;
