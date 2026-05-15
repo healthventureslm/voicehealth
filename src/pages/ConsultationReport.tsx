@@ -41,6 +41,24 @@ export default function ConsultationReport() {
   const [structuredDraft, setStructuredDraft] = useState<Record<string, Record<string, unknown>>>({});
   const [isDirty, setIsDirty] = useState(false);
 
+  // Derivados — calculados antes do useEffect pra não quebrar regra dos hooks
+  // (todos os hooks têm que rodar em toda renderização, na mesma ordem).
+  const latestReport = (reports ?? [])[0] as any;
+  const templateSchema = (consultation as any)?.template?.schema as TemplateSchema | null | undefined;
+  const isStructured =
+    !!templateSchema &&
+    !!latestReport &&
+    !!latestReport.filled_data &&
+    latestReport.format === "structured";
+
+  // Sincroniza buffer local quando o relatório do servidor muda.
+  useEffect(() => {
+    if (isStructured && latestReport?.filled_data) {
+      setStructuredDraft(latestReport.filled_data as Record<string, Record<string, unknown>>);
+      setIsDirty(false);
+    }
+  }, [latestReport?.id, latestReport?.filled_data, isStructured]);
+
   async function handleExportPdf() {
     if (!consultation) return;
     if (!latestReport) {
@@ -86,22 +104,6 @@ export default function ConsultationReport() {
   }
 
   const c: any = consultation;
-  const latestReport = (reports ?? [])[0] as any;
-  const templateSchema = c?.template?.schema as TemplateSchema | null | undefined;
-  const isStructured =
-    !!templateSchema &&
-    !!latestReport &&
-    !!latestReport.filled_data &&
-    latestReport.format === "structured";
-
-  // Sincroniza buffer local quando o relatório do servidor muda. Não usamos
-  // useState inicializador porque latestReport pode chegar depois do mount.
-  useEffect(() => {
-    if (isStructured && latestReport.filled_data) {
-      setStructuredDraft(latestReport.filled_data as Record<string, Record<string, unknown>>);
-      setIsDirty(false);
-    }
-  }, [latestReport?.id, latestReport?.filled_data, isStructured]);
 
   async function handleSaveStructured() {
     if (!latestReport || !templateSchema) return;
