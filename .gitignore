@@ -38,3 +38,4 @@ deno.lock
 
 # Documentos reais de pacientes (LGPD — fora do git)
 fwddocumentos_/
+.claude/worktrees/

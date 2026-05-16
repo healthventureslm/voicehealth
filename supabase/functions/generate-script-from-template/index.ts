@@ -51,8 +51,51 @@ Importante:
 
 interface GenerateRequest {
   template_name: string;
-  template_prompt: string;
+  /** Markdown prompt (templates legacy). */
+  template_prompt?: string;
+  /** TemplateSchema JSON (templates estruturados — preferido se ambos vierem). */
+  template_schema?: Record<string, unknown>;
   applicable_ward_types?: string[];
+}
+
+// Serializa um TemplateSchema em descrição compacta pro LLM —
+// extrai só o que importa pro roteiro (seções, fields, labels, options).
+// Evita mandar o JSON inteiro com todos os metadados internos.
+function schemaToDescription(schema: Record<string, unknown>): string {
+  const sections = Array.isArray(schema.sections) ? schema.sections : [];
+  const lines: string[] = [];
+  lines.push(`# ${schema.name ?? "Template"}`);
+  if (schema.description) lines.push(String(schema.description));
+  lines.push("");
+  for (const section of sections as Record<string, unknown>[]) {
+    lines.push(`## ${section.title ?? section.id}`);
+    const fields = Array.isArray(section.fields) ? section.fields : [];
+    for (const field of fields as Record<string, unknown>[]) {
+      const type = field.type as string;
+      const label = field.label ?? field.id;
+      const required = field.required ? " [required]" : "";
+      let extra = "";
+      if (type === "radio" || type === "select" || type === "multi_checkbox") {
+        const opts = Array.isArray(field.options) ? field.options : [];
+        const labels = (opts as Record<string, unknown>[])
+          .map((o) => o.label ?? o.value)
+          .slice(0, 8)
+          .join(", ");
+        extra = ` (opções: ${labels}${opts.length > 8 ? "..." : ""})`;
+      } else if (type === "scored_scale") {
+        const items = Array.isArray(field.items) ? field.items : [];
+        extra = ` (escala pontuada com ${items.length} itens)`;
+      } else if (type === "tri_state_checklist") {
+        const items = Array.isArray(field.items) ? field.items : [];
+        extra = ` (checklist tri-state: ${items.length} itens)`;
+      } else if (type === "table") {
+        extra = ` (tabela)`;
+      }
+      lines.push(`- ${label}${required} [tipo: ${type}]${extra}`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
 }
 
 serve(async (req) => {
@@ -60,19 +103,30 @@ serve(async (req) => {
 
   try {
     const body = await req.json() as GenerateRequest;
-    if (!body.template_name?.trim() || !body.template_prompt?.trim()) {
+    if (!body.template_name?.trim()) {
       return new Response(
-        JSON.stringify({ error: "template_name e template_prompt são obrigatórios" }),
+        JSON.stringify({ error: "template_name é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    if (!body.template_prompt?.trim() && !body.template_schema) {
+      return new Response(
+        JSON.stringify({ error: "template_prompt OU template_schema é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Preferimos schema quando disponível (mais estruturado, melhor pro LLM).
+    const description = body.template_schema
+      ? schemaToDescription(body.template_schema)
+      : body.template_prompt!;
 
     const userText = `Template:
 NAME: ${body.template_name}
 APPLICABLE_WARD_TYPES: ${JSON.stringify(body.applicable_ward_types ?? [])}
 
-PROMPT:
-${body.template_prompt}
+DESCRIPTION:
+${description}
 
 Gere o roteiro de teleprompter para este template.`;
 
