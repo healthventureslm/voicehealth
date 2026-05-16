@@ -43,24 +43,50 @@ const ROLES = [
 interface TemplateReviewStepProps {
   initialSchema: TemplateSchema;
   onBack: () => void;
+  /** Quando definido, é UPDATE em vez de INSERT. */
+  editingTemplateId?: string;
+  /** Template existente (em edit mode) — pra herdar metadata atual. */
+  existingTemplate?: {
+    name?: string;
+    description?: string | null;
+    applicable_ward_types?: string[];
+    applicable_roles?: string[];
+    version?: number;
+  } | null;
 }
 
-export function TemplateReviewStep({ initialSchema, onBack }: TemplateReviewStepProps) {
+export function TemplateReviewStep({
+  initialSchema,
+  onBack,
+  editingTemplateId,
+  existingTemplate,
+}: TemplateReviewStepProps) {
   const navigate = useNavigate();
   const { hospitalIds } = useAuth();
+  const isEdit = !!editingTemplateId;
 
   // Estado: schema completo como string JSON pra edição livre
   const [jsonText, setJsonText] = useState(() =>
     JSON.stringify(initialSchema, null, 2),
   );
   // Metadata extraída do schema atual + override por inputs
-  const [name, setName] = useState(initialSchema.name);
-  const [description, setDescription] = useState(initialSchema.description ?? "");
+  // Em edit mode, prefere metadata da row do banco (que é a fonte
+  // canônica das colunas applicable_*). Senão herda do schema.
+  const [name, setName] = useState(
+    existingTemplate?.name ?? initialSchema.name,
+  );
+  const [description, setDescription] = useState(
+    existingTemplate?.description ?? initialSchema.description ?? "",
+  );
   const [wardTypes, setWardTypes] = useState<string[]>(
-    initialSchema.metadata?.applicableWardTypes ?? [],
+    existingTemplate?.applicable_ward_types ??
+      initialSchema.metadata?.applicableWardTypes ??
+      [],
   );
   const [roles, setRoles] = useState<string[]>(
-    initialSchema.metadata?.applicableRoles ?? ["nurse"],
+    existingTemplate?.applicable_roles ??
+      initialSchema.metadata?.applicableRoles ??
+      ["nurse"],
   );
   const [isSaving, setIsSaving] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
@@ -105,20 +131,39 @@ export function TemplateReviewStep({ initialSchema, onBack }: TemplateReviewStep
         },
       };
 
-      const { error } = await supabase.from("report_templates").insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        prompt: "",
-        schema: finalSchema as never,
-        hospital_id: hospitalIds[0] ?? null,
-        applicable_ward_types: wardTypes as never,
-        applicable_roles: roles as never,
-        is_active: true,
-        version: 1,
-      });
-      if (error) throw error;
-
-      toast.success("Template criado");
+      if (isEdit && editingTemplateId) {
+        // UPDATE — incrementa version automaticamente pra audit trail
+        const nextVersion = (existingTemplate?.version ?? 1) + 1;
+        const { error } = await supabase
+          .from("report_templates")
+          .update({
+            name: name.trim(),
+            description: description.trim() || null,
+            schema: finalSchema as never,
+            applicable_ward_types: wardTypes as never,
+            applicable_roles: roles as never,
+            version: nextVersion,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingTemplateId);
+        if (error) throw error;
+        toast.success("Template atualizado");
+      } else {
+        // INSERT (novo template)
+        const { error } = await supabase.from("report_templates").insert({
+          name: name.trim(),
+          description: description.trim() || null,
+          prompt: "",
+          schema: finalSchema as never,
+          hospital_id: hospitalIds[0] ?? null,
+          applicable_ward_types: wardTypes as never,
+          applicable_roles: roles as never,
+          is_active: true,
+          version: 1,
+        });
+        if (error) throw error;
+        toast.success("Template criado");
+      }
       navigate("/admin/templates");
     } catch (e: any) {
       toast.error(`Falha ao salvar: ${e?.message ?? e}`);
@@ -254,7 +299,11 @@ export function TemplateReviewStep({ initialSchema, onBack }: TemplateReviewStep
           className="gap-2 bg-enf hover:bg-enf-hover text-white"
         >
           <Save className="w-4 h-4" />
-          {isSaving ? "Salvando..." : "Salvar template"}
+          {isSaving
+            ? "Salvando..."
+            : isEdit
+              ? "Salvar alterações"
+              : "Salvar template"}
         </Button>
       </div>
 

@@ -9,6 +9,7 @@ import {
   useAdminTemplates, useDeleteTemplate,
 } from "@/hooks/queries";
 import { TemplateWizardDialog } from "@/components/admin/TemplateWizardDialog";
+import { GenerateScriptDialog } from "@/components/admin/GenerateScriptDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FileText, Lock, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Lock, Globe, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
@@ -45,11 +46,21 @@ export default function AdminTemplates() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editing, setEditing] = useState<Tables<"report_templates"> | null>(null);
 
+  // Gerador de roteiro a partir do template
+  const [scriptDialogTemplate, setScriptDialogTemplate] = useState<Tables<"report_templates"> | null>(null);
+
   function openNew() {
     // Novo template SEMPRE vai pela nova builder page (escolha + IA).
     navigate("/admin/templates/new");
   }
   function openEdit(t: Tables<"report_templates">) {
+    // Templates estruturados (com schema JSON) → vão pro novo builder em
+    // modo edição. Templates legados (só prompt markdown) ainda usam o
+    // wizard antigo pra back-compat.
+    if (t.schema) {
+      navigate(`/admin/templates/${t.id}/edit`);
+      return;
+    }
     setEditing(t);
     setWizardOpen(true);
   }
@@ -89,6 +100,16 @@ export default function AdminTemplates() {
           editing={editing}
         />
 
+        {scriptDialogTemplate && (
+          <GenerateScriptDialog
+            open={!!scriptDialogTemplate}
+            onOpenChange={(o) => {
+              if (!o) setScriptDialogTemplate(null);
+            }}
+            template={scriptDialogTemplate}
+          />
+        )}
+
         {isLoading ? (
           <EmptyState loading />
         ) : (templates ?? []).length === 0 ? (
@@ -122,6 +143,14 @@ export default function AdminTemplates() {
                         )}
                         {isMine && (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setScriptDialogTemplate(t)}
+                              title="Gerar roteiro de teleprompter"
+                            >
+                              <Sparkles className="w-4 h-4 text-enf" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
                               <Pencil className="w-4 h-4" />
                             </Button>

@@ -171,6 +171,7 @@ function AppRoutes() {
         {/* Admin do hospital */}
         <Route path="/admin/templates" element={<HospitalAdminRoute><AdminTemplates /></HospitalAdminRoute>} />
         <Route path="/admin/templates/new" element={<HospitalAdminRoute><AdminTemplateBuilder /></HospitalAdminRoute>} />
+        <Route path="/admin/templates/:id/edit" element={<HospitalAdminRoute><AdminTemplateBuilder /></HospitalAdminRoute>} />
         <Route path="/admin/scripts" element={<HospitalAdminRoute><AdminScripts /></HospitalAdminRoute>} />
         <Route path="/admin/users" element={<HospitalAdminRoute><AdminUsers /></HospitalAdminRoute>} />
         <Route path="/admin/wards" element={<HospitalAdminRoute><AdminWards /></HospitalAdminRoute>} />
