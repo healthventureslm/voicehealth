@@ -45,7 +45,7 @@ export function useConsultation(id: string | undefined) {
           *,
           patient:patients(id, full_name, medical_record, current_ward_id, bed),
           ward:wards(id, name, ward_type),
-          template:report_templates(id, name, schema),
+          template:report_templates(id, name, schema, display_layout),
           hospital:hospitals(id, name, logo_url)
         `)
         .eq("id", id!)

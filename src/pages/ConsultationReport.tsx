@@ -11,6 +11,8 @@ import { AddendumDialog } from "@/components/consultation/AddendumDialog";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
 import type { TemplateSchema } from "@/templates/types";
 import { deriveMarkdown } from "@/templates/derive-markdown";
+import { renderPdfFromLayout, downloadBlob } from "@/templates/pdfLayout/render";
+import type { LayoutNode } from "@/templates/pdfLayout/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,6 +68,36 @@ export default function ConsultationReport() {
       return;
     }
     const c = consultation as any;
+
+    // Se template tem display_layout (design fiel custom), usa o pipeline
+    // novo via react-pdf. Senão, fluxo legacy jsPDF + markdown.
+    const displayLayout = (c.template as any)?.display_layout as LayoutNode | null | undefined;
+    if (displayLayout && latestReport.filled_data) {
+      try {
+        const ctx = {
+          ...latestReport.filled_data,
+          _patient: c.patient ?? {},
+          _ward: c.ward ?? {},
+          _hospital: c.hospital ?? {},
+          _consultation: {
+            created_at: c.created_at,
+            completed_at: c.completed_at,
+          },
+          _professional: { full_name: profile?.full_name },
+          _now: new Date().toISOString(),
+        };
+        const blob = await renderPdfFromLayout({ layout: displayLayout, data: ctx });
+        const filename = `${(c.template?.name ?? "documento").toLowerCase().replace(/\s+/g, "_")}_${c.patient?.full_name?.split(" ")[0] ?? "paciente"}.pdf`;
+        downloadBlob(blob, filename);
+        toast.success("PDF gerado");
+        return;
+      } catch (e: any) {
+        console.error("[export pdf react-pdf] falhou:", e);
+        toast.error(`Falha no design custom: ${e?.message ?? e}. Caindo no formato default.`);
+        // Cai pro fluxo legacy abaixo se design custom quebrar
+      }
+    }
+
     try {
       await exportReportPdf({
         consultation: c,
