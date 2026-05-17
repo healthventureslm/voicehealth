@@ -9,6 +9,9 @@ import { useUpdateClinicalReport } from "@/hooks/queries";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
 import type { TemplateSchema } from "@/templates/types";
 import { deriveMarkdown } from "@/templates/derive-markdown";
+import { renderPdfFromLayout, downloadBlob } from "@/templates/pdfLayout/render";
+import { buildPdfContext } from "@/templates/pdfLayout/context";
+import type { LayoutNode } from "@/templates/pdfLayout/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Mic, Download, Save } from "lucide-react";
@@ -36,7 +39,7 @@ export default function DocumentView() {
           id, patient_id, consultation_id, source_consultation_ids,
           template_id, version, content, format, filled_data, generated_at, generated_by,
           patient:patients(id, full_name, medical_record, bed, hospital_id, hospital:hospitals(id, name, logo_url)),
-          template:report_templates(id, name, schema)
+          template:report_templates(id, name, schema, display_layout)
         `)
         .eq("id", id!)
         .maybeSingle();
@@ -118,6 +121,30 @@ export default function DocumentView() {
 
   async function handleExportPdf() {
     if (!doc) return;
+
+    // Roteamento pelo display_layout: usa react-pdf se template tem,
+    // senão cai pro jsPDF legacy.
+    const displayLayout = (doc.template as any)?.display_layout as LayoutNode | null | undefined;
+    if (displayLayout && doc.filled_data) {
+      try {
+        const ctx = buildPdfContext({
+          filled_data: doc.filled_data as Record<string, unknown>,
+          patient,
+          hospital: patient?.hospital,
+          consultation: { created_at: doc.generated_at },
+          professional: { full_name: profile?.full_name },
+        });
+        const blob = await renderPdfFromLayout({ layout: displayLayout, data: ctx });
+        const filename = `${templateName.toLowerCase().replace(/\s+/g, "_")}_${patient?.full_name?.split(" ")[0] ?? "paciente"}.pdf`;
+        downloadBlob(blob, filename);
+        toast.success("PDF gerado");
+        return;
+      } catch (e: any) {
+        console.error("[doc export react-pdf] falhou:", e);
+        toast.error(`Falha no design custom: ${e?.message ?? e}. Caindo no formato default.`);
+      }
+    }
+
     try {
       await exportReportPdf({
         consultation: {

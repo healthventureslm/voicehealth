@@ -12,6 +12,7 @@ import { StructuredReportView } from "@/components/templates/StructuredReportVie
 import type { TemplateSchema } from "@/templates/types";
 import { deriveMarkdown } from "@/templates/derive-markdown";
 import { renderPdfFromLayout, downloadBlob } from "@/templates/pdfLayout/render";
+import { buildPdfContext } from "@/templates/pdfLayout/context";
 import type { LayoutNode } from "@/templates/pdfLayout/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,18 +75,14 @@ export default function ConsultationReport() {
     const displayLayout = (c.template as any)?.display_layout as LayoutNode | null | undefined;
     if (displayLayout && latestReport.filled_data) {
       try {
-        const ctx = {
-          ...latestReport.filled_data,
-          _patient: c.patient ?? {},
-          _ward: c.ward ?? {},
-          _hospital: c.hospital ?? {},
-          _consultation: {
-            created_at: c.created_at,
-            completed_at: c.completed_at,
-          },
-          _professional: { full_name: profile?.full_name },
-          _now: new Date().toISOString(),
-        };
+        const ctx = buildPdfContext({
+          filled_data: latestReport.filled_data as Record<string, unknown>,
+          patient: c.patient,
+          ward: c.ward,
+          hospital: c.hospital,
+          consultation: { created_at: c.created_at, completed_at: c.completed_at },
+          professional: { full_name: profile?.full_name },
+        });
         const blob = await renderPdfFromLayout({ layout: displayLayout, data: ctx });
         const filename = `${(c.template?.name ?? "documento").toLowerCase().replace(/\s+/g, "_")}_${c.patient?.full_name?.split(" ")[0] ?? "paciente"}.pdf`;
         downloadBlob(blob, filename);
