@@ -89,6 +89,7 @@ ${body.hint?.trim() ? `Dica: ${body.hint.trim()}\n\n` : ""}Gere o display_layout
 
     const { content } = await aiCompleteJson({
       model: "google/gemini-2.5-pro",
+      maxOutputTokens: 32768,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userText },

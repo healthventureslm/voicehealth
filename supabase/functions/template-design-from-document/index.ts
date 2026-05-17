@@ -162,6 +162,9 @@ ${body.hint?.trim() ? `Dica adicional: ${body.hint.trim()}\n\n` : ""}Gere o disp
 
     const { content } = await aiCompleteJson({
       model: "google/gemini-2.5-pro",
+      // Layout JSON pra docs grandes (Histórico ~10 seções) facilmente
+      // passa de 8k tokens. Default trunca silenciosamente.
+      maxOutputTokens: 32768,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         {
