@@ -381,6 +381,7 @@ export type Database = {
           description: string | null;
           prompt: string;
           schema: Json | null;
+          display_layout: Json | null;
           applicable_ward_types: Database["public"]["Enums"]["ward_type"][];
           applicable_specialties: string[];
           applicable_roles: Database["public"]["Enums"]["app_role"][];
@@ -397,6 +398,7 @@ export type Database = {
           description?: string | null;
           prompt: string;
           schema?: Json | null;
+          display_layout?: Json | null;
           applicable_ward_types?: Database["public"]["Enums"]["ward_type"][];
           applicable_specialties?: string[];
           applicable_roles?: Database["public"]["Enums"]["app_role"][];

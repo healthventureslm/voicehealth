@@ -26,6 +26,12 @@ interface AiRequestOptions {
    * to return application/json conforming to the schema.
    */
   responseSchema?: unknown;
+  /**
+   * Max output tokens. Default Gemini é ~8k que trunca outputs grandes
+   * (ex: display_layout JSON do react-pdf p/ docs longos). Pra esses,
+   * passar 32768 ou mais.
+   */
+  maxOutputTokens?: number;
 }
 
 interface AiResponse {
@@ -79,11 +85,11 @@ function recordSuccess(provider: string): void {
 
 const MODEL_MAP: Record<string, Record<string, string>> = {
   google: {
-    // Todos os Gemini variants → gemini-flash-latest. Decisão do user em
-    // 2026-05-15 pra padronizar (custo/latência). Se schemas grandes
-    // voltarem a sair pouco preenchidos, considerar voltar gemini-2.5-pro
-    // pros generate-report / generate-document.
-    "google/gemini-2.5-pro":        "gemini-flash-latest",
+    // Mapeamento honesto: pro→pro, flash→flash. Cada caller escolhe pelo
+    // trade-off de custo×qualidade. Pro é necessário pra schemas grandes
+    // (generate-report/document com schema v2; template-design-* que
+    // gera display_layout enorme).
+    "google/gemini-2.5-pro":        "gemini-pro-latest",
     "google/gemini-2.5-flash":      "gemini-flash-latest",
     "google/gemini-2.5-flash-lite": "gemini-flash-latest",
   },
@@ -139,12 +145,15 @@ async function callGoogleDirect(opts: AiRequestOptions): Promise<Response> {
           }),
     }));
 
-  const generationConfig = opts.responseSchema
-    ? {
-        responseMimeType: "application/json",
-        responseSchema: opts.responseSchema,
-      }
-    : undefined;
+  const generationConfig: Record<string, unknown> = {};
+  if (opts.responseSchema) {
+    generationConfig.responseMimeType = "application/json";
+    generationConfig.responseSchema = opts.responseSchema;
+  }
+  if (typeof opts.maxOutputTokens === "number") {
+    generationConfig.maxOutputTokens = opts.maxOutputTokens;
+  }
+  const hasGenerationConfig = Object.keys(generationConfig).length > 0;
 
   return fetch(endpoint, {
     method: "POST",
@@ -158,7 +167,7 @@ async function callGoogleDirect(opts: AiRequestOptions): Promise<Response> {
             },
           }
         : {}),
-      ...(generationConfig ? { generationConfig } : {}),
+      ...(hasGenerationConfig ? { generationConfig } : {}),
     }),
   });
 }

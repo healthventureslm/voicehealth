@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FileText, Lock, Globe, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Lock, Globe, Sparkles, Palette } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
@@ -146,12 +146,20 @@ export default function AdminTemplates() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => navigate(`/admin/templates/${t.id}/design`)}
+                              title={(t as any).display_layout ? "Editar design do PDF" : "Atribuir design do PDF"}
+                            >
+                              <Palette className={`w-4 h-4 ${(t as any).display_layout ? "text-enf" : ""}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => setScriptDialogTemplate(t)}
                               title="Gerar roteiro de teleprompter"
                             >
                               <Sparkles className="w-4 h-4 text-enf" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(t)} title="Editar campos">
                               <Pencil className="w-4 h-4" />
                             </Button>
                             <AlertDialog>
