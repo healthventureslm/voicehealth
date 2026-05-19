@@ -1,61 +1,195 @@
 // Aba "Estrutura" da página unificada de template.
 //
 // Se não tem schema: mostra ChoiceCard pra escolher modo (importar doc / chat).
-// Após gerar: mostra JSON editor + preview ao vivo (StructuredReportView readOnly).
-// "Refinar com IA" inline (Sheet lateral).
+// Após gerar: mostra apenas o preview ao vivo (StructuredReportView readOnly).
+// Refino do schema é exclusivo via "Refinar com IA" (Sheet lateral).
+//
+// Diferente das versões antigas, este componente assume o estado do upload
+// (files/hint/processing/error) e expõe pro pai (AdminTemplateUnified) o
+// controle do botão Continuar via `onWizardControlChange` — assim o wizard
+// usa UM único conjunto de botões no rodapé pra todo o fluxo.
 
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Code2, Eye, Sparkles, AlertCircle, FilePlus2 } from "lucide-react";
+import { Eye, Sparkles, FilePlus2, Loader2 } from "lucide-react";
 import { BuilderModeChoice } from "@/components/admin/TemplateBuilder/BuilderModeChoice";
 import { ImportDocumentStep } from "@/components/admin/TemplateBuilder/ImportDocumentStep";
 import { ChatBuilderStep } from "@/components/admin/TemplateBuilder/ChatBuilderStep";
 import { SchemaChat } from "@/components/admin/TemplateBuilder/SchemaChat";
 import { StructuredReportView } from "@/components/templates/StructuredReportView";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { TemplateSchema } from "@/templates/types";
+
+type SubStep = "choice" | "import" | "chat" | "edit";
+
+/**
+ * Controle do botão Continuar/Voltar que a aba expõe pra rodapé do wizard.
+ * Quando null, o rodapé usa o comportamento padrão (avançar/voltar passo).
+ */
+export interface WizardControl {
+  continueLabel: string;
+  /** True quando o botão Continuar deve estar desabilitado. */
+  continueDisabled: boolean;
+  /** Ação ao clicar em Continuar. Se ausente, o rodapé avança passo padrão. */
+  onContinue?: () => void | Promise<void>;
+  /** Override do Voltar — quando definido, é prioritário sobre o padrão. */
+  onBack?: () => void;
+  /** Loading global (esconde rodapé/conteúdo enquanto roda). */
+  isLoading?: boolean;
+  /** Texto a mostrar na tela de loading. */
+  loadingLabel?: string;
+}
 
 interface StructureTabProps {
   schema: TemplateSchema | null;
   onSchemaChange: (s: TemplateSchema) => void;
+  /** Notifica o pai sobre o estado de controle desta aba. */
+  onWizardControlChange?: (control: WizardControl | null) => void;
 }
 
-type SubStep = "choice" | "import" | "chat" | "edit";
+async function fileToBase64(f: File): Promise<string> {
+  const buf = await f.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
 
-export function StructureTab({ schema, onSchemaChange }: StructureTabProps) {
+export function StructureTab({
+  schema,
+  onSchemaChange,
+  onWizardControlChange,
+}: StructureTabProps) {
   const [subStep, setSubStep] = useState<SubStep>(schema ? "edit" : "choice");
-  const [jsonText, setJsonText] = useState(() =>
-    schema ? JSON.stringify(schema, null, 2) : "",
-  );
   const [refineOpen, setRefineOpen] = useState(false);
 
-  // Parse o JSON pra alimentar preview. Se inválido, mantém ultimo válido + flag erro.
-  const parsed = useMemo(() => {
-    try {
-      return { schema: JSON.parse(jsonText) as TemplateSchema, error: null as string | null };
-    } catch (e: any) {
-      return { schema, error: e?.message ?? "JSON inválido" };
-    }
-  }, [jsonText, schema]);
+  // ─── Estado do upload (lifted do ImportDocumentStep) ───
+  const [importFiles, setImportFiles] = useState<File[]>([]);
+  const [importHint, setImportHint] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
-  // Quando edit recebe schema novo (via import/chat/refine), atualiza JSON text
-  function applySchema(s: TemplateSchema) {
-    setJsonText(JSON.stringify(s, null, 2));
-    onSchemaChange(s);
-    setSubStep("edit");
-  }
+  // Quando recebe schema novo (via import/chat/refine), propaga pro pai
+  const applySchema = useCallback(
+    (s: TemplateSchema) => {
+      onSchemaChange(s);
+      setSubStep("edit");
+      // Limpa estado do import — schema novo já foi aplicado
+      setImportFiles([]);
+      setImportHint("");
+      setImportError(null);
+    },
+    [onSchemaChange],
+  );
 
-  // Quando JSON text muda manualmente e é válido, propaga pro pai
-  function handleJsonChange(text: string) {
-    setJsonText(text);
+  const handleExtract = useCallback(async () => {
+    if (importFiles.length === 0) return;
+    setImportError(null);
+    setIsExtracting(true);
     try {
-      const s = JSON.parse(text);
-      if (s && typeof s === "object" && Array.isArray((s as any).sections)) {
-        onSchemaChange(s as TemplateSchema);
+      const payloadFiles = await Promise.all(
+        importFiles.map(async (f) => ({
+          base64: await fileToBase64(f),
+          mime_type: f.type,
+        })),
+      );
+      const { data, error: fnErr } = await supabase.functions.invoke(
+        "template-schema-from-document",
+        {
+          body: {
+            files: payloadFiles,
+            hint: importHint.trim() || undefined,
+          },
+        },
+      );
+      if (fnErr) throw fnErr;
+      if (!data?.success || !data?.schema) {
+        throw new Error(data?.error ?? "IA não retornou schema válido");
       }
-    } catch { /* silencioso — só atualiza quando válido */ }
+      applySchema(data.schema as TemplateSchema);
+      toast.success("Template extraído. Revise abaixo.");
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      setImportError(msg);
+      toast.error(`Falha na extração: ${msg}`);
+    } finally {
+      setIsExtracting(false);
+    }
+  }, [importFiles, importHint, applySchema]);
+
+  // Refs pras callbacks não-estáveis — evita loop no useEffect que sincroniza
+  // o WizardControl. Effect só roda quando o ESTADO real muda.
+  const extractRef = useRef(handleExtract);
+  const notifyRef = useRef(onWizardControlChange);
+  useEffect(() => {
+    extractRef.current = handleExtract;
+    notifyRef.current = onWizardControlChange;
+  });
+
+  // ─── Sincroniza WizardControl com o pai ───
+  useEffect(() => {
+    const notify = notifyRef.current;
+    if (!notify) return;
+
+    if (isExtracting) {
+      notify({
+        continueLabel: "Analisando…",
+        continueDisabled: true,
+        isLoading: true,
+        loadingLabel: "IA está analisando seus documentos. Pode levar 20–40 segundos…",
+      });
+      return;
+    }
+
+    if (subStep === "import") {
+      notify({
+        continueLabel: "Extrair template",
+        continueDisabled: importFiles.length === 0,
+        onContinue: () => extractRef.current(),
+        onBack: () => setSubStep("choice"),
+      });
+      return;
+    }
+
+    if (subStep === "chat") {
+      // ChatBuilderStep ainda tem seus próprios botões internos por enquanto.
+      // Aqui só registramos um Voltar customizado.
+      notify({
+        continueLabel: "Continuar",
+        continueDisabled: !schema, // só avança se já gerou schema via chat
+        onBack: () => setSubStep("choice"),
+      });
+      return;
+    }
+
+    // choice ou edit — comportamento padrão do wizard
+    notify(null);
+  }, [subStep, isExtracting, importFiles.length, schema]);
+
+  // Cleanup: ao desmontar, libera o controle
+  useEffect(() => {
+    return () => {
+      notifyRef.current?.(null);
+    };
+  }, []);
+
+  // ─── Renderização condicional por substep ───
+  if (isExtracting) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+        <Loader2 className="w-10 h-10 text-enf animate-spin" />
+        <div>
+          <p className="text-base font-medium">Analisando documentos</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md">
+            A IA está identificando seções, campos, checkboxes e escalas. Pode levar
+            20–40 segundos, dependendo do tamanho dos arquivos.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (subStep === "choice") {
@@ -85,8 +219,11 @@ export function StructureTab({ schema, onSchemaChange }: StructureTabProps) {
   if (subStep === "import") {
     return (
       <ImportDocumentStep
-        onBack={() => setSubStep("choice")}
-        onExtracted={applySchema}
+        files={importFiles}
+        onFilesChange={setImportFiles}
+        hint={importHint}
+        onHintChange={setImportHint}
+        externalError={importError}
       />
     );
   }
@@ -107,7 +244,8 @@ export function StructureTab({ schema, onSchemaChange }: StructureTabProps) {
         <div>
           <h3 className="text-sm font-semibold">Estrutura do formulário</h3>
           <p className="text-xs text-muted-foreground">
-            JSON à esquerda, preview do formulário à direita. Edite manualmente ou refine com IA.
+            Veja como o formulário vai ficar. Pra ajustar campos, labels ou opções,
+            use "Refinar com IA".
           </p>
         </div>
         <div className="flex gap-2">
@@ -132,50 +270,25 @@ export function StructureTab({ schema, onSchemaChange }: StructureTabProps) {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Code2 className="w-4 h-4" />
-              Schema (JSON)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={jsonText}
-              onChange={(e) => handleJsonChange(e.target.value)}
-              className="font-mono text-xs h-[450px] resize-none"
-              spellCheck={false}
-            />
-            {parsed.error && (
-              <div className="mt-2 flex gap-2 text-xs text-destructive items-center">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {parsed.error}
-              </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            Preview do formulário
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-md p-3 bg-muted/10 max-h-[600px] overflow-y-auto">
+            {schema ? (
+              <StructuredReportView schema={schema} value={{}} readOnly />
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                Nenhuma estrutura ainda. Volte e escolha um modo de criar.
+              </p>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Eye className="w-4 h-4" />
-              Preview do formulário
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-md p-3 bg-muted/10 h-[450px] overflow-y-auto">
-              {parsed.schema ? (
-                <StructuredReportView schema={parsed.schema} value={{}} readOnly />
-              ) : (
-                <p className="text-xs text-muted-foreground italic">
-                  Conserte o JSON pra ver o preview.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Sheet open={refineOpen} onOpenChange={setRefineOpen}>
         <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0">
@@ -185,12 +298,13 @@ export function StructureTab({ schema, onSchemaChange }: StructureTabProps) {
               Refinar estrutura com IA
             </SheetTitle>
             <SheetDescription>
-              Peça ajustes ou anexe documento. Mudanças sincronizam no JSON.
+              Peça ajustes ou anexe documento. Mudanças aplicadas ao schema
+              atualizam o preview automaticamente.
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 p-3">
             <SchemaChat
-              schema={parsed.schema}
+              schema={schema}
               onSchemaUpdate={(next) => applySchema(next)}
               greeting="Como posso ajustar esta estrutura?"
               placeholder="Ex: 'Adicione uma seção de sinais vitais'"

@@ -20,7 +20,7 @@ export function BuilderModeChoice({ onPick }: BuilderModeChoiceProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <ChoiceCard
           icon={<Upload className="w-8 h-8" />}
-          title="Importar documento"
+          title="Importar documento ou tirar foto"
           subtitle="Tem o formulário em papel ou PDF?"
           description="Sobe a foto ou PDF — a IA extrai seções, campos, checkboxes e escalas automaticamente. Você revisa e ajusta os detalhes antes de salvar."
           highlight="Recomendado quando você já tem o documento"

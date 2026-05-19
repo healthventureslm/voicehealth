@@ -17,17 +17,18 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Palette, Sparkles, Save, AlertCircle, Loader2 } from "lucide-react";
+import {
+  Info, FileText, Palette, Sparkles, Save, AlertCircle, Loader2, ArrowRight, ArrowLeft, Check,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { StructureTab } from "@/components/admin/UnifiedBuilder/StructureTab";
+import { StructureTab, type WizardControl } from "@/components/admin/UnifiedBuilder/StructureTab";
 import { DesignTab } from "@/components/admin/UnifiedBuilder/DesignTab";
 import { ScriptTab } from "@/components/admin/UnifiedBuilder/ScriptTab";
 import type { TemplateSchema } from "@/templates/types";
@@ -77,10 +78,24 @@ export default function AdminTemplateUnified() {
   const [designDirty, setDesignDirty] = useState(false);
   const [scriptDirty, setScriptDirty] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"structure" | "design" | "script">(
-    (params.get("tab") as "structure" | "design" | "script") || "structure",
+  // Wizard de 4 passos. Em edit mode, todos têm dados — usuário pode pular
+  // pra qualquer passo cujo pré-requisito esteja satisfeito.
+  type StepId = "info" | "structure" | "script" | "design";
+  const [stepId, setStepId] = useState<StepId>(
+    (params.get("step") as StepId) || "info",
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  // Controle do botão Continuar/Voltar que vem da aba ativa (ex: StructureTab
+  // assume controle no subStep "import" pra extrair documento).
+  // Quando null, o rodapé usa o comportamento padrão (avançar/voltar passo).
+  const [stepCtrl, setStepCtrl] = useState<WizardControl | null>(null);
+
+  // Reseta o controle ao trocar de passo do wizard — cada passo é responsável
+  // por (re)registrar o seu, se precisar
+  useEffect(() => {
+    setStepCtrl(null);
+  }, [stepId]);
 
   // ─── Carrega template existente em edit mode ───
   const { data: existing, isLoading } = useQuery({
@@ -281,130 +296,108 @@ export default function AdminTemplateUnified() {
           back
           backTo="/admin/templates"
           title={isEdit ? "Editar template" : "Novo template"}
-          subtitle="Configure estrutura, design do PDF e roteiro do teleprompter — tudo no mesmo lugar."
+          subtitle="Siga os passos abaixo. Cada etapa é validada antes da próxima."
         />
 
-        {/* Metadata global do template, persistente entre tabs */}
+        {/* Stepper */}
+        <Stepper
+          steps={[
+            { id: "info", label: "Informações básicas", icon: <Info className="w-4 h-4" />, complete: !!name.trim() },
+            { id: "structure", label: "Estrutura", icon: <FileText className="w-4 h-4" />, complete: hasSchema, required: true },
+            { id: "script", label: "Roteiro", icon: <Sparkles className="w-4 h-4" />, complete: scriptFields.length > 0, optional: true },
+            { id: "design", label: "Design", icon: <Palette className="w-4 h-4" />, complete: !!displayLayout, optional: true },
+          ]}
+          currentId={stepId}
+          onStepClick={(target) => {
+            // Permite navegação livre só se o pré-requisito está satisfeito
+            if (target === "info") return setStepId("info");
+            if (target === "structure" && name.trim()) return setStepId("structure");
+            if ((target === "script" || target === "design") && hasSchema) return setStepId(target);
+            toast.error("Preencha as etapas anteriores antes de avançar.");
+          }}
+        />
+
+        {/* Step content */}
         <Card>
-          <CardContent className="py-4 space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="tpl-name">Nome *</Label>
-                <Input
-                  id="tpl-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="ex: Histórico de Enfermagem"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="tpl-desc">Descrição</Label>
-                <Input
-                  id="tpl-desc"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Frase curta sobre quando usar"
-                />
-              </div>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Setores aplicáveis</Label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {WARD_TYPES.map((w) => (
-                    <label key={w.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={wardTypes.includes(w.value)}
-                        onCheckedChange={() => toggleWard(w.value)}
-                      />
-                      {w.label}
-                    </label>
-                  ))}
+          <CardContent className="py-5 space-y-4">
+            {stepId === "info" && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Informações básicas</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Como o template vai aparecer pros profissionais e onde se aplica.
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tpl-name">Nome *</Label>
+                    <Input
+                      id="tpl-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="ex: Histórico de Enfermagem"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tpl-desc">Descrição</Label>
+                    <Input
+                      id="tpl-desc"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Frase curta sobre quando usar"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Setores aplicáveis</Label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {WARD_TYPES.map((w) => (
+                        <label key={w.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={wardTypes.includes(w.value)}
+                            onCheckedChange={() => toggleWard(w.value)}
+                          />
+                          {w.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Perfis profissionais</Label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {ROLES.map((r) => (
+                        <label key={r.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={roles.includes(r.value)}
+                            onCheckedChange={() => toggleRole(r.value)}
+                          />
+                          {r.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Perfis profissionais</Label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {ROLES.map((r) => (
-                    <label key={r.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={roles.includes(r.value)}
-                        onCheckedChange={() => toggleRole(r.value)}
-                      />
-                      {r.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabTrigger
-              value="structure"
-              icon={<FileText className="w-4 h-4" />}
-              label="Estrutura"
-              indicator={hasSchema ? "definido" : "obrigatório"}
-              indicatorVariant={hasSchema ? "default" : "destructive"}
-            />
-            <TabTrigger
-              value="design"
-              icon={<Palette className="w-4 h-4" />}
-              label="Design"
-              disabled={!hasSchema}
-              disabledReason="Configure a estrutura primeiro"
-              indicator={displayLayout ? "definido" : "opcional"}
-              indicatorVariant={displayLayout ? "default" : "outline"}
-            />
-            <TabTrigger
-              value="script"
-              icon={<Sparkles className="w-4 h-4" />}
-              label="Roteiro"
-              disabled={!hasSchema}
-              disabledReason="Configure a estrutura primeiro"
-              indicator={scriptFields.length > 0 ? `${scriptFields.length} pontos` : "opcional"}
-              indicatorVariant={scriptFields.length > 0 ? "default" : "outline"}
-            />
-          </TabsList>
-
-          <TabsContent value="structure" className="mt-4">
-            <StructureTab
-              schema={schema}
-              onSchemaChange={(s) => {
-                setSchema(s);
-                setStructureDirty(true);
-                // Sincroniza nome/desc do schema se vazios
-                if (!name && s.name) setName(s.name);
-                if (!description && s.description) setDescription(s.description);
-                if (wardTypes.length === 0 && s.metadata?.applicableWardTypes) {
-                  setWardTypes(s.metadata.applicableWardTypes as Enums<"ward_type">[]);
-                }
-              }}
-            />
-          </TabsContent>
-
-          <TabsContent value="design" className="mt-4">
-            {hasSchema && schema ? (
-              <DesignTab
-                templateName={name}
-                schema={schema}
-                hospitalId={hospitalId ?? undefined}
-                currentLayout={displayLayout}
-                onLayoutChange={(l) => {
-                  setDisplayLayout(l);
-                  setDesignDirty(true);
-                }}
-              />
-            ) : (
-              <DisabledTabMessage reason="Configure a estrutura primeiro pra atribuir um design ao PDF." />
             )}
-          </TabsContent>
 
-          <TabsContent value="script" className="mt-4">
-            {hasSchema && schema ? (
+            {stepId === "structure" && (
+              <StructureTab
+                schema={schema}
+                onSchemaChange={(s) => {
+                  setSchema(s);
+                  setStructureDirty(true);
+                  if (!name && s.name) setName(s.name);
+                  if (!description && s.description) setDescription(s.description);
+                  if (wardTypes.length === 0 && s.metadata?.applicableWardTypes) {
+                    setWardTypes(s.metadata.applicableWardTypes as Enums<"ward_type">[]);
+                  }
+                }}
+                onWizardControlChange={setStepCtrl}
+              />
+            )}
+
+            {stepId === "script" && hasSchema && schema && (
               <ScriptTab
                 templateName={name}
                 templateSchema={schema}
@@ -417,41 +410,107 @@ export default function AdminTemplateUnified() {
                   setScriptDirty(true);
                 }}
               />
-            ) : (
-              <DisabledTabMessage reason="Configure a estrutura primeiro pra gerar o roteiro." />
             )}
-          </TabsContent>
-        </Tabs>
 
-        {/* Footer com save único */}
+            {stepId === "design" && hasSchema && schema && (
+              <DesignTab
+                templateName={name}
+                schema={schema}
+                hospitalId={hospitalId ?? undefined}
+                currentLayout={displayLayout}
+                onLayoutChange={(l) => {
+                  setDisplayLayout(l);
+                  setDesignDirty(true);
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Footer com navegação e save. Pode ser dirigido pelo `stepCtrl` que
+            a aba ativa registra (ex: estrutura/import → Continuar = extrair). */}
         <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-xs text-muted-foreground">
-            {!canSave && (
-              <div className="flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
-                Preencha o nome e configure a estrutura pra salvar.
-              </div>
-            )}
-            {canSave && (structureDirty || designDirty || scriptDirty) && (
-              <span>Alterações pendentes em {[
-                structureDirty && "Estrutura",
-                designDirty && "Design",
-                scriptDirty && "Roteiro",
-              ].filter(Boolean).join(", ")}</span>
-            )}
-          </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/admin/templates")} disabled={isSaving}>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/templates")}
+              disabled={isSaving || stepCtrl?.isLoading}
+            >
               Cancelar
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!canSave || isSaving}
-              className="gap-2 bg-enf hover:bg-enf-hover text-white"
-            >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {isSaving ? "Salvando..." : "Salvar tudo"}
-            </Button>
+            {(stepId !== "info" || stepCtrl?.onBack) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Se a aba ativa registrou um Voltar custom (ex: voltar do
+                  // import pra choice), prioriza. Senão volta o passo.
+                  if (stepCtrl?.onBack) {
+                    stepCtrl.onBack();
+                    return;
+                  }
+                  const order: StepId[] = ["info", "structure", "script", "design"];
+                  const idx = order.indexOf(stepId);
+                  if (idx > 0) setStepId(order[idx - 1]);
+                }}
+                disabled={isSaving || stepCtrl?.isLoading}
+                className="gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </Button>
+            )}
+          </div>
+
+          <div className="flex gap-2 items-center">
+            {!canSave && stepId === "design" && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Estrutura é obrigatória pra salvar.
+              </span>
+            )}
+
+            {stepId === "design" ? (
+              <Button
+                onClick={handleSave}
+                disabled={!canSave || isSaving}
+                className="gap-2 bg-enf hover:bg-enf-hover text-white"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {isSaving ? "Salvando..." : "Salvar template"}
+              </Button>
+            ) : (
+              <Button
+                onClick={async () => {
+                  // 1) Se a aba registrou um Continuar custom (ex: extrair
+                  // template), executa ele. A aba decide quando avançar de
+                  // passo via setSchema / applySchema.
+                  if (stepCtrl?.onContinue) {
+                    await stepCtrl.onContinue();
+                    return;
+                  }
+                  // 2) Senão: validação default por passo antes de avançar
+                  if (stepId === "info" && !name.trim()) {
+                    toast.error("Preencha o nome do template antes de continuar.");
+                    return;
+                  }
+                  if (stepId === "structure" && !hasSchema) {
+                    toast.error("Configure a estrutura antes de continuar.");
+                    return;
+                  }
+                  const order: StepId[] = ["info", "structure", "script", "design"];
+                  const idx = order.indexOf(stepId);
+                  if (idx >= 0 && idx < order.length - 1) {
+                    setStepId(order[idx + 1]);
+                  }
+                }}
+                disabled={stepCtrl?.continueDisabled || stepCtrl?.isLoading}
+                className="gap-2 bg-enf hover:bg-enf-hover text-white"
+              >
+                {stepCtrl?.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {stepCtrl?.continueLabel ?? "Continuar"}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </PageContainer>
@@ -459,48 +518,72 @@ export default function AdminTemplateUnified() {
   );
 }
 
-function TabTrigger({
-  value,
-  icon,
-  label,
-  disabled,
-  disabledReason,
-  indicator,
-  indicatorVariant,
-}: {
-  value: string;
-  icon: React.ReactNode;
+// ─── Stepper ───
+interface Step {
+  id: string;
   label: string;
-  disabled?: boolean;
-  disabledReason?: string;
-  indicator?: string;
-  indicatorVariant?: "default" | "destructive" | "outline";
-}) {
-  return (
-    <TabsTrigger
-      value={value}
-      disabled={disabled}
-      title={disabled ? disabledReason : undefined}
-      className="gap-2 flex-col sm:flex-row sm:py-2"
-    >
-      <span className="flex items-center gap-2">
-        {icon}
-        {label}
-      </span>
-      {indicator && (
-        <Badge variant={indicatorVariant ?? "outline"} className="text-[10px] h-4 px-1.5">
-          {indicator}
-        </Badge>
-      )}
-    </TabsTrigger>
-  );
+  icon: React.ReactNode;
+  complete: boolean;
+  required?: boolean;
+  optional?: boolean;
 }
 
-function DisabledTabMessage({ reason }: { reason: string }) {
+function Stepper({
+  steps,
+  currentId,
+  onStepClick,
+}: {
+  steps: Step[];
+  currentId: string;
+  onStepClick: (id: string) => void;
+}) {
   return (
-    <div className="py-12 text-center text-sm text-muted-foreground">
-      <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-40" />
-      {reason}
+    <div className="flex items-center gap-1 sm:gap-2 w-full">
+      {steps.map((s, idx) => {
+        const isCurrent = s.id === currentId;
+        const isComplete = s.complete && !isCurrent;
+        return (
+          <div key={s.id} className="flex items-center flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => onStepClick(s.id)}
+              className={cn(
+                "flex items-center gap-2 px-2 py-2 rounded-md min-w-0 transition-colors text-left",
+                isCurrent && "bg-enf-soft",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold shrink-0",
+                  isCurrent
+                    ? "bg-enf text-white"
+                    : isComplete
+                      ? "bg-enf/20 text-enf-deep"
+                      : "bg-muted text-muted-foreground",
+                )}
+              >
+                {isComplete ? <Check className="w-4 h-4" /> : idx + 1}
+              </span>
+              <span className="flex flex-col leading-tight min-w-0">
+                <span
+                  className={cn(
+                    "text-sm font-medium truncate",
+                    isCurrent ? "text-enf-deep" : "text-foreground",
+                  )}
+                >
+                  {s.label}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {s.required ? "Obrigatório" : s.optional ? "Opcional" : ""}
+                </span>
+              </span>
+            </button>
+            {idx < steps.length - 1 && (
+              <div className="h-px flex-1 bg-border mx-1" aria-hidden />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, FileText, Shield, LogOut,
   ClipboardList, Building2, Menu,
   Hospital, BookOpen, BarChart3, FileSignature,
-  ChevronRight, PanelLeft, ListChecks, Plus,
+  ChevronRight, PanelLeft, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -31,7 +31,6 @@ const adminNavItems = [
   { label: "Usuários", icon: Shield, path: "/admin/users" },
   { label: "Setores", icon: Building2, path: "/admin/wards" },
   { label: "Templates", icon: FileText, path: "/admin/templates" },
-  { label: "Roteiros", icon: ListChecks, path: "/admin/scripts" },
   { label: "Especialidades", icon: Hospital, path: "/admin/specialties" },
   { label: "Métricas de uso", icon: BarChart3, path: "/admin/analytics" },
   { label: "Manual do admin", icon: BookOpen, path: "/admin/manual" },

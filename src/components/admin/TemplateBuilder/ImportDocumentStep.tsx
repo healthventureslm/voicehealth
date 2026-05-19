@@ -1,140 +1,189 @@
-// Passo de importar documento: upload + chamada à edge function
-// template-schema-from-document. Recebe o schema extraído e devolve
-// pro parent via onExtracted.
+// Passo de importar documento: upload ou foto via câmera. Componente "dumb"
+// controlado — o pai (StructureTab) é dono do estado de files/hint/processing
+// e dispara a extração via prop. Sem botões internos; o avanço acontece pelo
+// botão "Continuar" do rodapé do wizard.
 
-import { useState, useCallback } from "react";
-import { Upload, FileText, Loader2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useCallback, useState } from "react";
+import { Upload, FileText, AlertCircle, Camera, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import type { TemplateSchema } from "@/templates/types";
+import { CameraCaptureDialog } from "@/components/CameraCaptureDialog";
+
+const OK_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const MAX_PER_FILE = 10 * 1024 * 1024; // 10 MB
+const MAX_TOTAL = 20 * 1024 * 1024; // 20 MB
 
 interface ImportDocumentStepProps {
-  onExtracted: (schema: TemplateSchema) => void;
-  onBack: () => void;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
+  hint: string;
+  onHintChange: (hint: string) => void;
+  disabled?: boolean;
+  /** Erro externo (ex: vindo do fetch da edge function). */
+  externalError?: string | null;
 }
 
-export function ImportDocumentStep({ onExtracted, onBack }: ImportDocumentStepProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [hint, setHint] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function ImportDocumentStep({
+  files,
+  onFilesChange,
+  hint,
+  onHintChange,
+  disabled = false,
+  externalError = null,
+}: ImportDocumentStepProps) {
+  const [localError, setLocalError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
-  const handleFileChange = useCallback((f: File | null) => {
-    setError(null);
-    if (!f) {
-      setFile(null);
-      return;
-    }
-    if (f.size > 10 * 1024 * 1024) {
-      setError("Arquivo muito grande (limite 10 MB)");
-      return;
-    }
-    const okTypes = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
-    if (!okTypes.includes(f.type)) {
-      setError("Tipo de arquivo não suportado. Use PDF, PNG, JPEG ou WebP.");
-      return;
-    }
-    setFile(f);
-  }, []);
+  const error = externalError ?? localError;
+
+  const addFiles = useCallback(
+    (incoming: File[]) => {
+      setLocalError(null);
+      if (incoming.length === 0) return;
+      const accepted: File[] = [];
+      const rejected: string[] = [];
+      for (const f of incoming) {
+        if (f.size > MAX_PER_FILE) {
+          rejected.push(`${f.name} (>10MB)`);
+          continue;
+        }
+        if (!OK_TYPES.includes(f.type)) {
+          rejected.push(`${f.name} (tipo não suportado)`);
+          continue;
+        }
+        accepted.push(f);
+      }
+      const merged = [...files, ...accepted];
+      const total = merged.reduce((acc, f) => acc + f.size, 0);
+      if (total > MAX_TOTAL) {
+        setLocalError("Arquivos somam mais que 20 MB. Remova algum antes de continuar.");
+      }
+      onFilesChange(merged);
+      if (rejected.length > 0) {
+        setLocalError(`Alguns arquivos foram ignorados: ${rejected.join(", ")}`);
+      }
+    },
+    [files, onFilesChange],
+  );
+
+  function removeFile(idx: number) {
+    setLocalError(null);
+    onFilesChange(files.filter((_, i) => i !== idx));
+  }
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    handleFileChange(e.dataTransfer.files?.[0] ?? null);
+    addFiles(Array.from(e.dataTransfer.files ?? []));
   };
 
-  async function handleProcess() {
-    if (!file) return;
-    setError(null);
-    setIsProcessing(true);
-    try {
-      // Lê arquivo como base64
-      const buf = await file.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let bin = "";
-      for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-      const base64 = btoa(bin);
-
-      const { data, error: fnErr } = await supabase.functions.invoke(
-        "template-schema-from-document",
-        {
-          body: {
-            file_base64: base64,
-            mime_type: file.type,
-            hint: hint.trim() || undefined,
-          },
-        },
-      );
-
-      if (fnErr) throw fnErr;
-      if (!data?.success || !data?.schema) {
-        throw new Error(data?.error ?? "IA não retornou schema válido");
-      }
-      onExtracted(data.schema as TemplateSchema);
-      toast.success("Template extraído. Revise abaixo.");
-    } catch (e: any) {
-      const msg = e?.message ?? String(e);
-      setError(msg);
-      toast.error(`Falha na extração: ${msg}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  }
+  const totalSize = files.reduce((acc, f) => acc + f.size, 0);
 
   return (
-    <div className="max-w-2xl mx-auto py-8 space-y-6">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-1">Importar documento</h2>
+        <h2 className="text-xl font-semibold mb-1">Importar documento ou tirar foto</h2>
         <p className="text-sm text-muted-foreground">
-          Suba a foto ou PDF do formulário. A IA vai analisar e propor um template
-          estruturado pra você revisar.
+          Suba um ou mais arquivos (PDFs ou fotos), ou tire fotos na hora. A IA vai
+          consolidar tudo num único template estruturado pra você revisar.
         </p>
       </div>
 
-      <Card
-        className={`border-2 border-dashed transition-colors ${
-          isDragging ? "border-enf bg-enf/5" : "border-border"
-        }`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
-      >
-        <label className="block p-8 cursor-pointer text-center">
-          <input
-            type="file"
-            accept=".pdf,image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
-            disabled={isProcessing}
-          />
-          {file ? (
-            <div className="space-y-2">
-              <FileText className="w-10 h-10 mx-auto text-enf" />
-              <p className="font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {(file.size / 1024).toFixed(1)} KB · {file.type}
-              </p>
-              <p className="text-xs text-enf">Clique pra trocar</p>
-            </div>
-          ) : (
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card
+          className={`border-2 border-dashed transition-colors ${
+            isDragging ? "border-enf bg-enf/5" : "border-border"
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={onDrop}
+        >
+          <label className="block p-5 cursor-pointer text-center h-full">
+            <input
+              type="file"
+              accept=".pdf,image/png,image/jpeg,image/webp"
+              className="hidden"
+              multiple
+              onChange={(e) => {
+                addFiles(Array.from(e.target.files ?? []));
+                e.target.value = "";
+              }}
+              disabled={disabled}
+            />
             <div className="space-y-2 text-muted-foreground">
-              <Upload className="w-10 h-10 mx-auto" />
-              <p className="font-medium text-foreground">
-                Solte o arquivo aqui ou clique pra escolher
-              </p>
-              <p className="text-xs">PDF, PNG, JPEG ou WebP (até 10 MB)</p>
+              <Upload className="w-8 h-8 mx-auto" />
+              <p className="font-medium text-sm text-foreground">Subir arquivos</p>
+              <p className="text-xs">PDF, PNG, JPEG ou WebP (até 10 MB cada)</p>
+              <p className="text-xs text-enf">Clique ou solte vários aqui</p>
             </div>
-          )}
-        </label>
-      </Card>
+          </label>
+        </Card>
+
+        <Card className="border-2 border-dashed border-border">
+          <button
+            type="button"
+            onClick={() => setCameraOpen(true)}
+            disabled={disabled}
+            className="w-full p-5 text-center h-full disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <div className="space-y-2 text-muted-foreground">
+              <Camera className="w-8 h-8 mx-auto" />
+              <p className="font-medium text-sm text-foreground">Tirar foto agora</p>
+              <p className="text-xs">Pode tirar várias seguidas</p>
+            </div>
+          </button>
+        </Card>
+      </div>
+
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">
+              {files.length} {files.length === 1 ? "arquivo" : "arquivos"} selecionado
+              {files.length === 1 ? "" : "s"}
+              <span className="text-xs text-muted-foreground ml-2">
+                ({(totalSize / 1024).toFixed(1)} KB)
+              </span>
+            </Label>
+            <button
+              type="button"
+              onClick={() => onFilesChange([])}
+              className="text-xs text-muted-foreground hover:text-destructive"
+              disabled={disabled}
+            >
+              Limpar todos
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {files.map((f, i) => (
+              <div
+                key={`${f.name}-${i}`}
+                className="flex items-center gap-2 text-sm bg-muted/30 rounded-md px-3 py-2"
+              >
+                <FileText className="w-4 h-4 text-enf shrink-0" />
+                <span className="flex-1 truncate">{f.name}</span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {(f.size / 1024).toFixed(1)} KB
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  disabled={disabled}
+                  aria-label={`Remover ${f.name}`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="hint" className="text-sm">
@@ -144,8 +193,8 @@ export function ImportDocumentStep({ onExtracted, onBack }: ImportDocumentStepPr
           id="hint"
           placeholder="ex: Evolução de enfermagem em UTI no padrão Rede D'Or"
           value={hint}
-          onChange={(e) => setHint(e.target.value)}
-          disabled={isProcessing}
+          onChange={(e) => onHintChange(e.target.value)}
+          disabled={disabled}
         />
         <p className="text-xs text-muted-foreground">
           Ajuda a IA a entender o contexto se o documento não tiver título claro.
@@ -159,25 +208,14 @@ export function ImportDocumentStep({ onExtracted, onBack }: ImportDocumentStepPr
         </div>
       )}
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack} disabled={isProcessing}>
-          Voltar
-        </Button>
-        <Button
-          onClick={handleProcess}
-          disabled={!file || isProcessing}
-          className="gap-2 bg-enf hover:bg-enf-hover text-white"
-        >
-          {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
-          {isProcessing ? "IA analisando..." : "Extrair template"}
-        </Button>
-      </div>
-
-      {isProcessing && (
-        <div className="text-xs text-center text-muted-foreground italic">
-          Pode levar 20–40 segundos. A IA está identificando seções, campos, escalas e checkboxes.
-        </div>
-      )}
+      <CameraCaptureDialog
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        onCapture={(captured) => {
+          addFiles([captured]);
+          setCameraOpen(false);
+        }}
+      />
     </div>
   );
 }

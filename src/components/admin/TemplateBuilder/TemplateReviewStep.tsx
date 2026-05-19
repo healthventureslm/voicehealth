@@ -1,21 +1,19 @@
-// Tela de revisão do template extraído. v1 pragmática:
+// Tela de revisão do template extraído:
 // - Topo: metadata editável (name, description, ward types, roles)
-// - Esquerda: JSON textarea (admin ajusta fino)
-// - Direita: preview live usando StructuredReportView (read-only)
-// - Salva → INSERT em report_templates
+// - Centro: preview live do formulário usando StructuredReportView (read-only)
+// - Refino do schema é exclusivo via "Refinar com IA" (SchemaChat)
+// - Salva → INSERT/UPDATE em report_templates
 //
-// v2 vai trazer editor visual por field (sem JSON cru). Por enquanto
-// JSON é suficiente — IA entrega ~90% pronto, admin só precisa renomear
-// labels ocasionais.
+// O schema cru (JSON) NÃO é editável pelo admin via UI — manipulação
+// direta do shape do schema fica restrita ao backend / chamadas IA.
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Save, AlertCircle, Eye, Code2, Sparkles } from "lucide-react";
+import { Save, Eye, Sparkles } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -65,11 +63,10 @@ export function TemplateReviewStep({
   const { hospitalIds } = useAuth();
   const isEdit = !!editingTemplateId;
 
-  // Estado: schema completo como string JSON pra edição livre
-  const [jsonText, setJsonText] = useState(() =>
-    JSON.stringify(initialSchema, null, 2),
-  );
-  // Metadata extraída do schema atual + override por inputs
+  // Schema mantido como objeto (sem JSON cru). Atualizado pelo SchemaChat
+  // quando o admin pede refinamentos com IA.
+  const [schema, setSchema] = useState<TemplateSchema>(initialSchema);
+  // Metadata extraída do schema atual + override por inputs.
   // Em edit mode, prefere metadata da row do banco (que é a fonte
   // canônica das colunas applicable_*). Senão herda do schema.
   const [name, setName] = useState(
@@ -91,15 +88,6 @@ export function TemplateReviewStep({
   const [isSaving, setIsSaving] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
 
-  // Parse o JSON pra usar no preview. Se inválido, mostra erro mas não quebra.
-  const parsed = useMemo(() => {
-    try {
-      return { schema: JSON.parse(jsonText) as TemplateSchema, error: null };
-    } catch (e: any) {
-      return { schema: null, error: e?.message ?? "JSON inválido" };
-    }
-  }, [jsonText]);
-
   function toggleWard(v: string) {
     setWardTypes((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
   }
@@ -108,23 +96,19 @@ export function TemplateReviewStep({
   }
 
   async function handleSave() {
-    if (!parsed.schema) {
-      toast.error("JSON inválido — conserte antes de salvar");
-      return;
-    }
     if (!name.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
     setIsSaving(true);
     try {
-      // Schema final: o JSON editado + metadata sincronizada
+      // Schema final: o schema atual + metadata sincronizada com inputs
       const finalSchema = {
-        ...parsed.schema,
+        ...schema,
         name: name.trim(),
         description: description.trim(),
         metadata: {
-          ...(parsed.schema.metadata ?? {}),
+          ...(schema.metadata ?? {}),
           captureMode: "voice",
           applicableRoles: roles,
           applicableWardTypes: wardTypes,
@@ -240,54 +224,22 @@ export function TemplateReviewStep({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Code2 className="w-4 h-4" />
-              Schema (JSON)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={jsonText}
-              onChange={(e) => setJsonText(e.target.value)}
-              className="font-mono text-xs h-[500px] resize-none"
-              spellCheck={false}
-            />
-            {parsed.error && (
-              <div className="mt-2 flex gap-2 text-xs text-destructive items-center">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {parsed.error}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">
-              Edite labels, opções de enums, ou adicione campos. Cada mudança válida
-              atualiza o preview ao lado.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Eye className="w-4 h-4" />
-              Preview do formulário
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-md p-3 bg-muted/10 h-[500px] overflow-y-auto">
-              {parsed.schema ? (
-                <StructuredReportView schema={parsed.schema} value={{}} readOnly />
-              ) : (
-                <p className="text-xs text-muted-foreground italic">
-                  Preview indisponível — conserte o JSON pra ver o form.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            Preview do formulário
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-md p-3 bg-muted/10 max-h-[600px] overflow-y-auto">
+            <StructuredReportView schema={schema} value={{}} readOnly />
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Pra ajustar campos, labels ou opções, use "Refinar com IA" no topo.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack} disabled={isSaving}>
@@ -295,7 +247,7 @@ export function TemplateReviewStep({
         </Button>
         <Button
           onClick={handleSave}
-          disabled={!parsed.schema || !name.trim() || isSaving}
+          disabled={!name.trim() || isSaving}
           className="gap-2 bg-enf hover:bg-enf-hover text-white"
         >
           <Save className="w-4 h-4" />
@@ -323,9 +275,9 @@ export function TemplateReviewStep({
           </SheetHeader>
           <div className="flex-1 p-3">
             <SchemaChat
-              schema={parsed.schema}
+              schema={schema}
               onSchemaUpdate={(next) => {
-                setJsonText(JSON.stringify(next, null, 2));
+                setSchema(next);
                 if (next.name) setName(next.name);
                 if (next.description) setDescription(next.description);
                 const meta = (next.metadata ?? {}) as Record<string, unknown>;

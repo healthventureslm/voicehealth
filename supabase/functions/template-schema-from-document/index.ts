@@ -147,8 +147,12 @@ no formulário. Use frases curtas e claras como num formulário em papel.
 Devolva APENAS o JSON do TemplateSchema, sem markdown fences, sem explicação. Garanta que é JSON válido (aspas duplas, sem trailing commas).`;
 
 interface GenerateRequest {
-  file_base64: string;
-  mime_type: string;
+  // Caminho novo (multi-arquivo): páginas/fotos diferentes do MESMO formulário,
+  // consolidadas num único TemplateSchema. Útil pra docs de múltiplas páginas.
+  files?: Array<{ base64: string; mime_type: string }>;
+  // Caminho legado (1 arquivo). Mantido pra compat com chamadas antigas.
+  file_base64?: string;
+  mime_type?: string;
   hint?: string;
 }
 
@@ -157,31 +161,46 @@ serve(async (req) => {
 
   try {
     const body = (await req.json()) as GenerateRequest;
-    if (!body.file_base64 || !body.mime_type) {
-      return json({ error: "file_base64 e mime_type são obrigatórios" }, 400);
+
+    // Normaliza: aceita lista nova ou par legado
+    const files = body.files && body.files.length > 0
+      ? body.files
+      : body.file_base64 && body.mime_type
+        ? [{ base64: body.file_base64, mime_type: body.mime_type }]
+        : [];
+
+    if (files.length === 0) {
+      return json({ error: "Pelo menos um arquivo é obrigatório (files ou file_base64+mime_type)" }, 400);
     }
 
-    const approxBytes = (body.file_base64.length * 3) / 4;
-    if (approxBytes > 10 * 1024 * 1024) {
-      return json({ error: "Arquivo muito grande (limite ~10MB)" }, 413);
+    const totalBytes = files.reduce((acc, f) => acc + (f.base64.length * 3) / 4, 0);
+    if (totalBytes > 20 * 1024 * 1024) {
+      return json({ error: "Arquivos somam mais que 20MB" }, 413);
     }
 
-    const dataUrl = `data:${body.mime_type};base64,${body.file_base64}`;
     const userText = body.hint?.trim()
-      ? `Tipo de documento: ${body.hint.trim()}\n\nExtraia o TemplateSchema do documento anexo.`
-      : "Extraia o TemplateSchema do documento anexo.";
+      ? `Tipo de documento: ${body.hint.trim()}\n\n${files.length > 1
+          ? `Os ${files.length} anexos abaixo são páginas/imagens do MESMO formulário. Extraia um único TemplateSchema consolidado.`
+          : "Extraia o TemplateSchema do documento anexo."}`
+      : files.length > 1
+        ? `Os ${files.length} anexos abaixo são páginas/imagens do MESMO formulário. Extraia um único TemplateSchema consolidado.`
+        : "Extraia o TemplateSchema do documento anexo.";
+
+    const userContent: Array<Record<string, unknown>> = [
+      { type: "text", text: userText },
+    ];
+    for (const f of files) {
+      userContent.push({
+        type: "image_url",
+        image_url: { url: `data:${f.mime_type};base64,${f.base64}` },
+      });
+    }
 
     const { content } = await aiCompleteJson({
       model: "google/gemini-2.5-pro",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userText },
-            { type: "image_url", image_url: { url: dataUrl } },
-          ],
-        },
+        { role: "user", content: userContent },
       ],
     });
 
