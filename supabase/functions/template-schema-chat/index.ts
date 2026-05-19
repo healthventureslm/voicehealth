@@ -103,6 +103,9 @@ interface ChatRequest {
   schema: unknown; // TemplateSchema | null
   history: ChatMessage[];
   message: string;
+  // Caminho novo (multi-arquivo)
+  files?: Array<{ base64: string; mime_type: string }>;
+  // Caminho legado (1 arquivo). Mantido pra compat.
   file?: { base64: string; mime_type: string };
 }
 
@@ -112,8 +115,14 @@ serve(async (req) => {
   try {
     const body = (await req.json()) as ChatRequest;
 
-    if (!body.message?.trim() && !body.file) {
-      return json({ error: "message ou file obrigatório" }, 400);
+    const incomingFiles = body.files && body.files.length > 0
+      ? body.files
+      : body.file
+        ? [body.file]
+        : [];
+
+    if (!body.message?.trim() && incomingFiles.length === 0) {
+      return json({ error: "message ou files obrigatório" }, 400);
     }
 
     // Monta as mensagens pro Gemini: system + contexto do schema atual +
@@ -137,16 +146,23 @@ serve(async (req) => {
       });
     }
 
-    // Mensagem nova: pode ter texto + anexo
-    if (body.file) {
-      const dataUrl = `data:${body.file.mime_type};base64,${body.file.base64}`;
-      messages.push({
-        role: "user",
-        content: [
-          { type: "text", text: body.message || "Use o documento anexo." },
-          { type: "image_url", image_url: { url: dataUrl } },
-        ],
-      });
+    // Mensagem nova: pode ter texto + 1 ou mais anexos
+    if (incomingFiles.length > 0) {
+      const content: Array<Record<string, unknown>> = [
+        {
+          type: "text",
+          text: body.message || (incomingFiles.length > 1
+            ? `Use os ${incomingFiles.length} documentos anexos.`
+            : "Use o documento anexo."),
+        },
+      ];
+      for (const f of incomingFiles) {
+        content.push({
+          type: "image_url",
+          image_url: { url: `data:${f.mime_type};base64,${f.base64}` },
+        });
+      }
+      messages.push({ role: "user", content });
     } else {
       messages.push({ role: "user", content: body.message });
     }

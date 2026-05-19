@@ -37,8 +37,7 @@ import Profile from "./pages/Profile";
 
 // Lazy: páginas raras (admin/superadmin/legal) — code-split mantém bundle enxuto.
 const AdminTemplates = lazy(() => import("./pages/admin/AdminTemplates"));
-const AdminTemplateBuilder = lazy(() => import("./pages/admin/AdminTemplateBuilder"));
-const AdminTemplateDesign = lazy(() => import("./pages/admin/AdminTemplateDesign"));
+const AdminTemplateUnified = lazy(() => import("./pages/admin/AdminTemplateUnified"));
 const AdminScripts = lazy(() => import("./pages/admin/AdminScripts"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminWards = lazy(() => import("./pages/admin/AdminWards"));
@@ -171,9 +170,8 @@ function AppRoutes() {
 
         {/* Admin do hospital */}
         <Route path="/admin/templates" element={<HospitalAdminRoute><AdminTemplates /></HospitalAdminRoute>} />
-        <Route path="/admin/templates/new" element={<HospitalAdminRoute><AdminTemplateBuilder /></HospitalAdminRoute>} />
-        <Route path="/admin/templates/:id/edit" element={<HospitalAdminRoute><AdminTemplateBuilder /></HospitalAdminRoute>} />
-        <Route path="/admin/templates/:id/design" element={<HospitalAdminRoute><AdminTemplateDesign /></HospitalAdminRoute>} />
+        <Route path="/admin/templates/new" element={<HospitalAdminRoute><AdminTemplateUnified /></HospitalAdminRoute>} />
+        <Route path="/admin/templates/:id" element={<HospitalAdminRoute><AdminTemplateUnified /></HospitalAdminRoute>} />
         <Route path="/admin/scripts" element={<HospitalAdminRoute><AdminScripts /></HospitalAdminRoute>} />
         <Route path="/admin/users" element={<HospitalAdminRoute><AdminUsers /></HospitalAdminRoute>} />
         <Route path="/admin/wards" element={<HospitalAdminRoute><AdminWards /></HospitalAdminRoute>} />

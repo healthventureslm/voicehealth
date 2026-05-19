@@ -9,17 +9,21 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Paperclip, X, Loader2, Bot, User, FileText } from "lucide-react";
+import { Send, Paperclip, X, Loader2, Bot, User, FileText, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CameraCaptureDialog } from "@/components/CameraCaptureDialog";
 import type { TemplateSchema } from "@/templates/types";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
-  attachment?: { name: string; size: number };
+  attachments?: Array<{ name: string; size: number }>;
 };
+
+const OK_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+const MAX_PER_FILE = 10 * 1024 * 1024; // 10 MB
 
 interface SchemaChatProps {
   schema: TemplateSchema | null;
@@ -40,8 +44,9 @@ export function SchemaChat({
     { role: "assistant", content: greeting },
   ]);
   const [input, setInput] = useState("");
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -53,21 +58,30 @@ export function SchemaChat({
     fileInputRef.current?.click();
   }
 
-  function handleFile(f: File | null) {
-    if (!f) {
-      setPendingFile(null);
-      return;
+  function addFiles(incoming: File[]) {
+    const accepted: File[] = [];
+    const rejected: string[] = [];
+    for (const f of incoming) {
+      if (f.size > MAX_PER_FILE) {
+        rejected.push(`${f.name} (>10MB)`);
+        continue;
+      }
+      if (!OK_TYPES.includes(f.type)) {
+        rejected.push(`${f.name} (tipo não suportado)`);
+        continue;
+      }
+      accepted.push(f);
     }
-    if (f.size > 10 * 1024 * 1024) {
-      toast.error("Arquivo muito grande (máx 10 MB)");
-      return;
+    if (rejected.length > 0) {
+      toast.error(`Alguns arquivos ignorados: ${rejected.join(", ")}`);
     }
-    const okTypes = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
-    if (!okTypes.includes(f.type)) {
-      toast.error("Tipo não suportado. Use PDF, PNG, JPEG ou WebP.");
-      return;
+    if (accepted.length > 0) {
+      setPendingFiles((prev) => [...prev, ...accepted]);
     }
-    setPendingFile(f);
+  }
+
+  function removePendingFile(idx: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function fileToBase64(f: File): Promise<string> {
@@ -80,15 +94,17 @@ export function SchemaChat({
 
   async function handleSend() {
     const trimmed = input.trim();
-    if (!trimmed && !pendingFile) return;
+    if (!trimmed && pendingFiles.length === 0) return;
     if (isLoading) return;
 
     // Adiciona a mensagem do usuário ao histórico local
     const userMsg: ChatMessage = {
       role: "user",
-      content: trimmed || "[documento enviado]",
-      attachment: pendingFile
-        ? { name: pendingFile.name, size: pendingFile.size }
+      content: trimmed || (pendingFiles.length > 1
+        ? `[${pendingFiles.length} documentos enviados]`
+        : "[documento enviado]"),
+      attachments: pendingFiles.length > 0
+        ? pendingFiles.map((f) => ({ name: f.name, size: f.size }))
         : undefined,
     };
     const nextMessages = [...messages, userMsg];
@@ -97,16 +113,17 @@ export function SchemaChat({
 
     setIsLoading(true);
     try {
-      let filePayload: { base64: string; mime_type: string } | undefined;
-      if (pendingFile) {
-        filePayload = {
-          base64: await fileToBase64(pendingFile),
-          mime_type: pendingFile.type,
-        };
-      }
+      const filesPayload = pendingFiles.length > 0
+        ? await Promise.all(
+            pendingFiles.map(async (f) => ({
+              base64: await fileToBase64(f),
+              mime_type: f.type,
+            })),
+          )
+        : undefined;
 
-      // Limpa anexo antes da request (response vai apenas o texto na lista)
-      setPendingFile(null);
+      // Limpa anexos antes da request (response vai apenas o texto na lista)
+      setPendingFiles([]);
 
       // History pra IA: todas as mensagens EXCETO o greeting inicial
       const history = nextMessages
@@ -120,8 +137,10 @@ export function SchemaChat({
           body: {
             schema,
             history,
-            message: trimmed || "Analise o documento anexo.",
-            file: filePayload,
+            message: trimmed || (filesPayload && filesPayload.length > 1
+              ? "Analise os documentos anexos."
+              : "Analise o documento anexo."),
+            files: filesPayload,
           },
         },
       );
@@ -166,18 +185,25 @@ export function SchemaChat({
       </div>
 
       <div className="border-t p-3 space-y-2">
-        {pendingFile && (
-          <div className="flex items-center gap-2 text-xs bg-muted/40 rounded px-2 py-1.5">
-            <FileText className="w-3.5 h-3.5 text-enf shrink-0" />
-            <span className="flex-1 truncate">{pendingFile.name}</span>
-            <span className="text-muted-foreground">{(pendingFile.size / 1024).toFixed(1)} KB</span>
-            <button
-              onClick={() => setPendingFile(null)}
-              className="text-muted-foreground hover:text-destructive"
-              aria-label="Remover anexo"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+        {pendingFiles.length > 0 && (
+          <div className="space-y-1.5">
+            {pendingFiles.map((f, i) => (
+              <div
+                key={`${f.name}-${i}`}
+                className="flex items-center gap-2 text-xs bg-muted/40 rounded px-2 py-1.5"
+              >
+                <FileText className="w-3.5 h-3.5 text-enf shrink-0" />
+                <span className="flex-1 truncate">{f.name}</span>
+                <span className="text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</span>
+                <button
+                  onClick={() => removePendingFile(i)}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={`Remover ${f.name}`}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -187,7 +213,11 @@ export function SchemaChat({
             type="file"
             accept=".pdf,image/png,image/jpeg,image/webp"
             className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+            multiple
+            onChange={(e) => {
+              addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
             disabled={isLoading}
           />
           <Button
@@ -199,6 +229,16 @@ export function SchemaChat({
             title="Anexar PDF ou imagem"
           >
             <Paperclip className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setCameraOpen(true)}
+            disabled={isLoading}
+            title="Tirar foto agora"
+          >
+            <Camera className="w-4 h-4" />
           </Button>
           <Textarea
             value={input}
@@ -217,16 +257,25 @@ export function SchemaChat({
           <Button
             type="button"
             onClick={handleSend}
-            disabled={isLoading || (!input.trim() && !pendingFile)}
+            disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
             className="gap-1.5 bg-enf hover:bg-enf-hover text-white"
           >
             <Send className="w-4 h-4" />
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground px-1">
-          Enter envia · Shift+Enter quebra linha · Anexe documentos a qualquer momento
+          Enter envia · Shift+Enter quebra linha · Anexe documentos ou tire foto a qualquer momento
         </p>
       </div>
+
+      <CameraCaptureDialog
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        onCapture={(captured) => {
+          addFiles([captured]);
+          setCameraOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -247,13 +296,19 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         )}
       >
         {msg.content}
-        {msg.attachment && (
-          <div className={cn(
-            "mt-1.5 text-xs flex items-center gap-1 italic",
-            isUser ? "text-white/80" : "text-muted-foreground"
-          )}>
-            <FileText className="w-3 h-3" />
-            {msg.attachment.name} ({(msg.attachment.size / 1024).toFixed(0)} KB)
+        {msg.attachments && msg.attachments.length > 0 && (
+          <div
+            className={cn(
+              "mt-1.5 space-y-0.5",
+              isUser ? "text-white/80" : "text-muted-foreground",
+            )}
+          >
+            {msg.attachments.map((a, i) => (
+              <div key={i} className="text-xs flex items-center gap-1 italic">
+                <FileText className="w-3 h-3" />
+                {a.name} ({(a.size / 1024).toFixed(0)} KB)
+              </div>
+            ))}
           </div>
         )}
       </div>
