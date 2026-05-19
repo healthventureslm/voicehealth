@@ -311,7 +311,7 @@ export default function Patients() {
             <p className="text-xs text-muted-foreground">
               {filtered.length} paciente{filtered.length !== 1 && "s"}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
               {filtered.map((p) => {
                 const full = fullById.get(p.id);
                 const inMyWards = !!p.current_ward_id && wardIdSet.has(p.current_ward_id);
