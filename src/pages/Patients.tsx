@@ -11,6 +11,7 @@ import {
   useCreatePatient,
   useMyWards,
   useWards,
+  usePatientsPendingReview,
 } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +62,11 @@ export default function Patients() {
   const canPickAnyWard = isSuperAdmin || isHospitalAdmin;
   const { data: fullPatients } = usePatients();
   const { data: directory, isLoading } = usePatientsDirectory();
+  const { data: pendingReview } = usePatientsPendingReview();
+  const pendingReviewIds = useMemo(
+    () => new Set((pendingReview ?? []).map((p) => p.id)),
+    [pendingReview],
+  );
   const { data: myWards } = useMyWards(user?.id);
   const { data: allWards } = useWards();
   const createPatient = useCreatePatient();
@@ -360,7 +366,17 @@ export default function Patients() {
                     <CardContent className="p-4 flex items-start gap-3">
                       <GradientAvatar name={p.full_name} size="md" />
                       <div className="min-w-0 flex-1">
-                        <div className="text-[14px] font-semibold truncate">{p.full_name}</div>
+                        <div className="text-[14px] font-semibold truncate flex items-center gap-2">
+                          {p.full_name}
+                          {pendingReviewIds.has(p.id) && (
+                            <span
+                              className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 inline-flex items-center gap-1 flex-shrink-0"
+                              title="Sem gravação há 48h+ — revisar alta"
+                            >
+                              Revisar alta
+                            </span>
+                          )}
+                        </div>
                         <div
                           className="text-[12px] mt-1 flex items-center gap-1.5 flex-wrap"
                           style={{ color: "var(--text-muted)" }}

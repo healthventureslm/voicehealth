@@ -7,14 +7,17 @@ import {
   useDashboardStats,
   usePatients,
   useConsultations,
+  usePatientsPendingReview,
 } from "@/hooks/queries";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GradientAvatar } from "@/components/GradientAvatar";
 import { WardChip } from "@/components/WardChip";
+import { DischargeReviewDialog } from "@/components/DischargeReviewDialog";
 import {
   Mic, Users, ClipboardList, FileText, ArrowRight, Activity,
+  AlertTriangle, Clock,
 } from "lucide-react";
 
 const WEEKDAYS = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
@@ -31,6 +34,7 @@ export default function Dashboard() {
   const { data: stats, isLoading: loadingStats } = useDashboardStats();
   const { data: patients } = usePatients();
   const { data: myRecent } = useConsultations({ mineOnly: true });
+  const { data: pendingReview } = usePatientsPendingReview();
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "—";
   const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
@@ -60,6 +64,56 @@ export default function Dashboard() {
             </Button>
           }
         />
+
+        {/* Alerta de revisão de alta */}
+        {(pendingReview?.length ?? 0) > 0 && (
+          <Card className="border-amber-300/60 bg-amber-50 dark:bg-amber-950/30">
+            <CardHeader className="flex flex-row items-start justify-between pb-2 gap-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div>
+                  <h2 className="heading-card text-amber-900 dark:text-amber-100">
+                    Revisar alta ({pendingReview!.length})
+                  </h2>
+                  <p className="text-[12px] mt-[2px] text-amber-800/80 dark:text-amber-200/80">
+                    Pacientes sem nova gravação há 48h ou mais
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-1.5">
+                {pendingReview!.slice(0, 5).map((p) => {
+                  const hours = Math.floor(p.hours_since);
+                  return (
+                    <DischargeReviewDialog
+                      key={p.id}
+                      patient={p}
+                      trigger={
+                        <button className="w-full flex items-center justify-between gap-3 p-2.5 rounded-lg hover:bg-amber-100/70 dark:hover:bg-amber-900/30 text-left transition-colors">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <GradientAvatar name={p.full_name} size="sm" />
+                            <span className="text-[14px] font-medium truncate">
+                              {p.full_name}
+                            </span>
+                          </div>
+                          <span className="text-[12px] text-amber-800 dark:text-amber-200 flex items-center gap-1 flex-shrink-0">
+                            <Clock className="w-3.5 h-3.5" /> {hours}h
+                          </span>
+                        </button>
+                      }
+                    />
+                  );
+                })}
+                {pendingReview!.length > 5 && (
+                  <p className="text-[12px] text-amber-800/80 dark:text-amber-200/80 pt-1 px-2.5">
+                    e mais {pendingReview!.length - 5}…
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

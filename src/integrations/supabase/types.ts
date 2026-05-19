@@ -215,6 +215,7 @@ export type Database = {
           discharged_at: string | null;
           discharge_reason: string | null;
           discharged_by: string | null;
+          last_discharge_review_at: string | null;
           notes: string | null;
           created_by: string | null;
           created_at: string;
@@ -235,6 +236,7 @@ export type Database = {
           discharged_at?: string | null;
           discharge_reason?: string | null;
           discharged_by?: string | null;
+          last_discharge_review_at?: string | null;
           notes?: string | null;
           created_by?: string | null;
           created_at?: string;
@@ -749,6 +751,21 @@ export type Database = {
           ward_type: Database["public"]["Enums"]["ward_type"] | null;
           created_at: string;
         }>;
+      };
+      patients_pending_discharge_review: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          hospital_id: string;
+          full_name: string;
+          current_ward_id: string | null;
+          last_activity_at: string;
+          hours_since: number;
+        }>;
+      };
+      mark_patient_review_now: {
+        Args: { p_patient_id: string };
+        Returns: Database["public"]["Tables"]["patients"]["Row"];
       };
     };
 
