@@ -79,8 +79,12 @@ export default function PatientHistory() {
     );
   }
 
+  const cpfFmt = patient.cpf
+    ? patient.cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+    : null;
   const subtitleParts = [
     patient.medical_record && `Prontuário: ${patient.medical_record}`,
+    cpfFmt && `CPF: ${cpfFmt}`,
     patient.bed && `Leito: ${patient.bed}`,
     patient.date_of_birth && `Nascimento: ${new Date(patient.date_of_birth).toLocaleDateString("pt-BR")}`,
   ].filter(Boolean) as string[];

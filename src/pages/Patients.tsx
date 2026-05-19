@@ -28,6 +28,14 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { Plus, Search, Lock } from "lucide-react";
 import { toast } from "sonner";
 
+function formatCpf(digits: string): string {
+  const d = digits.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
 // Persiste filtros entre navegações (sidebar, voltar de um paciente, refresh).
 // Reset só quando o usuário muda explicitamente.
 function usePersistedState<T extends string>(key: string, initial: T): [T, (v: T) => void] {
@@ -77,6 +85,7 @@ export default function Patients() {
   const [form, setForm] = useState({
     full_name: "",
     medical_record: "",
+    cpf: "",
     bed: "",
     date_of_birth: "",
     current_ward_id: "",
@@ -103,10 +112,12 @@ export default function Patients() {
       if (search) {
         const needle = search.toLowerCase();
         const full = fullById.get(p.id);
+        const needleDigits = needle.replace(/\D/g, "");
         const matches =
           p.full_name.toLowerCase().includes(needle)
           || (full?.medical_record?.toLowerCase().includes(needle) ?? false)
-          || (full?.bed?.toLowerCase().includes(needle) ?? false);
+          || (full?.bed?.toLowerCase().includes(needle) ?? false)
+          || (needleDigits.length > 0 && (full?.cpf ?? "").includes(needleDigits));
         if (!matches) return false;
       }
       return true;
@@ -131,11 +142,17 @@ export default function Patients() {
       toast.error("Você não está vinculado a nenhum hospital");
       return;
     }
+    const cpfDigits = form.cpf.replace(/\D/g, "");
+    if (cpfDigits && cpfDigits.length !== 11) {
+      toast.error("CPF deve ter 11 dígitos");
+      return;
+    }
     try {
       await createPatient.mutateAsync({
         hospital_id: hospitalIds[0],
         full_name: form.full_name.trim(),
         medical_record: form.medical_record.trim() || null,
+        cpf: cpfDigits || null,
         bed: form.bed.trim() || null,
         date_of_birth: form.date_of_birth || null,
         current_ward_id: form.current_ward_id,
@@ -143,7 +160,7 @@ export default function Patients() {
       });
       toast.success("Paciente cadastrado");
       setOpen(false);
-      setForm({ full_name: "", medical_record: "", bed: "", date_of_birth: "", current_ward_id: "" });
+      setForm({ full_name: "", medical_record: "", cpf: "", bed: "", date_of_birth: "", current_ward_id: "" });
     } catch (e: any) {
       toast.error(`Erro ao criar paciente: ${e?.message ?? e}`);
     }
@@ -190,6 +207,18 @@ export default function Patients() {
                   </div>
                 </div>
                 <div>
+                  <Label>CPF <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={formatCpf(form.cpf)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      setForm((p) => ({ ...p, cpf: digits }));
+                    }}
+                  />
+                </div>
+                <div>
                   <Label>Data de nascimento</Label>
                   <Input
                     type="date"
@@ -233,7 +262,7 @@ export default function Patients() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, prontuário, leito..."
+              placeholder="Buscar por nome, prontuário, CPF, leito..."
               className="pl-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -337,7 +366,9 @@ export default function Patients() {
                           style={{ color: "var(--text-muted)" }}
                         >
                           {full?.medical_record && <span>PRT {full.medical_record}</span>}
-                          {full?.medical_record && full?.bed && <span>·</span>}
+                          {full?.medical_record && full?.cpf && <span>·</span>}
+                          {full?.cpf && <span>CPF {formatCpf(full.cpf)}</span>}
+                          {(full?.medical_record || full?.cpf) && full?.bed && <span>·</span>}
                           {full?.bed && <span>Leito {full.bed}</span>}
                         </div>
                         {p.ward_type && (

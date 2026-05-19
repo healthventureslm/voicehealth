@@ -207,6 +207,7 @@ export type Database = {
           full_name: string;
           initials: string | null;
           medical_record: string | null;
+          cpf: string | null;
           bed: string | null;
           date_of_birth: string | null;
           current_ward_id: string | null;
@@ -223,6 +224,7 @@ export type Database = {
           full_name: string;
           initials?: string | null;
           medical_record?: string | null;
+          cpf?: string | null;
           bed?: string | null;
           date_of_birth?: string | null;
           current_ward_id?: string | null;

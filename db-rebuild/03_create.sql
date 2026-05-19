@@ -208,6 +208,7 @@ CREATE TABLE patients (
   full_name         text NOT NULL,
   initials          text,
   medical_record    text,
+  cpf               text,
   bed               text,
   date_of_birth     date,
   current_ward_id   uuid REFERENCES wards(id) ON DELETE SET NULL,
@@ -217,10 +218,12 @@ CREATE TABLE patients (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   deleted_at        timestamptz,            -- soft-delete
-  UNIQUE (hospital_id, medical_record)
+  UNIQUE (hospital_id, medical_record),
+  CONSTRAINT patients_cpf_digits_chk CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$')
 );
 CREATE INDEX idx_patients_hospital ON patients(hospital_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_patients_ward ON patients(current_ward_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX patients_hospital_cpf_uniq ON patients(hospital_id, cpf) WHERE cpf IS NOT NULL AND deleted_at IS NULL;
 
 ------------------------------------------------------------------
 -- 9) patient_ward_history
