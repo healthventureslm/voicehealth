@@ -39,8 +39,10 @@ export default function Dashboard() {
   const firstName = profile?.full_name?.split(" ")[0] ?? "—";
   const isHospitalAdmin = roles.some((r) => r.role === "hospital_admin");
 
-  // Mostra apenas pacientes nos setores ATUAIS do usuário.
+  // Mostra apenas pacientes internados nos setores ATUAIS do usuário.
+  // Pacientes em alta/transferidos só aparecem na tela /patients com filtro.
   const myActivePatients = (patients ?? []).filter((p) => {
+    if (p.admission_status !== "admitted") return false;
     if (isSuperAdmin || isHospitalAdmin) return true;
     return !!p.current_ward_id && wardIds.includes(p.current_ward_id);
   });

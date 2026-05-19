@@ -357,10 +357,11 @@ export default function Patients() {
                   );
                 }
 
+                const isDischarged = p.admission_status === "discharged";
                 return (
                   <Card
                     key={p.id}
-                    className="cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all"
+                    className={`cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all ${isDischarged ? "opacity-75" : ""}`}
                     onClick={() => navigate(`/patients/${p.id}/history`)}
                   >
                     <CardContent className="p-4 flex items-start gap-3">
@@ -368,7 +369,18 @@ export default function Patients() {
                       <div className="min-w-0 flex-1">
                         <div className="text-[14px] font-semibold truncate flex items-center gap-2">
                           {p.full_name}
-                          {pendingReviewIds.has(p.id) && (
+                          {isDischarged ? (
+                            <span
+                              className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-flex items-center gap-1 flex-shrink-0"
+                              title={
+                                full?.discharged_at
+                                  ? `Alta em ${new Date(full.discharged_at).toLocaleString("pt-BR")}`
+                                  : "Em alta"
+                              }
+                            >
+                              Em alta
+                            </span>
+                          ) : pendingReviewIds.has(p.id) && (
                             <span
                               className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 inline-flex items-center gap-1 flex-shrink-0"
                               title="Sem gravação há 48h+ — revisar alta"
@@ -384,10 +396,16 @@ export default function Patients() {
                           {full?.medical_record && <span>PRT {full.medical_record}</span>}
                           {full?.medical_record && full?.cpf && <span>·</span>}
                           {full?.cpf && <span>CPF {formatCpf(full.cpf)}</span>}
-                          {(full?.medical_record || full?.cpf) && full?.bed && <span>·</span>}
-                          {full?.bed && <span>Leito {full.bed}</span>}
+                          {!isDischarged && (full?.medical_record || full?.cpf) && full?.bed && <span>·</span>}
+                          {!isDischarged && full?.bed && <span>Leito {full.bed}</span>}
+                          {isDischarged && full?.discharged_at && (
+                            <>
+                              {(full?.medical_record || full?.cpf) && <span>·</span>}
+                              <span>Alta em {new Date(full.discharged_at).toLocaleDateString("pt-BR")}</span>
+                            </>
+                          )}
                         </div>
-                        {p.ward_type && (
+                        {!isDischarged && p.ward_type && (
                           <div className="mt-2">
                             <WardChip
                               type={p.ward_type as any}
