@@ -1,7 +1,7 @@
 -- Alta automática após 7 dias sem gravação.
 -- "Última atividade" = max(criação, última revisão, última consulta) — mesma
 -- regra usada em patients_pending_discharge_review (Parte 2).
--- Roda 1x por dia às 03:00 UTC via pg_cron.
+-- Quando a extensão pg_cron estiver disponível, roda 1x por dia às 03:00 UTC.
 
 CREATE OR REPLACE FUNCTION public.auto_discharge_stale_patients()
 RETURNS integer
@@ -29,20 +29,29 @@ BEGIN
 END;
 $$;
 
--- Permite que o owner do pg_cron job execute.
 REVOKE ALL ON FUNCTION public.auto_discharge_stale_patients() FROM PUBLIC;
 
--- Remove agendamento anterior, se existir (idempotente).
+-- Agendamento defensivo: só registra o cron job se a extensão pg_cron
+-- estiver instalada no projeto. Em projetos sem pg_cron a função fica
+-- disponível para ser chamada manualmente (ex.: SQL editor ou edge
+-- function) sem quebrar a migration.
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'auto-discharge-stale-patients') THEN
-    PERFORM cron.unschedule('auto-discharge-stale-patients');
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    -- Remove agendamento anterior se existir, mantém idempotência.
+    BEGIN
+      PERFORM cron.unschedule('auto-discharge-stale-patients');
+    EXCEPTION WHEN OTHERS THEN
+      -- Não havia job; segue em frente.
+      NULL;
+    END;
+
+    PERFORM cron.schedule(
+      'auto-discharge-stale-patients',
+      '0 3 * * *',
+      $cron$ SELECT public.auto_discharge_stale_patients(); $cron$
+    );
+  ELSE
+    RAISE NOTICE 'pg_cron não está habilitado — auto_discharge_stale_patients() criada, mas sem agendamento automático. Habilite pg_cron e rode novamente para ativar o cron job.';
   END IF;
 END $$;
-
--- Agenda: todo dia às 03:00 UTC (00:00 BRT).
-SELECT cron.schedule(
-  'auto-discharge-stale-patients',
-  '0 3 * * *',
-  $cron$ SELECT public.auto_discharge_stale_patients(); $cron$
-);
