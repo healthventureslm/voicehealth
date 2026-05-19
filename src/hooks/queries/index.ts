@@ -5,6 +5,8 @@ export {
   useCreatePatient,
   useUpdatePatient,
   useTransferPatient,
+  useDischargePatient,
+  useReadmitPatient,
   usePatientWardHistory,
 } from "./usePatients";
 export type { PatientDirectoryEntry } from "./usePatients";

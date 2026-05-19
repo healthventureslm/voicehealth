@@ -135,6 +135,59 @@ export function useTransferPatient() {
   });
 }
 
+export function useDischargePatient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      patientId,
+      reason,
+      userId,
+    }: {
+      patientId: string;
+      reason?: string;
+      userId?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("patients")
+        .update({
+          admission_status: "discharged",
+          discharge_reason: reason?.trim() || null,
+          discharged_by: userId ?? null,
+        })
+        .eq("id", patientId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
+    },
+  });
+}
+
+export function useReadmitPatient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patientId: string) => {
+      const { data, error } = await supabase
+        .from("patients")
+        .update({ admission_status: "admitted" })
+        .eq("id", patientId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
+      qc.invalidateQueries({ queryKey: ["patient", id] });
+    },
+  });
+}
+
 export function usePatientWardHistory(patientId: string | undefined) {
   return useQuery({
     queryKey: ["patient_ward_history", patientId],

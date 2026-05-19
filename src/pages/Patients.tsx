@@ -68,7 +68,7 @@ export default function Patients() {
   const [search, setSearch] = usePersistedState("patients.filter.search", "");
   // Default: meus setores. "mine" = só onde tenho ward_assignment ativo.
   const [wardFilter, setWardFilter] = usePersistedState<string>("patients.filter.ward", "mine");
-  const [statusFilter, setStatusFilter] = usePersistedState<string>("patients.filter.status", "all");
+  const [statusFilter, setStatusFilter] = usePersistedState<string>("patients.filter.status", "admitted");
   const [open, setOpen] = useState(false);
 
   // Quando chega via /patients?new=1 (do hub "Novo atendimento"), abre o dialog

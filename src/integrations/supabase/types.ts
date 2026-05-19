@@ -212,6 +212,9 @@ export type Database = {
           date_of_birth: string | null;
           current_ward_id: string | null;
           admission_status: Database["public"]["Enums"]["patient_admission_status"];
+          discharged_at: string | null;
+          discharge_reason: string | null;
+          discharged_by: string | null;
           notes: string | null;
           created_by: string | null;
           created_at: string;
@@ -229,6 +232,9 @@ export type Database = {
           date_of_birth?: string | null;
           current_ward_id?: string | null;
           admission_status?: Database["public"]["Enums"]["patient_admission_status"];
+          discharged_at?: string | null;
+          discharge_reason?: string | null;
+          discharged_by?: string | null;
           notes?: string | null;
           created_by?: string | null;
           created_at?: string;
