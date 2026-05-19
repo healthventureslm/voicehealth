@@ -135,6 +135,100 @@ export function useTransferPatient() {
   });
 }
 
+export function useDischargePatient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      patientId,
+      reason,
+      userId,
+    }: {
+      patientId: string;
+      reason?: string;
+      userId?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("patients")
+        .update({
+          admission_status: "discharged",
+          discharge_reason: reason?.trim() || null,
+          discharged_by: userId ?? null,
+        })
+        .eq("id", patientId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
+    },
+  });
+}
+
+export type PendingDischargeReview = {
+  id: string;
+  hospital_id: string;
+  full_name: string;
+  current_ward_id: string | null;
+  last_activity_at: string;
+  hours_since: number;
+};
+
+/**
+ * Pacientes admitidos sem gravação/revisão há >= 48h. UI mostra alerta
+ * pedindo confirmação de alta. RLS aplica naturalmente (SECURITY INVOKER).
+ */
+export function usePatientsPendingReview() {
+  return useQuery({
+    queryKey: ["patients_pending_review"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("patients_pending_discharge_review");
+      if (error) throw error;
+      return (data ?? []) as PendingDischargeReview[];
+    },
+    staleTime: 60_000,
+  });
+}
+
+/** Marca "manter internado" — adia o alerta por mais 48h. */
+export function useMarkPatientReviewed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patientId: string) => {
+      const { data, error } = await supabase.rpc("mark_patient_review_now", { p_patient_id: patientId });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["patients_pending_review"] });
+      qc.invalidateQueries({ queryKey: ["patients"] });
+    },
+  });
+}
+
+export function useReadmitPatient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patientId: string) => {
+      const { data, error } = await supabase
+        .from("patients")
+        .update({ admission_status: "admitted" })
+        .eq("id", patientId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ["patients"] });
+      qc.invalidateQueries({ queryKey: ["patients_directory"] });
+      qc.invalidateQueries({ queryKey: ["patient", id] });
+    },
+  });
+}
+
 export function usePatientWardHistory(patientId: string | undefined) {
   return useQuery({
     queryKey: ["patient_ward_history", patientId],

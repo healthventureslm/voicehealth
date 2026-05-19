@@ -11,6 +11,7 @@ import {
   useCreatePatient,
   useMyWards,
   useWards,
+  usePatientsPendingReview,
 } from "@/hooks/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,14 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Plus, Search, Lock } from "lucide-react";
 import { toast } from "sonner";
+
+function formatCpf(digits: string): string {
+  const d = digits.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
 
 // Persiste filtros entre navegações (sidebar, voltar de um paciente, refresh).
 // Reset só quando o usuário muda explicitamente.
@@ -53,6 +62,11 @@ export default function Patients() {
   const canPickAnyWard = isSuperAdmin || isHospitalAdmin;
   const { data: fullPatients } = usePatients();
   const { data: directory, isLoading } = usePatientsDirectory();
+  const { data: pendingReview } = usePatientsPendingReview();
+  const pendingReviewIds = useMemo(
+    () => new Set((pendingReview ?? []).map((p) => p.id)),
+    [pendingReview],
+  );
   const { data: myWards } = useMyWards(user?.id);
   const { data: allWards } = useWards();
   const createPatient = useCreatePatient();
@@ -60,7 +74,7 @@ export default function Patients() {
   const [search, setSearch] = usePersistedState("patients.filter.search", "");
   // Default: meus setores. "mine" = só onde tenho ward_assignment ativo.
   const [wardFilter, setWardFilter] = usePersistedState<string>("patients.filter.ward", "mine");
-  const [statusFilter, setStatusFilter] = usePersistedState<string>("patients.filter.status", "all");
+  const [statusFilter, setStatusFilter] = usePersistedState<string>("patients.filter.status", "admitted");
   const [open, setOpen] = useState(false);
 
   // Quando chega via /patients?new=1 (do hub "Novo atendimento"), abre o dialog
@@ -77,6 +91,7 @@ export default function Patients() {
   const [form, setForm] = useState({
     full_name: "",
     medical_record: "",
+    cpf: "",
     bed: "",
     date_of_birth: "",
     current_ward_id: "",
@@ -103,10 +118,12 @@ export default function Patients() {
       if (search) {
         const needle = search.toLowerCase();
         const full = fullById.get(p.id);
+        const needleDigits = needle.replace(/\D/g, "");
         const matches =
           p.full_name.toLowerCase().includes(needle)
           || (full?.medical_record?.toLowerCase().includes(needle) ?? false)
-          || (full?.bed?.toLowerCase().includes(needle) ?? false);
+          || (full?.bed?.toLowerCase().includes(needle) ?? false)
+          || (needleDigits.length > 0 && (full?.cpf ?? "").includes(needleDigits));
         if (!matches) return false;
       }
       return true;
@@ -131,11 +148,17 @@ export default function Patients() {
       toast.error("Você não está vinculado a nenhum hospital");
       return;
     }
+    const cpfDigits = form.cpf.replace(/\D/g, "");
+    if (cpfDigits && cpfDigits.length !== 11) {
+      toast.error("CPF deve ter 11 dígitos");
+      return;
+    }
     try {
       await createPatient.mutateAsync({
         hospital_id: hospitalIds[0],
         full_name: form.full_name.trim(),
         medical_record: form.medical_record.trim() || null,
+        cpf: cpfDigits || null,
         bed: form.bed.trim() || null,
         date_of_birth: form.date_of_birth || null,
         current_ward_id: form.current_ward_id,
@@ -143,7 +166,7 @@ export default function Patients() {
       });
       toast.success("Paciente cadastrado");
       setOpen(false);
-      setForm({ full_name: "", medical_record: "", bed: "", date_of_birth: "", current_ward_id: "" });
+      setForm({ full_name: "", medical_record: "", cpf: "", bed: "", date_of_birth: "", current_ward_id: "" });
     } catch (e: any) {
       toast.error(`Erro ao criar paciente: ${e?.message ?? e}`);
     }
@@ -190,6 +213,18 @@ export default function Patients() {
                   </div>
                 </div>
                 <div>
+                  <Label>CPF <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={formatCpf(form.cpf)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      setForm((p) => ({ ...p, cpf: digits }));
+                    }}
+                  />
+                </div>
+                <div>
                   <Label>Data de nascimento</Label>
                   <Input
                     type="date"
@@ -233,7 +268,7 @@ export default function Patients() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, prontuário, leito..."
+              placeholder="Buscar por nome, prontuário, CPF, leito..."
               className="pl-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -282,7 +317,7 @@ export default function Patients() {
             <p className="text-xs text-muted-foreground">
               {filtered.length} paciente{filtered.length !== 1 && "s"}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
               {filtered.map((p) => {
                 const full = fullById.get(p.id);
                 const inMyWards = !!p.current_ward_id && wardIdSet.has(p.current_ward_id);
@@ -322,25 +357,55 @@ export default function Patients() {
                   );
                 }
 
+                const isDischarged = p.admission_status === "discharged";
                 return (
                   <Card
                     key={p.id}
-                    className="cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all"
+                    className={`cursor-pointer hover:shadow-md hover:border-[var(--border-hov)] transition-all ${isDischarged ? "opacity-75" : ""}`}
                     onClick={() => navigate(`/patients/${p.id}/history`)}
                   >
                     <CardContent className="p-4 flex items-start gap-3">
                       <GradientAvatar name={p.full_name} size="md" />
                       <div className="min-w-0 flex-1">
-                        <div className="text-[14px] font-semibold truncate">{p.full_name}</div>
+                        <div className="text-[14px] font-semibold truncate flex items-center gap-2">
+                          {p.full_name}
+                          {isDischarged ? (
+                            <span
+                              className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-flex items-center gap-1 flex-shrink-0"
+                              title={
+                                full?.discharged_at
+                                  ? `Alta em ${new Date(full.discharged_at).toLocaleString("pt-BR")}`
+                                  : "Em alta"
+                              }
+                            >
+                              Em alta
+                            </span>
+                          ) : pendingReviewIds.has(p.id) && (
+                            <span
+                              className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 inline-flex items-center gap-1 flex-shrink-0"
+                              title="Sem gravação há 48h+ — revisar alta"
+                            >
+                              Revisar alta
+                            </span>
+                          )}
+                        </div>
                         <div
                           className="text-[12px] mt-1 flex items-center gap-1.5 flex-wrap"
                           style={{ color: "var(--text-muted)" }}
                         >
                           {full?.medical_record && <span>PRT {full.medical_record}</span>}
-                          {full?.medical_record && full?.bed && <span>·</span>}
-                          {full?.bed && <span>Leito {full.bed}</span>}
+                          {full?.medical_record && full?.cpf && <span>·</span>}
+                          {full?.cpf && <span>CPF {formatCpf(full.cpf)}</span>}
+                          {!isDischarged && (full?.medical_record || full?.cpf) && full?.bed && <span>·</span>}
+                          {!isDischarged && full?.bed && <span>Leito {full.bed}</span>}
+                          {isDischarged && full?.discharged_at && (
+                            <>
+                              {(full?.medical_record || full?.cpf) && <span>·</span>}
+                              <span>Alta em {new Date(full.discharged_at).toLocaleDateString("pt-BR")}</span>
+                            </>
+                          )}
                         </div>
-                        {p.ward_type && (
+                        {!isDischarged && p.ward_type && (
                           <div className="mt-2">
                             <WardChip
                               type={p.ward_type as any}

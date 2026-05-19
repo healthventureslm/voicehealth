@@ -7,13 +7,16 @@ import {
   usePatient, usePatientWardHistory, usePatientTimeline, usePatientDocuments,
 } from "@/hooks/queries";
 import { TransferPatientDialog } from "@/components/TransferPatientDialog";
+import { DischargePatientDialog } from "@/components/DischargePatientDialog";
+import { useReadmitPatient } from "@/hooks/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Mic, ClipboardList, History, Lock,
-  FileText, FileSignature, ArrowRightLeft,
+  FileText, FileSignature, ArrowRightLeft, LogIn,
 } from "lucide-react";
+import { toast } from "sonner";
 
 function truncate(s: string | null | undefined, max = 140): string {
   if (!s) return "";
@@ -43,6 +46,9 @@ export default function PatientHistory() {
   const { data: wardHistory } = usePatientWardHistory(id);
   const { data: timeline } = usePatientTimeline(id);
   const { data: documents } = usePatientDocuments(id);
+  const readmit = useReadmitPatient();
+
+  const isDischarged = patient?.admission_status === "discharged";
 
   // O usuário pode atender este paciente?
   // - super_admin sempre pode
@@ -79,8 +85,12 @@ export default function PatientHistory() {
     );
   }
 
+  const cpfFmt = patient.cpf
+    ? patient.cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+    : null;
   const subtitleParts = [
     patient.medical_record && `Prontuário: ${patient.medical_record}`,
+    cpfFmt && `CPF: ${cpfFmt}`,
     patient.bed && `Leito: ${patient.bed}`,
     patient.date_of_birth && `Nascimento: ${new Date(patient.date_of_birth).toLocaleDateString("pt-BR")}`,
   ].filter(Boolean) as string[];
@@ -94,7 +104,9 @@ export default function PatientHistory() {
           title={
             <span className="flex items-center gap-3">
               {patient.full_name}
-              {(patient as any).current_ward && (
+              {isDischarged ? (
+                <Badge variant="secondary" className="text-xs">Em alta</Badge>
+              ) : (patient as any).current_ward && (
                 <Badge variant="outline" className="text-xs font-mono">
                   {(patient as any).current_ward.name}
                 </Badge>
@@ -104,24 +116,47 @@ export default function PatientHistory() {
           subtitle={subtitleParts.join(" · ")}
           actions={
             canAttendPatient ? (
-              <>
-                <TransferPatientDialog
-                  patientId={patient.id}
-                  patientName={patient.full_name}
-                  currentWardId={patient.current_ward_id}
-                  hospitalId={patient.hospital_id}
-                />
+              isDischarged ? (
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/documents/new?patient=${patient.id}`)}
                   className="gap-2"
+                  disabled={readmit.isPending}
+                  onClick={async () => {
+                    try {
+                      await readmit.mutateAsync(patient.id);
+                      toast.success("Paciente readmitido");
+                    } catch (e: any) {
+                      toast.error(`Erro: ${e?.message ?? e}`);
+                    }
+                  }}
                 >
-                  <FileSignature className="w-4 h-4" /> Gerar documento
+                  <LogIn className="w-4 h-4" />
+                  {readmit.isPending ? "Readmitindo…" : "Readmitir"}
                 </Button>
-                <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
-                  <Mic className="w-4 h-4" /> Nova gravação
-                </Button>
-              </>
+              ) : (
+                <>
+                  <TransferPatientDialog
+                    patientId={patient.id}
+                    patientName={patient.full_name}
+                    currentWardId={patient.current_ward_id}
+                    hospitalId={patient.hospital_id}
+                  />
+                  <DischargePatientDialog
+                    patientId={patient.id}
+                    patientName={patient.full_name}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/documents/new?patient=${patient.id}`)}
+                    className="gap-2"
+                  >
+                    <FileSignature className="w-4 h-4" /> Gerar documento
+                  </Button>
+                  <Button onClick={() => navigate(`/consultations/new?patient=${patient.id}`)} className="gap-2">
+                    <Mic className="w-4 h-4" /> Nova gravação
+                  </Button>
+                </>
+              )
             ) : (
               <Button disabled variant="outline" className="gap-2" title="Paciente está fora dos seus setores">
                 <Lock className="w-4 h-4" /> Sem acesso clínico
@@ -129,6 +164,28 @@ export default function PatientHistory() {
             )
           }
         />
+
+        {isDischarged && (
+          <Card className="border-muted bg-muted/30">
+            <CardContent className="py-3 text-sm flex items-start gap-3">
+              <LogIn className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground rotate-180" />
+              <div className="space-y-1">
+                <div>
+                  Paciente em alta
+                  {patient.discharged_at && (
+                    <> desde <strong>{new Date(patient.discharged_at).toLocaleString("pt-BR")}</strong></>
+                  )}
+                  .
+                </div>
+                {patient.discharge_reason && (
+                  <div className="text-muted-foreground">
+                    Motivo: {patient.discharge_reason}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {!canAttendPatient && (patient as any).current_ward && (
           <Card className="border-warning/30 bg-warning/5">

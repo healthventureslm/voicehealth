@@ -5,9 +5,13 @@ export {
   useCreatePatient,
   useUpdatePatient,
   useTransferPatient,
+  useDischargePatient,
+  useReadmitPatient,
+  usePatientsPendingReview,
+  useMarkPatientReviewed,
   usePatientWardHistory,
 } from "./usePatients";
-export type { PatientDirectoryEntry } from "./usePatients";
+export type { PatientDirectoryEntry, PendingDischargeReview } from "./usePatients";
 export { useWards, useMyWards } from "./useWards";
 export {
   useConsultations,

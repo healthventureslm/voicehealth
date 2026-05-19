@@ -207,10 +207,15 @@ export type Database = {
           full_name: string;
           initials: string | null;
           medical_record: string | null;
+          cpf: string | null;
           bed: string | null;
           date_of_birth: string | null;
           current_ward_id: string | null;
           admission_status: Database["public"]["Enums"]["patient_admission_status"];
+          discharged_at: string | null;
+          discharge_reason: string | null;
+          discharged_by: string | null;
+          last_discharge_review_at: string | null;
           notes: string | null;
           created_by: string | null;
           created_at: string;
@@ -223,10 +228,15 @@ export type Database = {
           full_name: string;
           initials?: string | null;
           medical_record?: string | null;
+          cpf?: string | null;
           bed?: string | null;
           date_of_birth?: string | null;
           current_ward_id?: string | null;
           admission_status?: Database["public"]["Enums"]["patient_admission_status"];
+          discharged_at?: string | null;
+          discharge_reason?: string | null;
+          discharged_by?: string | null;
+          last_discharge_review_at?: string | null;
           notes?: string | null;
           created_by?: string | null;
           created_at?: string;
@@ -741,6 +751,21 @@ export type Database = {
           ward_type: Database["public"]["Enums"]["ward_type"] | null;
           created_at: string;
         }>;
+      };
+      patients_pending_discharge_review: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          hospital_id: string;
+          full_name: string;
+          current_ward_id: string | null;
+          last_activity_at: string;
+          hours_since: number;
+        }>;
+      };
+      mark_patient_review_now: {
+        Args: { p_patient_id: string };
+        Returns: Database["public"]["Tables"]["patients"]["Row"];
       };
     };
 
